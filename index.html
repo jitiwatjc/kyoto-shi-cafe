@@ -311,17 +311,17 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
     <div id="rp1">
       <div class="fsect">ข้อมูลส่วนตัว</div>
       <div class="fg2">
-        <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" value="สมหญิง"></div>
-        <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" value="ใจดี"></div>
+        <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" id="reg-fname" placeholder="ชื่อจริง"></div>
+        <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" id="reg-lname" placeholder="นามสกุล"></div>
       </div>
-      <div class="fg"><label class="t-label">เลขบัตรประชาชน 13 หลัก *</label><input class="fi" value="1-3019-01234-56-7"></div>
+      <div class="fg"><label class="t-label">เลขบัตรประชาชน 13 หลัก *</label><input class="fi" id="reg-idcard" placeholder="x-xxxx-xxxxx-xx-x"></div>
       <div class="fg2">
-        <div class="fg"><label class="t-label">วันเกิด *</label><input class="fi" type="date" value="2000-03-15"></div>
-        <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" value="085-234-5678"></div>
+        <div class="fg"><label class="t-label">วันเกิด *</label><input class="fi" type="date" id="reg-dob"></div>
+        <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" id="reg-phone" placeholder="0xx-xxx-xxxx"></div>
       </div>
-      <div class="fg"><label class="t-label">ที่อยู่ปัจจุบัน *</label><input class="fi" value="45/2 ถ.สุขุมวิท ต.เนินพระ จ.ระยอง 21000"></div>
+      <div class="fg"><label class="t-label">ที่อยู่ปัจจุบัน *</label><input class="fi" id="reg-addr" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"></div>
       <div class="fsect">ตั้งค่าบัญชี</div>
-      <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username) *</label><input class="fi" value="somying01"><div class="fhint">ตัวอักษรภาษาอังกฤษและตัวเลข ไม่มีช่องว่าง · ใช้ Login เข้าระบบ</div></div>
+      <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username) *</label><input class="fi" id="reg-user" placeholder="ตัวอักษรภาษาอังกฤษและตัวเลข"><div class="fhint">ตัวอักษรภาษาอังกฤษและตัวเลข ไม่มีช่องว่าง · ใช้ Login เข้าระบบ</div></div>
       <div class="fg2">
         <div class="fg"><label class="t-label">รหัสผ่าน *</label><input class="fi" type="password" placeholder="อย่างน้อย 8 ตัว"></div>
         <div class="fg"><label class="t-label">ยืนยันรหัสผ่าน *</label><input class="fi" type="password" placeholder="กรอกซ้ำ"></div>
@@ -338,20 +338,20 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
           <option>Part-time · รายชั่วโมง</option>
           <option>ทดลองงาน (Probation)</option>
         </select></div>
-      <div class="fg"><label class="t-label">วันที่เริ่มทำงาน *</label><input class="fi" type="date" value="2026-06-01"><div class="fhint">Owner จะยืนยันหรือปรับเปลี่ยนวันเริ่มงานหลังอนุมัติบัญชี</div></div>
+      <div class="fg"><label class="t-label">วันที่เริ่มทำงาน *</label><input class="fi" type="date" id="reg-startdate"><div class="fhint">Owner จะยืนยันหรือปรับเปลี่ยนวันเริ่มงานหลังอนุมัติบัญชี</div></div>
       <div class="fsect">บัญชีธนาคาร</div>
       <div class="fg"><label class="t-label">ธนาคาร *</label>
         <select class="fi fi-sel"><option selected>กสิกรไทย (KBank)</option><option>ไทยพาณิชย์ (SCB)</option><option>กรุงไทย (KTB)</option></select></div>
       <div class="fg2">
-        <div class="fg"><label class="t-label">เลขบัญชี *</label><input class="fi" value="123-4-56789-0"></div>
-        <div class="fg"><label class="t-label">ชื่อบัญชี *</label><input class="fi" value="น.ส.สมหญิง ใจดี"></div>
+        <div class="fg"><label class="t-label">เลขบัญชี *</label><input class="fi" id="reg-bank-acc" placeholder="xxx-x-xxxxx-x"></div>
+        <div class="fg"><label class="t-label">ชื่อบัญชี *</label><input class="fi" id="reg-bank-name" placeholder="ชื่อ-นามสกุล ตามบัญชี"></div>
       </div>
       <div class="btn-row"><button class="btn btn-ghost btn-full" onclick="rStep(1)">ย้อนกลับ</button><button class="btn btn-dark btn-full" onclick="rStep(3)">ถัดไป</button></div>
     </div>
     <div id="rp3" style="display:none;">
       <div class="fsect">เอกสารยืนยันบัญชีธนาคาร</div>
       <div class="alert alert-info" style="font-size:12px;">แนบสมุดบัญชีเพื่อให้ Owner ตรวจสอบ — บัญชีจะใช้งานได้เมื่อ Owner อนุมัติ</div>
-      <div class="upbox"><div class="upbox-icon">🏦</div><div class="upbox-title">หน้าสมุดบัญชีธนาคาร *</div><div class="upbox-sub">รูปภาพหน้าแรกของสมุดบัญชี หรือ PDF สูงสุด 5MB</div><button class="btn btn-ghost btn-sm" style="margin-top:10px;">เลือกไฟล์</button><div class="upbox-ok">✓ Bookbank_Somying.jpg</div></div>
+      <div class="upbox"><div class="upbox-icon">🏦</div><div class="upbox-title">หน้าสมุดบัญชีธนาคาร *</div><div class="upbox-sub">รูปภาพหน้าแรกของสมุดบัญชี หรือ PDF สูงสุด 5MB</div><button class="btn btn-ghost btn-sm" style="margin-top:10px;">เลือกไฟล์</button></div>
       <div class="card" style="background:var(--surface2);box-shadow:none;border:1px solid var(--border);margin-top:4px;">
         <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px;">สรุปข้อมูลบัญชี</div>
         <div class="irow"><span class="ilabel">ชื่อ</span><span class="ival">สมหญิง ใจดี</span></div>
@@ -471,132 +471,24 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
 
     <!-- TAB 0: ใบสมัคร -->
     <div id="apv-t0">
-      <div class="tabs"><div class="tab on" onclick="swTab(this,'at-pend')">รอตรวจสอบ (1)</div><div class="tab" onclick="swTab(this,'at-done')">ดำเนินการแล้ว</div></div>
-      <div id="at-pend">
-        <div class="apv-card" style="cursor:pointer;border-left-color:var(--amber);" onclick="go('s-owner-apv-detail')">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <div class="lavatar" style="background:var(--surface2);color:var(--ink3);">ส</div>
-            <div class="lcol"><div class="ltitle">สมหญิง ใจดี</div><div class="lsub">เบเกอรี่ · Full-time · สมัคร 15 พ.ค. 09:30</div></div>
-            <span class="chip chip-amber">รอตรวจสอบ</span>
-          </div>
-          <div style="background:var(--surface2);border-radius:var(--rsm);padding:10px 12px;font-size:12px;display:flex;align-items:center;gap:10px;">
-            <span style="font-size:20px;">🏦</span>
-            <div><div style="font-weight:600;color:var(--ink2);">สมุดบัญชีธนาคาร</div><div style="color:var(--ink3);margin-top:2px;">KBank · 123-4-56789-0 · Bookbank_Somying.jpg</div></div>
-            <button class="btn btn-ghost btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();toast('เปิดไฟล์เอกสาร')">ดู</button>
-          </div>
-        </div>
-      </div>
-      <div id="at-done" style="display:none;">
-        <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-          <div class="lrow" style="cursor:default;"><div class="lavatar" style="background:#1A3560;">น</div><div class="lcol"><div class="ltitle">นาม สุขใจ</div><div class="lsub">บาร์หน้า · 10 เม.ย. 2026</div></div><span class="chip chip-green">รับเข้า</span></div>
-          <div class="lrow" style="cursor:default;"><div class="lavatar" style="background:#888;">ต</div><div class="lcol"><div class="ltitle">ตรีรัตน์ สว่าง</div><div class="lsub">ครัว · 5 มี.ค. 2026</div></div><span class="chip chip-red">ไม่รับ</span></div>
-        </div></div>
-      </div>
+      <div class="tabs" id="apv-emp-tabs"><div class="tab on" onclick="swTab(this,'at-pend')">รอตรวจสอบ (<span id="apv-emp-pend-count">0</span>)</div><div class="tab" onclick="swTab(this,'at-done')">ดำเนินการแล้ว</div></div>
+      <div id="at-pend"><div id="apv-t0-pend" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div></div>
+      <div id="at-done" style="display:none;"><div id="apv-t0-done" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div></div>
     </div>
 
     <!-- TAB 1: ตารางงาน -->
     <div id="apv-t1" style="display:none;">
-      <div class="apv-card">
-        <div class="apv-name">มิน รักงาน</div>
-        <div class="apv-sub">เบเกอรี่ · ขออนุมัติตาราง</div>
-        <div class="div"></div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
-          <div style="font-weight:600;color:var(--ink);margin-bottom:8px;">วันทำงานที่ขออนุมัติ</div>
-          <div class="irow" style="padding:6px 0;"><span class="ilabel">18 พ.ค. (จ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">08:30 น.</span></div>
-          <div class="irow" style="padding:6px 0;"><span class="ilabel">20 พ.ค. (พ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">08:30 น.</span></div>
-          <div class="irow" style="padding:6px 0;"><span class="ilabel">22 พ.ค. (ศ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">09:00 น.</span></div>
-          <div class="irow" style="padding:6px 0;"><span class="ilabel">25 พ.ค. (จ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">08:30 น.</span></div>
-          <div class="irow" style="padding:6px 0;border-bottom:none;"><span class="ilabel">+ อีก 4 วัน</span><span class="ival">รวม 8 วัน</span></div>
-        </div>
-        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธตาราง มิน รักงาน')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติตาราง มิน รักงาน ✓')">อนุมัติ</button></div>
-      </div>
-      <div class="apv-card">
-        <div class="apv-name">ต้น พอใจ <span class="chip chip-blue" style="font-size:10px;vertical-align:middle;">PT</span></div>
-        <div class="apv-sub">บาร์หน้า · ขออนุมัติตาราง</div>
-        <div class="div"></div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
-          <div style="font-weight:600;color:var(--ink);margin-bottom:8px;">วันทำงานที่ขออนุมัติ</div>
-          <div class="irow" style="padding:6px 0;"><span class="ilabel">19 พ.ค. (อ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">10:00 น.</span></div>
-          <div class="irow" style="padding:6px 0;"><span class="ilabel">21 พ.ค. (พฤ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">10:00 น.</span></div>
-          <div class="irow" style="padding:6px 0;border-bottom:none;"><span class="ilabel">23 พ.ค. (ส.)</span><span class="ival" style="color:var(--navy);font-weight:600;">10:00 น.</span></div>
-        </div>
-        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธตาราง ต้น พอใจ')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติตาราง ต้น พอใจ ✓')">อนุมัติ</button></div>
-      </div>
-      <div class="apv-card" style="border-left-color:var(--amber);">
-        <div class="apv-name">แก้ว มีสุข <span class="chip chip-amber" style="font-size:10px;vertical-align:middle;">แก้ไขเวลา</span></div>
-        <div class="apv-sub">ครัว · ขอแก้ไขเวลาเข้างาน 20 พ.ค.</div>
-        <div class="div"></div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
-          <div style="color:var(--red);margin-bottom:4px;">เดิม: 20 พ.ค. — เวลา 08:30 น.</div>
-          <div style="color:var(--green);">ใหม่: 20 พ.ค. — เวลา 10:00 น.</div>
-          <div class="t-cap" style="margin-top:6px;">เหตุผล: นัดหมอช่วงเช้า</div>
-        </div>
-        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธแก้ไข แก้ว')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติแก้ไข แก้ว ✓')">อนุมัติ</button></div>
-      </div>
+      <div id="apv-t1-list" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
     </div>
 
     <!-- TAB 2: วันลา -->
     <div id="apv-t2" style="display:none;">
-      <div class="apv-card" style="border-left-color:var(--info);">
-        <div class="apv-name">ปาย ใจงาม</div><div class="apv-sub">แม่บ้าน · ลากิจ</div>
-        <div class="div"></div>
-        <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">ลากิจ</span></div>
-        <div class="irow"><span class="ilabel">วันที่</span><span class="ival">20–21 พ.ค. 2026 (2 วัน)</span></div>
-        <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">ธุระครอบครัว</span></div>
-        <div class="irow"><span class="ilabel">แจ้งล่วงหน้า</span><span class="ival" style="color:var(--green);">5 วัน ✓</span></div>
-        <div class="irow"><span class="ilabel">วันลาคงเหลือ</span><span class="ival" style="font-weight:700;">3/3 วัน</span></div>
-        <div class="div"></div>
-        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธลากิจ ปาย')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติลากิจ ปาย ✓')">อนุมัติ</button></div>
-      </div>
-      <div class="apv-card" style="border-left-color:var(--red);">
-        <div class="apv-name">อ้อย สดใส</div><div class="apv-sub">บาร์หน้า · ลาป่วย (ย้อนหลัง)</div>
-        <div class="div"></div>
-        <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">ลาป่วย</span></div>
-        <div class="irow"><span class="ilabel">วันที่</span><span class="ival">14 พ.ค. 2026</span></div>
-        <div class="irow"><span class="ilabel">วันลาคงเหลือ</span><span class="ival" style="font-weight:700;">3/3 วัน</span></div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;margin:12px 0;">
-          <div style="font-size:12px;font-weight:600;">ใบรับรองแพทย์</div>
-          <div style="font-size:11px;color:var(--green);margin-top:4px;">✓ med_cert_aoy.pdf</div>
-          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="toast('เปิดไฟล์ med_cert_aoy.pdf')">ดูเอกสาร</button>
-        </div>
-        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธลาป่วย อ้อย')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติลาป่วย อ้อย ✓')">อนุมัติ</button></div>
-      </div>
+      <div id="apv-t2-list" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
     </div>
 
     <!-- TAB 3: OT -->
     <div id="apv-t3" style="display:none;">
-      <div class="apv-card" style="border-left-color:var(--amber);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <div class="apv-name">นาม สุขใจ</div>
-          <span class="chip chip-amber">รออนุมัติ</span>
-        </div>
-        <div class="apv-sub">บาร์หน้า · ขอทำ OT วันที่ 19 พ.ค. 2026</div>
-        <div class="div"></div>
-        <div class="irow"><span class="ilabel">วันที่</span><span class="ival">19 พ.ค. 2026 (พฤ.)</span></div>
-        <div class="irow"><span class="ilabel">เวลา OT</span><span class="ival" style="color:var(--navy);font-weight:600;">17:30 – 20:00 น.</span></div>
-        <div class="irow"><span class="ilabel">รวม</span><span class="ival" style="font-weight:700;">2.5 ชั่วโมง</span></div>
-        <div class="irow"><span class="ilabel">OT เดือนนี้ (รวม)</span><span class="ival">3.5 + 2.5 = 6 ชม.</span></div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;margin:12px 0;">
-          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">เหตุผล</div>
-          <div style="font-size:13px;color:var(--ink2);">เตรียมสต็อควัตถุดิบสำหรับวันหยุด</div>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธ OT นาม สุขใจ')">ปฏิเสธ</button>
-          <button class="btn btn-success btn-full" onclick="toast('อนุมัติ OT นาม สุขใจ ✓')">อนุมัติ</button>
-        </div>
-      </div>
-      <!-- Approved OT history -->
-      <div class="t-sect">อนุมัติแล้ว เดือนนี้</div>
-      <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-        <div class="lrow" style="cursor:default;">
-          <div class="lcol"><div class="ltitle">มิน รักงาน</div><div class="lsub">10 พ.ค. · 17:00–20:00 น. · 3 ชม.</div></div>
-          <span class="chip chip-green">อนุมัติ</span>
-        </div>
-        <div class="lrow" style="cursor:default;">
-          <div class="lcol"><div class="ltitle">แก้ว มีสุข</div><div class="lsub">8 พ.ค. · 17:30–19:30 น. · 2 ชม.</div></div>
-          <span class="chip chip-green">อนุมัติ</span>
-        </div>
-      </div></div>
+      <div id="apv-t3-list" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
     </div>
   </div>
   <div class="bnav">
@@ -732,26 +624,26 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
         <div style="font-size:10px;color:var(--ink3);">Management System</div>
       </div>
     </div>
-    <div class="topbar-avatar" onclick="doLogout()">น</div>
+    <div class="topbar-avatar" id="emp-avatar" onclick="doLogout()">E</div>
   </div>
   <div class="page">
     <div style="margin-bottom:16px;">
-      <div class="t-cap">ศุกร์, 15 พฤษภาคม 2026</div>
-      <div class="t-title" style="margin-top:4px;">สวัสดี, นาม 👋</div>
+      <div class="t-cap" id="emp-home-date"></div>
+      <div class="t-title" style="margin-top:4px;" id="emp-home-greeting">สวัสดี 👋</div>
     </div>
     <div class="clock-hero">
       <div class="clock-time" id="lclock">--:--</div>
-      <div class="clock-sub">เวลาเข้างานวันนี้: 08:32 น.</div>
-      <div class="clock-gps"><span class="gps-pulse"></span> GPS: รัศมีร้าน (32 ม.)</div>
+      <div class="clock-sub" id="emp-clock-sub">—</div>
+      <div class="clock-gps"><span class="gps-pulse"></span> GPS: <span id="emp-gps-sub">ตรวจสอบ...</span></div>
       <button class="btn btn-blue" style="margin-top:18px;padding:12px 36px;position:relative;z-index:1;" onclick="go('s-emp-clockin')">Clock In / Out</button>
     </div>
     <div class="t-sect">เมนูหลัก</div>
     <div class="scroll-x">
       <div class="qcard" onclick="go('s-emp-profile-self')"><div class="qcard-icon">👤</div><div class="qcard-title">โปรไฟล์</div><div class="qcard-sub">ข้อมูลของฉัน</div></div>
-      <div class="qcard" onclick="go('s-emp-sched')"><div class="qcard-icon">📋</div><div class="qcard-title">ตารางงาน</div><div class="qcard-sub" style="color:var(--amber);">⚠ รออนุมัติ</div></div>
+      <div class="qcard" onclick="go('s-emp-sched')"><div class="qcard-icon">📋</div><div class="qcard-title">ตารางงาน</div><div class="qcard-sub" id="qcard-sched-sub">—</div></div>
       <div class="qcard" onclick="go('s-emp-clockin')"><div class="qcard-icon">🕐</div><div class="qcard-title">Clock In/Out</div><div class="qcard-sub">GPS Verified</div></div>
-      <div class="qcard" onclick="go('s-emp-leave')"><div class="qcard-icon">📅</div><div class="qcard-title">วันลา</div><div class="qcard-sub">เหลือ 5+3+3</div></div>
-      <div class="qcard" onclick="go('s-emp-ot')"><div class="qcard-icon">⏰</div><div class="qcard-title">ขอ OT</div><div class="qcard-sub" style="color:var(--amber);">⚠ รออนุมัติ 1</div></div>
+      <div class="qcard" onclick="go('s-emp-leave')"><div class="qcard-icon">📅</div><div class="qcard-title">วันลา</div><div class="qcard-sub" id="qcard-leave-sub">—</div></div>
+      <div class="qcard" onclick="go('s-emp-ot')"><div class="qcard-icon">⏰</div><div class="qcard-title">ขอ OT</div><div class="qcard-sub" id="qcard-ot-sub">—</div></div>
     </div>
   </div>
   <div class="bnav">
@@ -769,26 +661,26 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์ของฉัน</div></div>
   <div class="page">
     <div style="text-align:center;padding:20px 0 16px;">
-      <div class="lavatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">น</div>
-      <div style="font-size:20px;font-weight:700;">นาม สุขใจ</div>
-      <div class="t-cap" style="margin-top:4px;">บาร์หน้า · พนักงานประจำ</div>
+      <div class="lavatar" id="profile-avatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">—</div>
+      <div style="font-size:20px;font-weight:700;" id="profile-name">—</div>
+      <div class="t-cap" style="margin-top:4px;" id="profile-pos">—</div>
       <span class="chip chip-green" style="margin-top:8px;">Active</span>
     </div>
     <div class="alert alert-info" style="font-size:12px;">ข้อมูลฐานเงินเดือน — เห็นได้เฉพาะ Owner</div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ข้อมูลงาน</div>
-      <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival">บาร์หน้า</span></div>
-      <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">พนักงานประจำ</span></div>
-      <div class="irow"><span class="ilabel">วันเริ่มงาน</span><span class="ival">1 ม.ค. 2025</span></div>
-      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival">082-345-6789</span></div>
-      <div class="irow"><span class="ilabel">ธนาคาร</span><span class="ival">KBank 123-4-56789-0</span></div>
+      <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival" id="profile-position">—</span></div>
+      <div class="irow"><span class="ilabel">ประเภท</span><span class="ival" id="profile-type">—</span></div>
+      <div class="irow"><span class="ilabel">วันเริ่มงาน</span><span class="ival" id="profile-startdate">—</span></div>
+      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival" id="profile-phone">—</span></div>
+      <div class="irow"><span class="ilabel">ธนาคาร</span><span class="ival" id="profile-bank">—</span></div>
     </div>
     <div class="card">
-      <div class="card-title" style="margin-bottom:12px;">วันลาปี 2026</div>
+      <div class="card-title" style="margin-bottom:12px;">วันลาปี <span id="profile-leave-year"></span></div>
       <div class="leave-grid">
-        <div class="leave-bal"><div class="leave-num">5</div><div class="leave-lbl">พักร้อน</div></div>
-        <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลาป่วย</div></div>
-        <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลากิจ</div></div>
+        <div class="leave-bal"><div class="leave-num" id="profile-leave-v">—</div><div class="leave-lbl">พักร้อน</div></div>
+        <div class="leave-bal"><div class="leave-num" id="profile-leave-s">—</div><div class="leave-lbl">ลาป่วย</div></div>
+        <div class="leave-bal"><div class="leave-num" id="profile-leave-p">—</div><div class="leave-lbl">ลากิจ</div></div>
       </div>
     </div>
   </div>
@@ -1388,7 +1280,10 @@ function go(id){
   if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
   if(id==='s-emp-sched'){renderSchedDeadlineBanner();}
   if(id==='s-emp-ot'){renderOTRate();}
+  if(id==='s-emp-home'){renderEmpHome();}
+  if(id==='s-emp-profile-self'){renderEmpProfile();}
   if(id==='s-owner-home'){renderOwnerHome();}
+  if(id==='s-owner-approve'){renderApprovalTabs();}
 }
 
 /* ── GPS BANNER ON CLOCK SCREEN ── */
@@ -1498,7 +1393,221 @@ function swApproveTab(idx){
   document.querySelectorAll('#approve-tabs .tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
   [0,1,2,3].forEach(i=>{const el=document.getElementById('apv-t'+i);if(el)el.style.display=i===idx?'block':'none';});
 }
-function goApprove(tab){swApproveTab(tab);go('s-owner-approve');}
+function goApprove(tab){swApproveTab(tab);go('s-owner-approve');renderApprovalTabs();}
+
+/* ── EMPLOYEE HOME ── */
+async function renderEmpHome(){
+  const now=new Date();
+  const DAYS=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const dateEl=document.getElementById('emp-home-date');
+  const greetEl=document.getElementById('emp-home-greeting');
+  const avatarEl=document.getElementById('emp-avatar');
+  if(dateEl)dateEl.textContent=DAYS[now.getDay()]+', '+now.getDate()+' '+THAI_MONTHS_FULL[now.getMonth()]+' '+(now.getFullYear()+543);
+  const nick=currentUser?.nickname||currentUser?.name||'';
+  if(greetEl)greetEl.textContent='สวัสดี'+(nick?', '+nick:'')+' 👋';
+  if(avatarEl)avatarEl.textContent=nick.charAt(0)||'E';
+
+  // Today's clock-in status
+  try{
+    const r=await callAPI({action:'getTodayClock',empId:currentUser.empId,date:todayISO()});
+    const sub=document.getElementById('emp-clock-sub');
+    if(sub){
+      if(r.ok&&r.data&&r.data.clockIn) sub.textContent='เวลาเข้างานวันนี้: '+r.data.clockIn+' น.';
+      else sub.textContent='ยังไม่ได้ Clock In วันนี้';
+    }
+  }catch(e){}
+
+  // Leave balance quick card
+  try{
+    const year=now.getFullYear();
+    const lb=await callAPI({action:'getLeaveBalance',empId:currentUser.empId,year});
+    if(lb.ok&&lb.data){
+      const rem=lb.data;
+      const sub=document.getElementById('qcard-leave-sub');
+      if(sub)sub.textContent='เหลือ '+(rem.v||0)+'+'+(rem.s||0)+'+'+(rem.p||0)+' วัน';
+    }
+  }catch(e){}
+
+  // OT pending
+  try{
+    const ot=await callAPI({action:'getPendingApprovals'});
+    const sub=document.getElementById('qcard-ot-sub');
+    if(sub&&ot.ok&&ot.data){
+      const myOT=(ot.data.ot||[]).filter(o=>String(o.empId)===String(currentUser.empId));
+      sub.textContent=myOT.length>0?'⚠ รออนุมัติ '+myOT.length:'ไม่มีรายการค้าง';
+      sub.style.color=myOT.length>0?'var(--amber)':'';
+    }
+  }catch(e){}
+
+  // Schedule pending
+  try{
+    const schedEl=document.getElementById('qcard-sched-sub');
+    if(schedEl)schedEl.textContent='ส่งตารางงาน';
+  }catch(e){}
+}
+
+/* ── EMPLOYEE PROFILE SELF ── */
+async function renderEmpProfile(){
+  if(!currentUser)return;
+  const n=currentUser.name||'';
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val||'—';};
+  setEl('profile-name',n);
+  setEl('profile-position',currentUser.position||'—');
+  setEl('profile-type',currentUser.type||'—');
+  setEl('profile-startdate',currentUser.startDate||'—');
+  setEl('profile-phone',currentUser.phone||'—');
+  setEl('profile-bank',(currentUser.bank||'')+(currentUser.bankAcc?' · '+currentUser.bankAcc:''));
+  const avatarEl=document.getElementById('profile-avatar');
+  if(avatarEl)avatarEl.textContent=n.charAt(0)||'—';
+  const posEl=document.getElementById('profile-pos');
+  if(posEl)posEl.textContent=(currentUser.position||'—')+' · '+(currentUser.type||'—');
+  const yr=new Date().getFullYear();
+  const yrEl=document.getElementById('profile-leave-year');
+  if(yrEl)yrEl.textContent=yr+543;
+  try{
+    const lb=await callAPI({action:'getLeaveBalance',empId:currentUser.empId,year:yr});
+    if(lb.ok&&lb.data){
+      setEl('profile-leave-v',String(lb.data.v??'—'));
+      setEl('profile-leave-s',String(lb.data.s??'—'));
+      setEl('profile-leave-p',String(lb.data.p??'—'));
+    }
+  }catch(e){}
+}
+
+/* ── APPROVAL TABS DYNAMIC ── */
+const LEAVE_LABELS={v:'ลาพักร้อน',s:'ลาป่วย',p:'ลากิจ'};
+async function renderApprovalTabs(){
+  try{
+    const res=await callAPI({action:'getPendingApprovals'});
+    if(!res.ok||!res.data)return;
+    const d=res.data;
+
+    // Tab 0: new employees
+    const empPend=document.getElementById('apv-t0-pend');
+    const empDone=document.getElementById('apv-t0-done');
+    const pendCount=document.getElementById('apv-emp-pend-count');
+    const pending=(d.registrations||[]);
+    const done=[];
+    if(pendCount)pendCount.textContent=pending.length;
+    if(empPend){
+      empPend.innerHTML=pending.length?pending.map(e=>`
+        <div class="apv-card" style="border-left-color:var(--amber);">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div class="lavatar" style="background:var(--surface2);color:var(--ink3);">${(e.name||'?').charAt(0)}</div>
+            <div class="lcol"><div class="ltitle">${e.name||e.empId}</div><div class="lsub">${e.position||''} · ${e.type||''} · สมัคร ${e.submittedAt||''}</div></div>
+            <span class="chip chip-amber">รอตรวจสอบ</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-danger btn-full" onclick="apvApplicant('reject','${e.empId}')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="apvApplicant('approve','${e.empId}')">รับเข้า</button>
+          </div>
+        </div>`).join('')
+        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีบัญชีใหม่รอตรวจสอบ</div>';
+    }
+    if(empDone){
+      empDone.innerHTML=done.length?`<div class="card" style="padding:0;"><div style="padding:14px 18px;">
+        ${done.map(e=>`<div class="lrow" style="cursor:default;">
+          <div class="lavatar" style="background:#1A3560;">${(e.name||'?').charAt(0)}</div>
+          <div class="lcol"><div class="ltitle">${e.name||e.empId}</div><div class="lsub">${e.position||''} · ${e.approvedAt||''}</div></div>
+          <span class="chip ${e.status==='active'?'chip-green':'chip-red'}">${e.status==='active'?'รับเข้า':'ไม่รับ'}</span>
+        </div>`).join('')}
+      </div></div>`
+      :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีรายการ</div>';
+    }
+
+    // Tab 1: schedules
+    const t1=document.getElementById('apv-t1-list');
+    const scheds=d.schedules||[];
+    if(t1){
+      t1.innerHTML=scheds.length?scheds.map(s=>{
+        const datesObj=s.dates||{};
+        const dateEntries=Object.entries(datesObj).slice(0,5);
+        const total=Object.keys(datesObj).length;
+        return`<div class="apv-card">
+          <div class="apv-name">${s.name||s.empId}</div>
+          <div class="apv-sub">ขออนุมัติตาราง ${s.month}/${s.year} · ${total} วัน</div>
+          <div class="div"></div>
+          <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
+            ${dateEntries.map(([dt,v])=>`<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:var(--navy);font-weight:600;">${(v&&v.start)||'—'} น.</span></div>`).join('')}
+            ${total>5?`<div class="irow" style="padding:4px 0;border-bottom:none;"><span class="ilabel">รวม</span><span class="ival">${total} วัน</span></div>`:''}
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-danger btn-full" onclick="approveScheduleAction('${s.id}','reject')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="approveScheduleAction('${s.id}','approve')">อนุมัติ</button>
+          </div>
+        </div>`;}).join('')
+        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีตารางงานรออนุมัติ</div>';
+    }
+
+    // Tab 2: leave
+    const t2=document.getElementById('apv-t2-list');
+    const leaves=d.leave||[];
+    if(t2){
+      t2.innerHTML=leaves.length?leaves.map(l=>`
+        <div class="apv-card" style="border-left-color:var(--info);">
+          <div class="apv-name">${l.empName||l.empId}</div>
+          <div class="apv-sub">${l.position||''} · ${LEAVE_LABELS[l.type]||l.type}</div>
+          <div class="div"></div>
+          <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">${LEAVE_LABELS[l.type]||l.type}</span></div>
+          <div class="irow"><span class="ilabel">วันที่</span><span class="ival">${l.startDate}${l.endDate&&l.endDate!==l.startDate?' – '+l.endDate:''} (${l.days} วัน)</span></div>
+          <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">${l.reason||'—'}</span></div>
+          <div class="irow"><span class="ilabel">ยื่นเมื่อ</span><span class="ival">${l.submittedAt||'—'}</span></div>
+          <div class="div"></div>
+          <div class="btn-row">
+            <button class="btn btn-danger btn-full" onclick="approveLeaveAction('${l.id}','reject')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="approveLeaveAction('${l.id}','approve')">อนุมัติ</button>
+          </div>
+        </div>`).join('')
+        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีคำขอวันลารออนุมัติ</div>';
+    }
+
+    // Tab 3: OT
+    const t3=document.getElementById('apv-t3-list');
+    const ots=d.ot||[];
+    if(t3){
+      t3.innerHTML=ots.length?ots.map(o=>`
+        <div class="apv-card" style="border-left-color:var(--amber);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div class="apv-name">${o.empName||o.empId}</div>
+            <span class="chip chip-amber">รออนุมัติ</span>
+          </div>
+          <div class="apv-sub">${o.position||''} · ขอ OT วันที่ ${o.date}</div>
+          <div class="div"></div>
+          <div class="irow"><span class="ilabel">วันที่</span><span class="ival">${o.date}</span></div>
+          <div class="irow"><span class="ilabel">รวม</span><span class="ival" style="font-weight:700;">${o.requestedHours} ชั่วโมง</span></div>
+          <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">${o.reason||'—'}</span></div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn btn-danger btn-full" onclick="approveOTAction('${o.id}','reject')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="approveOTAction('${o.id}','approve')">อนุมัติ</button>
+          </div>
+        </div>`).join('')
+        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีคำขอ OT รออนุมัติ</div>';
+    }
+  }catch(e){toast('โหลดข้อมูลไม่สำเร็จ');}
+}
+
+async function approveScheduleAction(id,action){
+  try{
+    const fn=action==='approve'?'approveSchedule':'rejectSchedule';
+    const res=await callAPI({action:fn,scheduleId:id,approvedBy:currentUser?.name||'Owner'});
+    if(res.ok){toast(action==='approve'?'✓ อนุมัติตารางงานแล้ว':'ปฏิเสธตารางงานแล้ว');renderApprovalTabs();renderOwnerHome();}
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+async function approveLeaveAction(id,action){
+  try{
+    const res=await callAPI({action:'approveLeave',leaveId:id,approve:String(action==='approve'),approvedBy:currentUser?.name||'Owner'});
+    if(res.ok){toast(action==='approve'?'✓ อนุมัติวันลาแล้ว':'ปฏิเสธวันลาแล้ว');renderApprovalTabs();renderOwnerHome();}
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+async function approveOTAction(id,action){
+  try{
+    const res=await callAPI({action:'approveOT',otId:id,approve:String(action==='approve'),approvedBy:currentUser?.name||'Owner'});
+    if(res.ok){toast(action==='approve'?'✓ อนุมัติ OT แล้ว':'ปฏิเสธ OT แล้ว');renderApprovalTabs();renderOwnerHome();}
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
 
 /* ── LEAVE ── */
 function onLtype(){
