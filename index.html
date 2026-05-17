@@ -1423,11 +1423,8 @@ function back(){if(!hist.length)return;const c=document.querySelector('.sc.on');
 /* ── API CONFIG ── */
 // วาง URL ของ Apps Script Web App ที่นี่หลัง Deploy
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycby5m2YzFxN-APkSDrdAIXOciIpskqc5lXuVRK-8TmvepGBd74pxmIj4zYCcvmh7Qc1U/exec';
-const DEMO_MODE=SCRIPT_URL==='YOUR_APPS_SCRIPT_URL'; // true = ใช้ข้อมูล demo
-
 // Helper: เรียก API ผ่าน GET (ไม่มีปัญหา CORS กับ Apps Script)
 async function callAPI(params){
-  if(DEMO_MODE)return{ok:false,error:'Demo mode — กรุณาตั้งค่า SCRIPT_URL'};
   const url=new URL(SCRIPT_URL);
   Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
   const r=await fetch(url.toString());
@@ -1494,7 +1491,6 @@ function pickIV(btn,lbl){['ivb1','ivb2','ivb3'].forEach(id=>{const b=document.ge
 /* ── APPLICANT APPROVE ── */
 async function apvApplicant(a,empId){
   const id=empId||'EMP_PENDING';
-  if(DEMO_MODE){toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ (Demo)':'ปฏิเสธบัญชี (Demo)');setTimeout(back,1500);return;}
   try{
     const res=await callAPI({action:'approveEmployee',empId:id,approve:a==='approve'?'true':'false'});
     if(res.ok){toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ':'ปฏิเสธบัญชีแล้ว');setTimeout(back,1500);}
@@ -1549,7 +1545,7 @@ async function doClockOut(){
   const b=document.getElementById('co-btn');b.disabled=true;b.textContent='Clock Out แล้ว · '+t+' น.';b.style.background='var(--ink3)';
   toast('Clock Out สำเร็จ · '+t+' น.');
   // Save to API
-  if(!DEMO_MODE&&currentUser){
+  if(currentUser){
     try{await callAPI({action:'clockOut',empId:currentUser.empId,date:todayISO(),time:t});}
     catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
   }
@@ -1564,7 +1560,7 @@ async function doClockIn(){
   if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='Clock In แล้ว · '+t+' น.';ciBtn.style.background='var(--ink3)';}
   toast('Clock In สำเร็จ · '+t+' น.');
   // Save to API
-  if(!DEMO_MODE&&currentUser){
+  if(currentUser){
     try{await callAPI({action:'clockIn',empId:currentUser.empId,date:todayISO(),time:t,plannedStart:'08:30',plannedEnd:'17:00'});}
     catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
   }
@@ -1572,7 +1568,6 @@ async function doClockIn(){
 
 /* ── PROFILE EDIT ── */
 async function saveProfile(empId){
-  if(DEMO_MODE){toast('บันทึกข้อมูลพนักงานเรียบร้อย ✓ (Demo)');setTimeout(()=>{back();back();},1200);return;}
   const fields={empId:empId||'EMP002'};
   ['name','position','type','salary','bank'].forEach(f=>{const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;});
   try{
@@ -1635,8 +1630,8 @@ function checkGPS(){
       },
       err=>{
         // In demo/localhost environment, GPS often unavailable — treat as within range
-        const demoOk=DEMO_MODE||err.code===1;
-        resolve({ok:demoOk,dist:null,msg:demoOk?'GPS: ใช้ Demo Mode (ข้ามตรวจสอบ)':'ไม่สามารถดึง GPS ได้ — '+err.message});
+        const gpsOk=err.code===1;
+        resolve({ok:gpsOk,dist:null,msg:gpsOk?'GPS: ไม่สามารถดึงตำแหน่งได้ — กรุณาเปิด GPS':'ไม่สามารถดึง GPS ได้ — '+err.message});
       },
       {timeout:8000,maximumAge:30000,enableHighAccuracy:true}
     );
@@ -1649,9 +1644,9 @@ let todaySchedule=null;
 
 function initTodaySchedule(){
   // Demo: simulate employee has an approved schedule today for shift 1 (08:30-17:00)
-  if(DEMO_MODE||!currentUser){
-    todaySchedule={approved:true,planStart:'08:30',planEnd:'17:00'};
-    return Promise.resolve(todaySchedule);
+  if(!currentUser){
+    todaySchedule=null;
+    return Promise.resolve(null);
   }
   return callAPI({action:'getTodayClock',empId:currentUser.empId,date:todayISO()})
     .then(r=>{
@@ -1768,7 +1763,7 @@ async function requestEarlyClockOut(){
   const reason=(document.getElementById('early-co-reason')||{}).value||'';
   if(!reason.trim()){toast('กรุณาระบุเหตุผล');return;}
   closeModal('m-early-clockout');
-  if(!DEMO_MODE&&currentUser){
+  if(currentUser){
     try{await callAPI({action:'submitOT',empId:currentUser.empId,date:todayISO(),requestedHours:0,reason:'ขอ Clock Out ก่อนเวลา: '+reason});}catch(e){}
   }
   toast('ส่งคำขอ Clock Out ก่อนเวลาแล้ว รอ Owner อนุมัติ');
@@ -1801,7 +1796,7 @@ async function doClockInWithGPS(){
   if(ciEl){ciEl.textContent=t+' น. ✓';ciEl.style.color='var(--green)';}
   if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='Clock In แล้ว · '+t+' น.';ciBtn.style.background='var(--ink3)';}
 
-  if(!DEMO_MODE&&currentUser){
+  if(currentUser){
     try{await callAPI({action:'clockIn',empId:currentUser.empId,date:todayISO(),time:t,
       plannedStart:todaySchedule?.planStart||'',plannedEnd:todaySchedule?.planEnd||''});}
     catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
@@ -1840,8 +1835,7 @@ function renderSchedDeadlineBanner(){
 /* ── OT RATE DISPLAY ── */
 function renderOTRate(){
   const el=document.getElementById('ot-rate-display');if(!el)return;
-  // Demo: salary 13000
-  const salary=DEMO_MODE?13000:0;
+  const salary=currentUser?.salary?parseFloat(currentUser.salary):0;
   const hourlyBase=salary/240;
   const otRate=(hourlyBase*1.5).toFixed(2);
   el.textContent=salary?'อัตรา OT: '+otRate+' บาท/ชม. (ฐาน '+salary.toLocaleString()+'/240 × 1.5)':'— (ไม่ทราบฐานเงินเดือน)';
@@ -1863,7 +1857,7 @@ function calcOTHours(){
   const hrs=((eh*60+em)-(sh*60+sm))/60;
   dispEl.textContent=hrs>0?hrs.toFixed(1)+' ชั่วโมง':'—';
   // OT rate calc
-  const salary=DEMO_MODE?13000:0;
+  const salary=currentUser?.salary?parseFloat(currentUser.salary):0;
   const otPay=salary?(hrs*(salary/240)*1.5).toFixed(0):'—';
   const payEl=document.getElementById('ot-pay-display');
   if(payEl)payEl.textContent=salary&&hrs>0?'≈ '+parseInt(otPay).toLocaleString()+' บาท':'';
@@ -1884,7 +1878,7 @@ async function submitOTRequest(){
   const diffHrs=(otStartMs-nowMs)/3600000;
   if(diffHrs<6){toast('⚠ ต้องยื่นขอ OT ล่วงหน้าอย่างน้อย 6 ชั่วโมง (เหลือ '+Math.round(diffHrs*10)/10+' ชม.)');return;}
   if(!reasonEl.value.trim()){toast('กรุณาระบุเหตุผล');return;}
-  if(DEMO_MODE||!currentUser){toast('ส่งคำขอ OT แล้ว รอ Owner อนุมัติ ✓ (Demo)');return;}
+  if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
   try{
     const endSel=document.getElementById('ot-end-sel');
     const [eh,em]=(endSel?.value||'18:00').split(':').map(Number);
@@ -1920,7 +1914,7 @@ function validateLeaveSubmit(){
       toast('⚠ ลาป่วยย้อนหลัง/วันนี้ ต้องแนบใบรับรองแพทย์ก่อน');return;
     }
   }
-  if(DEMO_MODE||!currentUser){toast('ส่งคำขอวันลาแล้ว รอ Owner อนุมัติ ✓ (Demo)');return;}
+  if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
   submitLeaveRequest(type,startEl.value,endEl.value,reasonEl.value);
 }
 
@@ -1933,24 +1927,30 @@ async function submitLeaveRequest(type,startDate,endDate,reason){
 }
 
 /* ── PROBATION ALERTS ── */
-function renderProbationAlerts(){
+async function renderProbationAlerts(){
   const el=document.getElementById('probation-alerts');if(!el)return;
-  // Demo probation data
-  const alerts=[
-    {name:'สมหญิง ใจดี',endDate:'2026-09-01',daysLeft:107},
-    {name:'ต้น พอใจ',endDate:'2026-06-01',daysLeft:15},
-  ];
-  const urgent=alerts.filter(a=>a.daysLeft<=30);
-  if(!urgent.length){el.style.display='none';return;}
-  let html='';
-  urgent.forEach(a=>{
-    const color=a.daysLeft<=7?'var(--red)':a.daysLeft<=15?'var(--amber)':'var(--navy)';
-    html+=`<div class="alert" style="background:${a.daysLeft<=7?'var(--red-bg)':a.daysLeft<=15?'var(--amber-bg)':'var(--navy-lt)'};border-left:3px solid ${color};font-size:12px;margin-bottom:8px;">
-      ⏰ <strong>${a.name}</strong> — ทดลองงานหมด <strong>${a.daysLeft} วัน</strong> (${a.endDate})
-      <br><span style="font-size:11px;opacity:.8;">กรุณาตัดสินใจรับเข้า/ต่อสัญญา ก่อนวันดังกล่าว</span>
-    </div>`;
-  });
-  el.innerHTML=html;el.style.display='block';
+  try{
+    const res=await callAPI({action:'getEmployees'});
+    if(!res.ok||!res.data){el.style.display='none';return;}
+    const today=new Date();
+    const urgent=res.data.filter(e=>{
+      if(!e.probationEnd||e.status!=='active')return false;
+      const end=new Date(e.probationEnd);
+      const daysLeft=Math.ceil((end-today)/86400000);
+      e.daysLeft=daysLeft;
+      return daysLeft>0&&daysLeft<=30;
+    });
+    if(!urgent.length){el.style.display='none';return;}
+    let html='';
+    urgent.forEach(a=>{
+      const color=a.daysLeft<=7?'var(--red)':a.daysLeft<=15?'var(--amber)':'var(--navy)';
+      html+=`<div class="alert" style="background:${a.daysLeft<=7?'var(--red-bg)':a.daysLeft<=15?'var(--amber-bg)':'var(--navy-lt)'};border-left:3px solid ${color};font-size:12px;margin-bottom:8px;">
+        ⏰ <strong>${a.name}</strong> — ทดลองงานหมด <strong>${a.daysLeft} วัน</strong> (${a.probationEnd})
+        <br><span style="font-size:11px;opacity:.8;">กรุณาตัดสินใจรับเข้า/ต่อสัญญา ก่อนวันดังกล่าว</span>
+      </div>`;
+    });
+    el.innerHTML=html;el.style.display='block';
+  }catch(e){el.style.display='none';}
 }
 
 /* ── PASSWORD RESET ── */
@@ -1961,7 +1961,6 @@ function doResetPassword(){
   if(!u){toast('กรุณากรอก Username');return;}
   if(!p1||p1.length<6){toast('Password ต้องมีอย่างน้อย 6 ตัวอักษร');return;}
   if(p1!==p2){toast('Password ไม่ตรงกัน กรุณาตรวจสอบ');return;}
-  if(DEMO_MODE){toast('เปลี่ยน Password สำเร็จ ✓ (Demo)');setTimeout(()=>go('s-login'),1500);return;}
   toast('เปลี่ยน Password สำเร็จ ✓');setTimeout(()=>go('s-login'),1500);
 }
 
@@ -2186,10 +2185,7 @@ function filterCalendar(){
 async function submitSchedule(){
   const keys=Object.keys(calSelected);
   if(!keys.length){toast('กรุณาเลือกวันทำงานก่อน');return;}
-  if(DEMO_MODE||!currentUser){
-    toast('ส่งตาราง '+keys.length+' วัน รอ Owner อนุมัติ ✓ (Demo)');
-    return;
-  }
+  if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
   toast('กำลังส่งตาราง...');
   try{
     const res=await callAPI({
