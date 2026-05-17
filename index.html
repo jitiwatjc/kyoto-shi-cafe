@@ -398,16 +398,16 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
         <div style="font-size:10px;color:var(--ink3);">Management System</div>
       </div>
     </div>
-    <div class="topbar-avatar" onclick="doLogout()">K</div>
+    <div class="topbar-avatar" id="owner-avatar" onclick="doLogout()">O</div>
   </div>
   <div class="page">
     <div class="owner-hero">
       <div>
-        <div style="font-size:13px;opacity:.6;margin-bottom:4px;">ศุกร์, 15 พฤษภาคม 2026</div>
-        <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;">สวัสดี, คุณ Ket</div>
+        <div style="font-size:13px;opacity:.6;margin-bottom:4px;" id="owner-date"></div>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;" id="owner-greeting">สวัสดี...</div>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-          <span class="chip chip-navy" style="font-size:10px;">7 คนวันนี้</span>
-          <span style="background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;">เข้าแล้ว 5/7</span>
+          <span class="chip chip-navy" style="font-size:10px;" id="owner-chip-total"></span>
+          <span id="owner-chip-clockin" style="background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;display:none;"></span>
         </div>
       </div>
       <div style="font-size:40px;opacity:.2;position:relative;z-index:1;">☕</div>
@@ -421,47 +421,34 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div style="padding:14px 18px 14px;">
         <div class="lrow" onclick="goApprove(0)">
           <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📝</div>
-          <div class="lcol"><div class="ltitle">บัญชีพนักงานใหม่</div><div class="lsub">1 รายการรอตรวจสอบเอกสาร</div></div>
-          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">1</span><span style="color:var(--ink3);">›</span></div>
+          <div class="lcol"><div class="ltitle">บัญชีพนักงานใหม่</div><div class="lsub" id="apv-sub-emp">—</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber" id="apv-badge-emp">—</span><span style="color:var(--ink3);">›</span></div>
         </div>
         <div class="lrow" onclick="goApprove(1)">
           <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📋</div>
-          <div class="lcol"><div class="ltitle">ตารางงาน</div><div class="lsub">3 รายการรออนุมัติ</div></div>
-          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">3</span><span style="color:var(--ink3);">›</span></div>
+          <div class="lcol"><div class="ltitle">ตารางงาน</div><div class="lsub" id="apv-sub-sched">—</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber" id="apv-badge-sched">—</span><span style="color:var(--ink3);">›</span></div>
         </div>
         <div class="lrow" onclick="goApprove(2)">
           <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📅</div>
-          <div class="lcol"><div class="ltitle">คำขอวันลา</div><div class="lsub">2 รายการรออนุมัติ</div></div>
-          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">2</span><span style="color:var(--ink3);">›</span></div>
+          <div class="lcol"><div class="ltitle">คำขอวันลา</div><div class="lsub" id="apv-sub-leave">—</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber" id="apv-badge-leave">—</span><span style="color:var(--ink3);">›</span></div>
         </div>
         <div class="lrow" onclick="goApprove(3)">
           <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⏰</div>
-          <div class="lcol"><div class="ltitle">คำขอทำงานล่วงเวลา (OT)</div><div class="lsub">1 รายการรออนุมัติ</div></div>
-          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">1</span><span style="color:var(--ink3);">›</span></div>
+          <div class="lcol"><div class="ltitle">คำขอทำงานล่วงเวลา (OT)</div><div class="lsub" id="apv-sub-ot">—</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber" id="apv-badge-ot">—</span><span style="color:var(--ink3);">›</span></div>
         </div>
       </div>
     </div>
 
     <div class="t-sect" style="margin-top:4px;">Clock In วันนี้</div>
     <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val" style="color:var(--green);">5</div><div class="stat-lbl">เข้าแล้ว</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--red);">1</div><div class="stat-lbl">ยังไม่เข้า</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--amber);">1</div><div class="stat-lbl">สาย</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--green);" id="stat-clocked">—</div><div class="stat-lbl">เข้าแล้ว</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--red);" id="stat-absent">—</div><div class="stat-lbl">ยังไม่เข้า</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--amber);" id="stat-late">—</div><div class="stat-lbl">สาย</div></div>
     </div>
-    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);">
-        <div><span class="ltitle">นาม สุขใจ</span> <span class="t-cap">บาร์หน้า</span></div><span class="chip chip-green">08:32</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
-        <div><span class="ltitle">มิน รักงาน</span> <span class="t-cap">เบเกอรี่</span></div><span class="chip chip-green">08:29</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
-        <div><span class="ltitle">แก้ว มีสุข</span> <span class="t-cap">ครัว</span></div><span class="chip chip-red">ยังไม่เข้า</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 14px;">
-        <div><span class="ltitle">ปาย ใจงาม</span> <span class="t-cap">แม่บ้าน</span></div><span class="chip chip-amber">สาย 15'</span>
-      </div>
-    </div></div>
+    <div class="card" style="padding:0;"><div id="owner-clock-list" style="padding:14px 18px;color:var(--ink3);font-size:13px;">กำลังโหลด...</div></div>
   </div>
   <!-- OWNER NAV: 3 tabs only -->
   <div class="bnav">
@@ -1401,7 +1388,7 @@ function go(id){
   if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
   if(id==='s-emp-sched'){renderSchedDeadlineBanner();}
   if(id==='s-emp-ot'){renderOTRate();}
-  if(id==='s-owner-home'){renderProbationAlerts();}
+  if(id==='s-owner-home'){renderOwnerHome();}
 }
 
 /* ── GPS BANNER ON CLOCK SCREEN ── */
@@ -1924,6 +1911,96 @@ async function submitLeaveRequest(type,startDate,endDate,reason){
     if(res.ok)toast('ส่งคำขอวันลาสำเร็จ ✓ รอ Owner อนุมัติ');
     else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+/* ── OWNER HOME ── */
+async function renderOwnerHome(){
+  // Date + greeting
+  const now=new Date();
+  const DAYS=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const dateEl=document.getElementById('owner-date');
+  const greetEl=document.getElementById('owner-greeting');
+  const avatarEl=document.getElementById('owner-avatar');
+  if(dateEl)dateEl.textContent=DAYS[now.getDay()]+', '+now.getDate()+' '+THAI_MONTHS_FULL[now.getMonth()]+' '+(now.getFullYear()+543);
+  const nick=currentUser?.nickname||currentUser?.name||'เจ้าของ';
+  if(greetEl)greetEl.textContent='สวัสดี, คุณ '+nick;
+  if(avatarEl)avatarEl.textContent=nick.charAt(0).toUpperCase();
+
+  // Reset pending badges
+  ['emp','sched','leave','ot'].forEach(k=>{
+    const b=document.getElementById('apv-badge-'+k);
+    const s=document.getElementById('apv-sub-'+k);
+    if(b)b.textContent='0';
+    if(s)s.textContent='ไม่มีรายการรออนุมัติ';
+  });
+
+  // Reset clock stats
+  ['clocked','absent','late'].forEach(k=>{const el=document.getElementById('stat-'+k);if(el)el.textContent='—';});
+  const listEl=document.getElementById('owner-clock-list');
+  if(listEl)listEl.innerHTML='<div style="color:var(--ink3);font-size:13px;">กำลังโหลด...</div>';
+  const chipTotal=document.getElementById('owner-chip-total');
+  const chipClock=document.getElementById('owner-chip-clockin');
+  if(chipTotal)chipTotal.textContent='';
+  if(chipClock)chipClock.style.display='none';
+
+  try{
+    // Pending approvals
+    const apv=await callAPI({action:'getPendingApprovals'});
+    if(apv.ok&&apv.data){
+      const d=apv.data;
+      const empN=(d.employees||[]).length;
+      const schedN=(d.schedules||[]).length;
+      const leaveN=(d.leave||[]).length;
+      const otN=(d.ot||[]).length;
+      const setApv=(k,n,label)=>{
+        const b=document.getElementById('apv-badge-'+k);
+        const s=document.getElementById('apv-sub-'+k);
+        if(b)b.textContent=n;
+        if(s)s.textContent=n>0?n+' '+label:'ไม่มีรายการรออนุมัติ';
+      };
+      setApv('emp',empN,'รายการรอตรวจสอบเอกสาร');
+      setApv('sched',schedN,'รายการรออนุมัติ');
+      setApv('leave',leaveN,'รายการรออนุมัติ');
+      setApv('ot',otN,'รายการรออนุมัติ');
+    }
+  }catch(e){}
+
+  try{
+    // Today's clock-in summary
+    const cl=await callAPI({action:'getTodayAttendance',date:todayISO()});
+    if(cl.ok&&cl.data){
+      const rows=cl.data;
+      const clocked=rows.filter(r=>r.clockIn).length;
+      const late=rows.filter(r=>r.late).length;
+      const absent=rows.filter(r=>!r.clockIn).length;
+      const total=rows.length;
+      const statC=document.getElementById('stat-clocked');
+      const statA=document.getElementById('stat-absent');
+      const statL=document.getElementById('stat-late');
+      if(statC)statC.textContent=clocked;
+      if(statA)statA.textContent=absent;
+      if(statL)statL.textContent=late;
+      if(chipTotal)chipTotal.textContent=total+' คนวันนี้';
+      if(chipClock&&total>0){chipClock.textContent='เข้าแล้ว '+clocked+'/'+total;chipClock.style.display='';}
+      if(listEl){
+        if(!rows.length){listEl.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:4px 0;">ไม่มีข้อมูลวันนี้</div>';return;}
+        listEl.innerHTML=rows.map((r,i)=>{
+          const isLast=i===rows.length-1;
+          const chip=r.clockIn
+            ?(r.late?`<span class="chip chip-amber">สาย</span>`:`<span class="chip chip-green">${r.clockIn}</span>`)
+            :`<span class="chip chip-red">ยังไม่เข้า</span>`;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:${i===0?'0 0 12px':'12px 0'+(isLast?'':';border-bottom:1px solid var(--border)')};">
+            <div><span class="ltitle">${r.name||r.empId}</span> <span class="t-cap">${r.position||''}</span></div>${chip}</div>`;
+        }).join('');
+      }
+    } else {
+      if(listEl)listEl.innerHTML='<div style="color:var(--ink3);font-size:13px;">ไม่มีข้อมูล Clock In วันนี้</div>';
+    }
+  }catch(e){
+    if(listEl)listEl.innerHTML='<div style="color:var(--ink3);font-size:13px;">ไม่สามารถโหลดข้อมูลได้</div>';
+  }
+
+  renderProbationAlerts();
 }
 
 /* ── PROBATION ALERTS ── */
