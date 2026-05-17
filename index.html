@@ -284,9 +284,6 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div class="fg"><label class="t-label">รหัสผ่าน (Password)</label><input class="fi" id="login-pass" type="password" placeholder="กรอกรหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div id="login-err" style="display:none;font-size:12px;color:var(--red);background:var(--red-bg);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;">Username หรือ Password ไม่ถูกต้อง</div>
       <button class="btn btn-dark btn-full" style="padding:15px;font-size:15px;margin-bottom:14px;" onclick="doLogin()">เข้าสู่ระบบ</button>
-      <div style="text-align:center;margin-bottom:14px;">
-        <span class="t-cap" style="cursor:pointer;color:var(--navy);text-decoration:underline;" onclick="go('s-reset-pass')">ลืมรหัสผ่าน?</span>
-      </div>
       <div class="div"></div>
       <div style="text-align:center;padding-top:6px;">
         <div class="t-cap" style="margin-bottom:10px;">ยังไม่มีบัญชีผู้ใช้?</div>
@@ -2237,10 +2234,6 @@ async function renderOwnerHome(){
     const apv=await callAPI({action:'getPendingApprovals'});
     if(apv.ok&&apv.data){
       const d=apv.data;
-      const empN=(d.employees||[]).length;
-      const schedN=(d.schedules||[]).length;
-      const leaveN=(d.leave||[]).length;
-      const otN=(d.ot||[]).length;
       const setApv=(k,n,label)=>{
         const b=document.getElementById('apv-badge-'+k);
         const s=document.getElementById('apv-sub-'+k);
