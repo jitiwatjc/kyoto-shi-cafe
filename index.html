@@ -173,7 +173,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
 .upbox-ok{font-size:11px;font-weight:600;color:var(--green);margin-top:8px;}
 
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
-.role-card{background:var(--surface);border-radius:var(--r);padding:22px 14px;text-align:center;cursor:pointer;border:1.5px solid var(--border);transition:all .2s;box-shadow:var(--sh);}
+.role-card{background:var(--surface);border-radius:var(--r);padding:22px 14px;text-align:center;cursor:pointer;border:1.5px solid var(--border);transition:all .2s;box-shadow:var(--sh);width:100%;font-family:inherit;-webkit-appearance:none;appearance:none;}
 .role-card:hover{border-color:var(--blue);}
 .role-card.on{border-color:var(--navy);background:var(--navy);color:#fff;}
 .role-card.on .role-sub{color:rgba(255,255,255,.6);}
@@ -269,19 +269,19 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
     <div style="padding:28px 24px;">
       <div class="t-sect" style="text-align:center;">เลือกบทบาท</div>
       <div class="role-grid">
-        <div class="role-card" id="r-owner" onclick="pickRole('owner')">
+        <button class="role-card" id="r-owner" type="button" onclick="pickRole('owner')">
           <div class="role-icon">👑</div>
           <div class="role-lbl">Owner</div>
           <div class="role-sub">เจ้าของร้าน</div>
-        </div>
-        <div class="role-card" id="r-emp" onclick="pickRole('emp')">
+        </button>
+        <button class="role-card" id="r-emp" type="button" onclick="pickRole('emp')">
           <div class="role-icon">👤</div>
           <div class="role-lbl">Employee</div>
           <div class="role-sub">พนักงาน</div>
-        </div>
+        </button>
       </div>
-      <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username)</label><input class="fi" id="login-user" placeholder="กรอก Username" autocomplete="username"></div>
-      <div class="fg"><label class="t-label">รหัสผ่าน (Password)</label><input class="fi" id="login-pass" type="password" placeholder="กรอกรหัสผ่าน" autocomplete="current-password"></div>
+      <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username)</label><input class="fi" id="login-user" placeholder="กรอก Username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="fg"><label class="t-label">รหัสผ่าน (Password)</label><input class="fi" id="login-pass" type="password" placeholder="กรอกรหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div id="login-err" style="display:none;font-size:12px;color:var(--red);background:var(--red-bg);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;">Username หรือ Password ไม่ถูกต้อง</div>
       <button class="btn btn-dark btn-full" style="padding:15px;font-size:15px;margin-bottom:14px;" onclick="doLogin()">เข้าสู่ระบบ</button>
       <div style="text-align:center;margin-bottom:14px;">
@@ -1171,8 +1171,13 @@ async function doLogin(){
   const loginBtns=document.querySelectorAll('#s-login .btn-dark');
   loginBtns.forEach(b=>{b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';});
   try{
-    if(role==='owner'&&u===OWNER_CREDS.user&&p===OWNER_CREDS.pass){
-      currentUser={ok:true,role:'owner',empId:'EMP001',name:'เจ้าของร้าน',nickname:'เจ้าของ'};
+    if(role==='owner'){
+      if(u===OWNER_CREDS.user&&p===OWNER_CREDS.pass){
+        currentUser={ok:true,role:'owner',empId:'EMP001',name:'เจ้าของร้าน',nickname:'เจ้าของ'};
+      } else {
+        errEl.style.display='block';
+        return;
+      }
     } else {
       const res=await callAPI({action:'login',user:u,pass:p});
       if(!res.ok){errEl.style.display='block';return;}
