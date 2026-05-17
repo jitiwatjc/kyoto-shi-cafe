@@ -756,7 +756,6 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">Clock In / Out</div></div>
   <div class="page">
     <!-- GPS Status -->
-    <div class="gps-map"><div class="gps-ring"></div><div class="gps-pin">📍</div><div id="gps-tag-dist" class="gps-tag">กำลังตรวจสอบ...</div></div>
     <div id="gps-status-banner" class="alert alert-info" style="font-size:12px;">กำลังตรวจสอบตำแหน่ง GPS...</div>
 
     <!-- No Schedule Lock -->
@@ -1331,6 +1330,13 @@ async function renderEmpProfile(){
 const LEAVE_LABELS={v:'ลาพักร้อน',s:'ลาป่วย',p:'ลากิจ'};
 let _pendingRegsCache=[];
 async function renderApprovalTabs(){
+  // Build empId→name map for display
+  let _nameMap={};
+  try{
+    const er=await callAPI({action:'getEmployees'});
+    if(er.ok&&er.data)er.data.forEach(e=>{_nameMap[e.id]=e.name;});
+  }catch(e){}
+  const empName=(id,fallback)=>_nameMap[id]||fallback||id;
   try{
     const res=await callAPI({action:'getPendingApprovals'});
     if(!res.ok||!res.data)return;
@@ -1380,7 +1386,7 @@ async function renderApprovalTabs(){
         const dateEntries=Object.entries(datesObj).slice(0,5);
         const total=Object.keys(datesObj).length;
         return`<div class="apv-card">
-          <div class="apv-name">${s.name||s.empId}</div>
+          <div class="apv-name">${empName(s.empId,s.name)}</div>
           <div class="apv-sub">ขออนุมัติตาราง ${s.month}/${s.year} · ${total} วัน</div>
           <div class="div"></div>
           <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
@@ -1401,7 +1407,7 @@ async function renderApprovalTabs(){
     if(t2){
       t2.innerHTML=leaves.length?leaves.map(l=>`
         <div class="apv-card" style="border-left-color:var(--info);">
-          <div class="apv-name">${l.empName||l.empId}</div>
+          <div class="apv-name">${empName(l.empId,l.empName)}</div>
           <div class="apv-sub">${l.position||''} · ${LEAVE_LABELS[l.type]||l.type}</div>
           <div class="div"></div>
           <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">${LEAVE_LABELS[l.type]||l.type}</span></div>
@@ -1424,7 +1430,7 @@ async function renderApprovalTabs(){
       t3.innerHTML=ots.length?ots.map(o=>`
         <div class="apv-card" style="border-left-color:var(--amber);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-            <div class="apv-name">${o.empName||o.empId}</div>
+            <div class="apv-name">${empName(o.empId,o.empName)}</div>
             <span class="chip chip-amber">รออนุมัติ</span>
           </div>
           <div class="apv-sub">${o.position||''} · ขอ OT วันที่ ${o.date}</div>
@@ -1662,17 +1668,19 @@ async function renderAttendanceExport(){
   const empSel=document.getElementById('export-emp-select');
   const monthSel=document.getElementById('export-month-select');
   if(!empSel||!monthSel)return;
-  // Build employee list
-  if(_empListCache&&_empListCache.length){
-    const active=_empListCache.filter(e=>e.status==='active'||e.status==='probation');
-    empSel.innerHTML=active.map(e=>`<option value="${e.id}">${e.name} — ${e.position||''}</option>`).join('');
-  } else {
-    try{
-      const res=await callAPI({action:'getEmployees'});
-      const emps=(res.ok&&res.data)?res.data:[];
-      empSel.innerHTML=emps.filter(e=>e.status!=='inactive').map(e=>`<option value="${e.id}">${e.name} — ${e.position||''}</option>`).join('');
-    }catch(e){empSel.innerHTML='<option>โหลดไม่สำเร็จ</option>';}
-  }
+  // Build employee list — always fetch fresh
+  empSel.innerHTML='<option value="">กำลังโหลด...</option>';
+  try{
+    const res=await callAPI({action:'getEmployees'});
+    const emps=(res.ok&&res.data)?res.data:[];
+    const visible=emps.filter(e=>e.status!=='inactive');
+    if(visible.length){
+      empSel.innerHTML=visible.map(e=>`<option value="${e.id||e.empId}">${e.name} — ${e.position||''}</option>`).join('');
+      _empListCache=emps;
+    } else {
+      empSel.innerHTML='<option value="">ไม่พบข้อมูลพนักงาน</option>';
+    }
+  }catch(e){empSel.innerHTML='<option value="">โหลดไม่สำเร็จ</option>';}
   // Build month options (current + 5 months back)
   const now=new Date();
   let opts='';
@@ -2002,11 +2010,10 @@ function renderSchedDeadlineBanner(){
 
 /* ── OT RATE DISPLAY ── */
 function renderOTRate(){
-  const el=document.getElementById('ot-rate-display');if(!el)return;
-  const salary=currentUser?.salary?parseFloat(currentUser.salary):0;
-  const hourlyBase=salary/240;
-  const otRate=(hourlyBase*1.5).toFixed(2);
-  el.textContent=salary?'อัตรา OT: '+otRate+' บาท/ชม. (ฐาน '+salary.toLocaleString()+'/240 × 1.5)':'— (ไม่ทราบฐานเงินเดือน)';
+  const el=document.getElementById('ot-rate-display');if(el)el.style.display='none';
+  // Set date min = today (no backdate)
+  const di=document.getElementById('ot-date-input');
+  if(di){di.min=todayISO();if(!di.value||di.value<todayISO())di.value=todayISO();}
   // Part-time restriction
   const partEl=document.getElementById('ot-parttime-warn');
   if(partEl){
@@ -2038,8 +2045,10 @@ async function submitOTRequest(){
   const partEl=document.getElementById('ot-parttime-warn');
   if(partEl&&partEl.style.display!=='none'&&!confirm('คุณเป็นพนักงาน Part-time — OT ต้องได้รับ Approve พิเศษจาก Owner ต้องการส่งคำขอต่อไปหรือไม่?'))return;
   if(!dateSel||!startSel||!reasonEl){toast('กรุณากรอกข้อมูลให้ครบ');return;}
-  // Validate: OT must be submitted ≥6 hours before start time
   const otDate=dateSel.value;
+  if(!otDate){toast('กรุณาเลือกวันที่');return;}
+  if(otDate<todayISO()){toast('⚠ ไม่สามารถขอ OT ย้อนหลังได้');return;}
+  // Validate: OT must be submitted ≥6 hours before start time
   const [sh,sm]=startSel.value.split(':').map(Number);
   const otStartMs=new Date(otDate+'T'+startSel.value).getTime();
   const nowMs=Date.now();
