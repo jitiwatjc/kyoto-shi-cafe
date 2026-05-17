@@ -549,24 +549,9 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
 <div id="s-owner-emps" class="sc">
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">รายชื่อพนักงาน</div><button class="topbar-action" onclick="go('s-owner-export')">⬇ บันทึกเวลา</button></div>
   <div class="page">
-    <input class="fi" placeholder="ค้นหา..." style="margin-bottom:14px;">
+    <input class="fi" id="emp-list-search" placeholder="ค้นหา..." style="margin-bottom:14px;" oninput="filterEmpList(this.value)">
     <div class="alert alert-info" style="font-size:12px;">🔐 RBAC — Owner เห็นข้อมูลทั้งหมด · พนักงานเห็นเฉพาะของตัวเอง</div>
-    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-      <div class="t-sect" style="padding-bottom:10px;">Active · 5 คน</div>
-      <div class="lrow" onclick="go('s-emp-profile-view')"><div class="lavatar" style="background:#1A3560;">น</div><div class="lcol"><div class="ltitle">นาม สุขใจ</div><div class="lsub">บาร์หน้า · ประจำ</div></div><span class="chip chip-green">Active</span></div>
-      <div class="lrow"><div class="lavatar" style="background:#1A4A8A;">ม</div><div class="lcol"><div class="ltitle">มิน รักงาน</div><div class="lsub">เบเกอรี่ · ประจำ</div></div><span class="chip chip-green">Active</span></div>
-      <div class="lrow"><div class="lavatar" style="background:#0D2A5A;">แ</div><div class="lcol"><div class="ltitle">แก้ว มีสุข</div><div class="lsub">ครัว · ประจำ</div></div><span class="chip chip-green">Active</span></div>
-      <div class="lrow"><div class="lavatar" style="background:#1A3A6A;">ป</div><div class="lcol"><div class="ltitle">ปาย ใจงาม</div><div class="lsub">แม่บ้าน · ประจำ</div></div><span class="chip chip-green">Active</span></div>
-    </div></div>
-    <div class="card" style="padding:0;margin-top:12px;"><div style="padding:14px 18px 14px;">
-      <div class="t-sect" style="padding-bottom:10px;">ทดลองงาน (Probation) · 1 คน</div>
-      <div class="lrow" onclick="go('s-emp-profile-view')"><div class="lavatar" style="background:#2563EB;">อ</div><div class="lcol"><div class="ltitle">อ้อย สดใส</div><div class="lsub">บาร์หน้า · ทดลองงาน สิ้นสุด 1 ส.ค. 2026</div></div><span class="chip chip-amber">Probation</span></div>
-    </div></div>
-    <div class="card" style="padding:0;margin-top:12px;"><div style="padding:14px 18px 14px;">
-      <div class="t-sect" style="padding-bottom:10px;">Part-time · 2 คน</div>
-      <div class="lrow"><div class="lavatar" style="background:#2A1A8A;">ต</div><div class="lcol"><div class="ltitle">ต้น พอใจ</div><div class="lsub">บาร์หน้า · 65 บ/ชม</div></div><span class="chip chip-blue">PT</span></div>
-      <div class="lrow"><div class="lavatar" style="background:#1A5A8A;">ฝ</div><div class="lcol"><div class="ltitle">ฝน ขยัน</div><div class="lsub">เบเกอรี่ · 65 บ/ชม</div></div><span class="chip chip-blue">PT</span></div>
-    </div></div>
+    <div id="emp-list-container" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
   </div>
   <div class="bnav">
     <button class="bn" onclick="go('s-owner-home')"><span class="bn-icon">🏠</span>Home</button>
@@ -580,31 +565,27 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์พนักงาน</div><button class="topbar-action" onclick="go('s-emp-profile-edit')">แก้ไข</button></div>
   <div class="page">
     <div style="text-align:center;padding:20px 0 16px;">
-      <div class="lavatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">น</div>
-      <div style="font-size:20px;font-weight:700;">นาม สุขใจ</div>
-      <div class="t-cap" style="margin-top:4px;">บาร์หน้า · พนักงานประจำ</div>
-      <span class="chip chip-green" style="margin-top:8px;">Active</span>
+      <div class="lavatar" id="view-avatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">—</div>
+      <div style="font-size:20px;font-weight:700;" id="view-name">—</div>
+      <div class="t-cap" style="margin-top:4px;" id="view-pos">—</div>
+      <span class="chip chip-green" id="view-status-chip" style="margin-top:8px;">—</span>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ข้อมูลส่วนตัว</div>
-      <div class="irow"><span class="ilabel">วันเกิด</span><span class="ival">12 ม.ค. 2545</span></div>
-      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival">082-345-6789</span></div>
-      <div class="irow"><span class="ilabel">เลขบัตร ปชช.</span><span class="ival">1-3019-xxxxx</span></div>
-      <div class="irow"><span class="ilabel">วันเริ่มงาน</span><span class="ival">1 ม.ค. 2025</span></div>
-      <div class="irow"><span class="ilabel">ธนาคาร</span><span class="ival">KBank 123-4-56789-0</span></div>
+      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival" id="view-phone">—</span></div>
+      <div class="irow"><span class="ilabel">วันเริ่มงาน</span><span class="ival" id="view-startdate">—</span></div>
+      <div class="irow"><span class="ilabel">ธนาคาร</span><span class="ival" id="view-bank">—</span></div>
     </div>
     <div class="card" style="border-left:3px solid var(--navy);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div class="card-title">ข้อมูลเงินเดือน</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
-      <div class="irow"><span class="ilabel">ฐานเงินเดือน</span><span class="ival" style="font-weight:700;">฿13,000 / เดือน</span></div>
-      <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">พนักงานประจำ</span></div>
-      <div class="irow"><span class="ilabel">สถานะ</span><span class="ival"><span class="chip chip-green">Active</span></span></div>
+      <div class="irow"><span class="ilabel">ฐานเงินเดือน</span><span class="ival" id="view-salary" style="font-weight:700;">—</span></div>
+      <div class="irow"><span class="ilabel">ประเภท</span><span class="ival" id="view-type">—</span></div>
+      <div class="irow"><span class="ilabel">สถานะ</span><span class="ival" id="view-status">—</span></div>
     </div>
     <div class="card" style="border-left:3px solid var(--navy);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><div class="card-title">การเข้าถึงระบบ</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
-      <div class="irow"><span class="ilabel">Username</span><span class="ival" style="color:var(--navy);font-weight:600;">nam_sukjai</span></div>
-      <div class="irow"><span class="ilabel">Password</span><span class="ival" style="display:flex;align-items:center;gap:8px;"><span id="emp-prof-pass-val" style="font-family:monospace;letter-spacing:2px;">••••••••</span><button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:11px;" onclick="(function(btn){const el=document.getElementById('emp-prof-pass-val');if(el.dataset.shown==='1'){el.textContent='••••••••';el.dataset.shown='0';btn.textContent='👁 แสดง';}else{el.textContent='emp1234';el.dataset.shown='1';btn.textContent='🙈 ซ่อน';}})(this)">👁 แสดง</button></span></div>
-      <div class="irow"><span class="ilabel">เข้าใช้ล่าสุด</span><span class="ival">15 พ.ค. 2026 · 08:31 น.</span></div>
-      <div class="irow"><span class="ilabel">บัญชี</span><span class="ival"><span class="chip chip-green">Active ✓</span></span></div>
+      <div class="irow"><span class="ilabel">Username</span><span class="ival" id="view-username" style="color:var(--navy);font-weight:600;">—</span></div>
+      <div class="irow"><span class="ilabel">บัญชี</span><span class="ival" id="view-acc-status">—</span></div>
     </div>
   </div>
 </div>
@@ -1284,6 +1265,7 @@ function go(id){
   if(id==='s-emp-profile-self'){renderEmpProfile();}
   if(id==='s-owner-home'){renderOwnerHome();}
   if(id==='s-owner-approve'){renderApprovalTabs();}
+  if(id==='s-owner-emps'){renderEmpList();}
 }
 
 /* ── GPS BANNER ON CLOCK SCREEN ── */
@@ -2020,6 +2002,89 @@ async function submitLeaveRequest(type,startDate,endDate,reason){
     if(res.ok)toast('ส่งคำขอวันลาสำเร็จ ✓ รอ Owner อนุมัติ');
     else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+/* ── EMPLOYEE LIST (OWNER) ── */
+let _empListCache=[];
+const EMP_AVATAR_COLORS=['#1A3560','#1A4A8A','#0D2A5A','#1A3A6A','#2563EB','#2A1A8A','#1A5A8A','#0D4060','#1A6A3A','#6A1A3A'];
+
+async function renderEmpList(){
+  const container=document.getElementById('emp-list-container');
+  if(!container)return;
+  container.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:8px 0;">กำลังโหลด...</div>';
+  try{
+    const res=await callAPI({action:'getEmployees'});
+    if(!res.ok||!res.data){container.innerHTML='<div style="color:var(--red);font-size:13px;">โหลดข้อมูลไม่สำเร็จ</div>';return;}
+    _empListCache=res.data;
+    renderEmpListUI(_empListCache);
+  }catch(e){container.innerHTML='<div style="color:var(--red);font-size:13px;">ไม่สามารถเชื่อมต่อได้</div>';}
+}
+
+function renderEmpListUI(emps){
+  const container=document.getElementById('emp-list-container');
+  if(!container)return;
+  if(!emps.length){container.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:8px 0;">ไม่พบพนักงาน</div>';return;}
+  const groups={active:[],probation:[],parttime:[],inactive:[]};
+  emps.forEach(e=>{
+    if(e.status==='inactive')groups.inactive.push(e);
+    else if(e.type==='Part-time')groups.parttime.push(e);
+    else if(e.status==='probation'||e.probationEnd)groups.probation.push(e);
+    else groups.active.push(e);
+  });
+  const renderGroup=(list,label,chipClass,chipText)=>{
+    if(!list.length)return'';
+    return`<div class="card" style="padding:0;margin-bottom:12px;"><div style="padding:14px 18px;">
+      <div class="t-sect" style="padding-bottom:10px;">${label} · ${list.length} คน</div>
+      ${list.map((e,i)=>{
+        const color=EMP_AVATAR_COLORS[i%EMP_AVATAR_COLORS.length];
+        const letter=(e.name||'?').charAt(0);
+        return`<div class="lrow" onclick="viewEmpProfile('${e.id}')">
+          <div class="lavatar" style="background:${color};">${letter}</div>
+          <div class="lcol"><div class="ltitle">${e.name||'—'}</div>
+          <div class="lsub">${e.position||'—'} · ${e.type||'—'}${e.probationEnd?' · ทดลองงาน สิ้นสุด '+e.probationEnd:''}</div></div>
+          <span class="chip ${chipClass}">${chipText}</span>
+        </div>`;}).join('')}
+    </div></div>`;
+  };
+  container.innerHTML=
+    renderGroup(groups.active,'Active','chip-green','Active')+
+    renderGroup(groups.probation,'ทดลองงาน (Probation)','chip-amber','Probation')+
+    renderGroup(groups.parttime,'Part-time','chip-blue','PT')+
+    renderGroup(groups.inactive,'พ้นสภาพ','chip-red','Inactive');
+}
+
+function filterEmpList(q){
+  const filtered=q?_empListCache.filter(e=>(e.name||'').includes(q)||(e.position||'').includes(q)):_empListCache;
+  renderEmpListUI(filtered);
+}
+
+let _viewingEmpId=null;
+function viewEmpProfile(empId){
+  _viewingEmpId=empId;
+  const e=_empListCache.find(x=>String(x.id)===String(empId));
+  if(!e)return;
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val||'—';};
+  const letter=(e.name||'?').charAt(0);
+  setEl('view-avatar',letter);
+  setEl('view-name',e.name||'—');
+  setEl('view-pos',(e.position||'—')+' · '+(e.type||'—'));
+  setEl('view-phone',e.phone||'—');
+  setEl('view-startdate',e.startDate||'—');
+  setEl('view-bank',(e.bank||'—')+(e.bankAcc?' · '+e.bankAcc:''));
+  setEl('view-salary',e.salary?'฿'+parseInt(e.salary).toLocaleString()+' / เดือน':'—');
+  setEl('view-type',e.type||'—');
+  setEl('view-username',e.username||'—');
+  const statusChip=document.getElementById('view-status-chip');
+  const statusEl=document.getElementById('view-status');
+  const accEl=document.getElementById('view-acc-status');
+  if(statusChip){
+    const s=e.status||'';
+    statusChip.textContent=s==='active'?'Active':s==='probation'?'Probation':'Inactive';
+    statusChip.className='chip '+(s==='active'?'chip-green':s==='probation'?'chip-amber':'chip-red');
+  }
+  if(statusEl)statusEl.innerHTML=`<span class="chip ${e.status==='active'?'chip-green':e.status==='probation'?'chip-amber':'chip-red'}">${e.status==='active'?'Active':e.status==='probation'?'Probation':'Inactive'}</span>`;
+  if(accEl)accEl.innerHTML=`<span class="chip chip-green">Active ✓</span>`;
+  go('s-emp-profile-view');
 }
 
 /* ── OWNER HOME ── */
