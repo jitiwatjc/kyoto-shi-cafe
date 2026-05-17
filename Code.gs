@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ▶ ขั้นตอนแรก: วาง SHEET_ID ของคุณด้านล่างนี้ (ดูจาก URL ของ Google Sheet)
-const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID';
+const SHEET_ID = '1xN_LYVo662oTu1qlMzCkwEiN4v4kmnUya5fn_vhXaLg';
 
 // Sheet names
 const SH = {
