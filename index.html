@@ -302,8 +302,6 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div class="step-wrap"><div class="step-dot cur" id="sd1">1</div><div class="step-lbl">ข้อมูล</div></div>
       <div class="step-line" id="sl1"></div>
       <div class="step-wrap"><div class="step-dot" id="sd2">2</div><div class="step-lbl">งาน</div></div>
-      <div class="step-line" id="sl2"></div>
-      <div class="step-wrap"><div class="step-dot" id="sd3">3</div><div class="step-lbl">เอกสาร</div></div>
     </div>
     <div id="rp1">
       <div class="fsect">ข้อมูลส่วนตัว</div>
@@ -343,20 +341,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
         <div class="fg"><label class="t-label">เลขบัญชี *</label><input class="fi" id="reg-bank-acc" placeholder="xxx-x-xxxxx-x"></div>
         <div class="fg"><label class="t-label">ชื่อบัญชี *</label><input class="fi" id="reg-bank-name" placeholder="ชื่อ-นามสกุล ตามบัญชี"></div>
       </div>
-      <div class="btn-row"><button class="btn btn-ghost btn-full" onclick="rStep(1)">ย้อนกลับ</button><button class="btn btn-dark btn-full" onclick="rStep(3)">ถัดไป</button></div>
-    </div>
-    <div id="rp3" style="display:none;">
-      <div class="fsect">เอกสารยืนยันบัญชีธนาคาร</div>
-      <div class="alert alert-info" style="font-size:12px;">แนบสมุดบัญชีเพื่อให้ Owner ตรวจสอบ — บัญชีจะใช้งานได้เมื่อ Owner อนุมัติ</div>
-      <div class="upbox"><div class="upbox-icon">🏦</div><div class="upbox-title">หน้าสมุดบัญชีธนาคาร *</div><div class="upbox-sub">รูปภาพหน้าแรกของสมุดบัญชี หรือ PDF สูงสุด 5MB</div><button class="btn btn-ghost btn-sm" style="margin-top:10px;">เลือกไฟล์</button></div>
-      <div class="card" style="background:var(--surface2);box-shadow:none;border:1px solid var(--border);margin-top:4px;">
-        <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px;">สรุปข้อมูลบัญชี</div>
-        <div class="irow"><span class="ilabel">ชื่อ</span><span class="ival" id="reg-sum-name">—</span></div>
-        <div class="irow"><span class="ilabel">Username</span><span class="ival" id="reg-sum-user">—</span></div>
-        <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival" id="reg-sum-pos">—</span></div>
-        <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival" id="reg-sum-start">—</span></div>
-      </div>
-      <div class="btn-row" style="margin-top:4px;"><button class="btn btn-ghost btn-full" onclick="rStep(2)">ย้อนกลับ</button><button class="btn btn-success btn-full" onclick="submitRegistration()">สร้างบัญชี</button></div>
+      <div class="btn-row"><button class="btn btn-ghost btn-full" onclick="rStep(1)">ย้อนกลับ</button><button class="btn btn-success btn-full" onclick="submitRegistration()">สร้างบัญชี</button></div>
     </div>
   </div>
 </div>
@@ -1225,37 +1210,16 @@ function rStep(s){
       if(pass.length<8){regErr('reg-pass','รหัสผ่านต้องมีอย่างน้อย 8 ตัว');return;}
       if(pass!==pass2){regErr('reg-pass2','รหัสผ่านไม่ตรงกัน');return;}
     }
-    if(cur===2){
-      const start=(document.getElementById('reg-startdate')?.value||'').trim();
-      const acc=(document.getElementById('reg-bank-acc')?.value||'').trim();
-      const accName=(document.getElementById('reg-bank-name')?.value||'').trim();
-      regClearBorder('reg-startdate','reg-bank-acc','reg-bank-name');
-      if(!start){regErr('reg-startdate','กรุณาเลือกวันที่เริ่มทำงาน');return;}
-      if(!acc){regErr('reg-bank-acc','กรุณากรอกเลขบัญชีธนาคาร');return;}
-      if(!accName){regErr('reg-bank-name','กรุณากรอกชื่อบัญชีธนาคาร');return;}
-    }
   }
 
-  [1,2,3].forEach(i=>{
+  [1,2].forEach(i=>{
     document.getElementById('rp'+i).style.display=i===s?'block':'none';
     const d=document.getElementById('sd'+i);
     if(i<s){d.className='step-dot done';d.textContent='✓';}
     else if(i===s){d.className='step-dot cur';d.textContent=i;}
     else{d.className='step-dot';d.textContent=i;}
-    if(i<3)document.getElementById('sl'+i).className='step-line'+(i<s?' done':'');
   });
-  if(s===3){
-    const fname=(document.getElementById('reg-fname')?.value||'').trim();
-    const lname=(document.getElementById('reg-lname')?.value||'').trim();
-    const user=(document.getElementById('reg-user')?.value||'').trim();
-    const pos=document.querySelector('#rp2 select')?.value||'—';
-    const start=(document.getElementById('reg-startdate')?.value||'').trim();
-    const setS=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
-    setS('reg-sum-name',fname&&lname?fname+' '+lname:fname||lname||'—');
-    setS('reg-sum-user',user);
-    setS('reg-sum-pos',pos);
-    setS('reg-sum-start',start);
-  }
+  document.getElementById('sl1').className='step-line'+(s>1?' done':'');
   window.scrollTo(0,0);
 }
 
@@ -1596,6 +1560,11 @@ async function submitRegistration(){
   const idcard=(document.getElementById('reg-idcard')?.value||'').trim();
   const addr=(document.getElementById('reg-addr')?.value||'').trim();
   const pos=document.querySelector('#rp2 select')?.value||'';
+  // Step 2 validation
+  regClearBorder('reg-startdate','reg-bank-acc','reg-bank-name');
+  if(!startDate){regErr('reg-startdate','กรุณาเลือกวันที่เริ่มทำงาน');return;}
+  if(!bank){regErr('reg-bank-acc','กรุณากรอกเลขบัญชีธนาคาร');return;}
+  if(!bankName){regErr('reg-bank-name','กรุณากรอกชื่อบัญชีธนาคาร');return;}
   try{
     const res=await callAPI({action:'registerEmployee',name:fname+' '+lname,username:user,
       phone,idcard,address:addr,position:pos,startDate,bankAcc:bank,bankAccName:bankName});
