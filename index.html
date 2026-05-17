@@ -354,12 +354,12 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div class="upbox"><div class="upbox-icon">🏦</div><div class="upbox-title">หน้าสมุดบัญชีธนาคาร *</div><div class="upbox-sub">รูปภาพหน้าแรกของสมุดบัญชี หรือ PDF สูงสุด 5MB</div><button class="btn btn-ghost btn-sm" style="margin-top:10px;">เลือกไฟล์</button></div>
       <div class="card" style="background:var(--surface2);box-shadow:none;border:1px solid var(--border);margin-top:4px;">
         <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px;">สรุปข้อมูลบัญชี</div>
-        <div class="irow"><span class="ilabel">ชื่อ</span><span class="ival">สมหญิง ใจดี</span></div>
-        <div class="irow"><span class="ilabel">Username</span><span class="ival">somying01</span></div>
-        <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival">เบเกอรี่ · Full-time</span></div>
-        <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival">1 มิ.ย. 2569</span></div>
+        <div class="irow"><span class="ilabel">ชื่อ</span><span class="ival" id="reg-sum-name">—</span></div>
+        <div class="irow"><span class="ilabel">Username</span><span class="ival" id="reg-sum-user">—</span></div>
+        <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival" id="reg-sum-pos">—</span></div>
+        <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival" id="reg-sum-start">—</span></div>
       </div>
-      <div class="btn-row" style="margin-top:4px;"><button class="btn btn-ghost btn-full" onclick="rStep(2)">ย้อนกลับ</button><button class="btn btn-success btn-full" onclick="go('s-reg-done')">สร้างบัญชี</button></div>
+      <div class="btn-row" style="margin-top:4px;"><button class="btn btn-ghost btn-full" onclick="rStep(2)">ย้อนกลับ</button><button class="btn btn-success btn-full" onclick="submitRegistration()">สร้างบัญชี</button></div>
     </div>
   </div>
 </div>
@@ -373,12 +373,12 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
     <div class="card" style="width:100%;text-align:left;margin-bottom:20px;">
       <div class="card-title" style="margin-bottom:14px;">สถานะบัญชี</div>
       <div class="tl">
-        <div class="tl-item done"><div class="tl-title">สร้างบัญชีแล้ว</div><div class="tl-sub">15 พ.ค. 2026 · 09:30 น. · somying01</div></div>
-        <div class="tl-item cur"><div class="tl-title" style="color:var(--navy);">รอ Owner ตรวจสอบเอกสาร</div><div class="tl-sub">สมุดบัญชี KBank 123-4-56789-0</div></div>
+        <div class="tl-item done"><div class="tl-title">สร้างบัญชีแล้ว</div><div class="tl-sub" id="reg-done-timestamp">—</div></div>
+        <div class="tl-item cur"><div class="tl-title" style="color:var(--navy);">รอ Owner ตรวจสอบเอกสาร</div><div class="tl-sub" id="reg-done-bank-sub">—</div></div>
         <div class="tl-item"><div class="tl-title">อนุมัติ → เข้าใช้งานได้</div><div class="tl-sub">หลัง Owner ยืนยันเอกสาร</div></div>
       </div>
     </div>
-    <div class="alert alert-info" style="width:100%;text-align:left;margin-bottom:20px;font-size:12px;">Login ได้เมื่อ Owner อนุมัติบัญชีแล้ว · Username: <strong>somying01</strong></div>
+    <div class="alert alert-info" style="width:100%;text-align:left;margin-bottom:20px;font-size:12px;">Login ได้เมื่อ Owner อนุมัติบัญชีแล้ว · Username: <strong id="reg-done-username">—</strong></div>
     <button class="btn btn-outline btn-full" onclick="go('s-login')">กลับหน้า Login</button>
   </div>
 </div>
@@ -503,27 +503,26 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">อนุมัติการเข้าถึงระบบ</div></div>
   <div class="page">
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-      <div class="lavatar" style="width:60px;height:60px;font-size:22px;background:var(--surface2);color:var(--ink3);">ส</div>
+      <div class="lavatar" style="width:60px;height:60px;font-size:22px;background:var(--surface2);color:var(--ink3);" id="apv-detail-avatar">?</div>
       <div>
-        <div style="font-size:20px;font-weight:700;">สมหญิง ใจดี</div>
-        <div class="t-cap" style="margin-top:3px;">เบเกอรี่ · Full-time · สมัคร 15 พ.ค. 2026</div>
+        <div style="font-size:20px;font-weight:700;" id="apv-detail-name">—</div>
+        <div class="t-cap" style="margin-top:3px;" id="apv-detail-sub">—</div>
         <div style="margin-top:6px;"><span class="chip chip-amber" style="font-size:10px;">รอตรวจสอบเอกสาร</span></div>
       </div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ข้อมูลผู้ใช้</div>
-      <div class="irow"><span class="ilabel">Username</span><span class="ival" style="font-weight:700;color:var(--navy);">somying01</span></div>
-      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival">085-234-5678</span></div>
-      <div class="irow"><span class="ilabel">เลขบัตร ปชช.</span><span class="ival">1-3019-xxxxx</span></div>
-      <div class="irow"><span class="ilabel">ที่อยู่</span><span class="ival" style="font-size:12px;">ต.เนินพระ อ.เมือง จ.ระยอง</span></div>
-      <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival">1 มิ.ย. 2026</span></div>
+      <div class="irow"><span class="ilabel">Username</span><span class="ival" style="font-weight:700;color:var(--navy);" id="apv-detail-user">—</span></div>
+      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival" id="apv-detail-phone">—</span></div>
+      <div class="irow"><span class="ilabel">เลขบัตร ปชช.</span><span class="ival" id="apv-detail-idcard">—</span></div>
+      <div class="irow"><span class="ilabel">ที่อยู่</span><span class="ival" style="font-size:12px;" id="apv-detail-addr">—</span></div>
+      <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival" id="apv-detail-startdate">—</span></div>
     </div>
     <div class="card" style="border-left:3px solid var(--navy);">
       <div class="card-title" style="margin-bottom:14px;">ตรวจสอบเอกสาร — สมุดบัญชีธนาคาร</div>
       <div class="lrow" style="cursor:default;padding-top:0;">
         <div style="font-size:28px;">🏦</div>
-        <div class="lcol"><div class="ltitle">Bookbank_Somying.jpg</div><div class="lsub">KBank · เลขบัญชี 123-4-56789-0 · น.ส.สมหญิง ใจดี</div></div>
-        <button class="btn btn-ghost btn-sm" onclick="toast('เปิดไฟล์ Bookbank_Somying.jpg')">ดู</button>
+        <div class="lcol"><div class="ltitle" id="apv-detail-bookbank-file">—</div><div class="lsub" id="apv-detail-bookbank-sub">—</div></div>
       </div>
       <div class="alert alert-info" style="margin-top:12px;margin-bottom:0;font-size:12px;">ตรวจสอบว่าชื่อบัญชีตรงกับข้อมูลผู้สมัคร และเลขบัญชีถูกต้อง</div>
     </div>
@@ -535,7 +534,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
           <option>Part-time · รายชั่วโมง</option>
           <option>ทดลองงาน (Probation)</option>
         </select></div>
-      <div class="fg"><label class="t-label">ฐานเงินเดือน / ค่าแรง *</label><input class="fi" type="number" value="11000"><div class="fhint">Owner Only — พนักงานไม่เห็นข้อมูลนี้จนกว่าจะ Approve</div></div>
+      <div class="fg"><label class="t-label">ฐานเงินเดือน / ค่าแรง *</label><input class="fi" type="number" id="apv-salary-input" placeholder="กรอกฐานเงินเดือน"><div class="fhint">Owner Only — พนักงานไม่เห็นข้อมูลนี้จนกว่าจะ Approve</div></div>
       <div class="fg"><label class="t-label">หมายเหตุ</label><input class="fi" placeholder="เช่น ทดลองงาน 3 เดือน สิ้นสุด 1 ก.ย. 2026"></div>
       <div class="btn-row" style="margin-top:4px;">
         <button class="btn btn-danger btn-full" onclick="apvApplicant('reject')">ปฏิเสธ</button>
@@ -796,11 +795,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       </div>
       <div class="card">
         <div class="card-title" style="margin-bottom:12px;">ประวัติ 5 วันล่าสุด</div>
-        <div class="irow"><span class="ilabel">14 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:31 → 17:28 ✓</span></div>
-        <div class="irow"><span class="ilabel">13 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:30 → 17:30 ✓</span></div>
-        <div class="irow"><span class="ilabel">12 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:35 → 16:58 ✓</span></div>
-        <div class="irow"><span class="ilabel">11 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:29 → 17:31 ✓</span></div>
-        <div class="irow"><span class="ilabel">10 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:33 → 17:29 ✓</span></div>
+        <div id="clock-recent-history">กำลังโหลด...</div>
       </div>
     </div>
   </div>
@@ -811,9 +806,9 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">วันลา</div></div>
   <div class="page">
     <div class="leave-grid">
-      <div class="leave-bal"><div class="leave-num">5</div><div class="leave-lbl">พักร้อน</div></div>
-      <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลาป่วย</div></div>
-      <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลากิจ</div></div>
+      <div class="leave-bal"><div class="leave-num" id="leave-bal-v">—</div><div class="leave-lbl">พักร้อน</div></div>
+      <div class="leave-bal"><div class="leave-num" id="leave-bal-s">—</div><div class="leave-lbl">ลาป่วย</div></div>
+      <div class="leave-bal"><div class="leave-num" id="leave-bal-p">—</div><div class="leave-lbl">ลากิจ</div></div>
     </div>
     <div class="t-cap" style="text-align:center;margin-bottom:16px;">นับปีปฏิทิน 1 ม.ค.–31 ธ.ค. ไม่สะสมข้ามปี</div>
     <div class="card">
@@ -843,9 +838,8 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <button class="btn btn-navy btn-full" onclick="validateLeaveSubmit()">ส่งคำขอ</button>
     </div>
     <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-      <div class="card-title" style="margin-bottom:12px;">ประวัติปี 2026</div>
-      <div class="irow"><span class="ilabel">พักร้อน 12–13 มี.ค.</span><span class="chip chip-green">อนุมัติ</span></div>
-      <div class="irow"><span class="ilabel">ลาป่วย 5 ก.พ.</span><span class="chip chip-green">อนุมัติ</span></div>
+      <div class="card-title" style="margin-bottom:12px;">ประวัติปี <span id="leave-hist-year"></span></div>
+      <div id="leave-history-list" style="color:var(--ink3);font-size:13px;">กำลังโหลด...</div>
     </div></div>
   </div>
 </div>
@@ -856,8 +850,8 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="page">
     <!-- OT Summary this month -->
     <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
-      <div class="stat-box"><div class="stat-val" style="color:var(--navy);">6</div><div class="stat-lbl">ชม. OT เดือนนี้</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:var(--amber);">1</div><div class="stat-lbl">รออนุมัติ</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--navy);" id="ot-stat-hours">—</div><div class="stat-lbl">ชม. OT เดือนนี้</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--amber);" id="ot-stat-pending">—</div><div class="stat-lbl">รออนุมัติ</div></div>
     </div>
 
     <!-- OT Request Form -->
@@ -866,14 +860,14 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div id="ot-parttime-warn" class="alert alert-warn" style="font-size:12px;display:none;">⚠ พนักงาน Part-time ไม่มีสิทธิ์ OT ยกเว้นได้รับ Approve พิเศษจาก Owner</div>
       <div class="fg">
         <label class="t-label">วันที่ขอทำ OT *</label>
-        <input class="fi" type="date" id="ot-date-input" value="2026-05-20">
+        <input class="fi" type="date" id="ot-date-input">
         <div class="fhint">ต้องยื่นล่วงหน้าอย่างน้อย 6 ชั่วโมงก่อนเวลาเริ่ม OT</div>
       </div>
       <div class="fg2">
         <div class="fg">
           <label class="t-label">เวลาเริ่ม OT *</label>
           <select class="fi fi-sel" id="ot-start-sel" onchange="calcOTHours()">
-            <option value="17:00">17:00 น.</option><option value="17:30" selected>17:30 น.</option>
+            <option value="17:00">17:00 น.</option><option value="17:30">17:30 น.</option>
             <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
             <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
             <option value="20:00">20:00 น.</option>
@@ -946,15 +940,10 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
 
     <!-- Filters -->
     <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <select class="fi fi-sel" style="flex:2;padding:10px 36px 10px 12px;font-size:13px;">
-        <option>นาม สุขใจ — บาร์หน้า</option>
-        <option>มิน รักงาน — เบเกอรี่</option>
-        <option>แก้ว มีสุข — ครัว</option>
-        <option>ปาย ใจงาม — แม่บ้าน</option>
-        <option>อ้อย สดใส — บาร์หน้า</option>
+      <select class="fi fi-sel" id="export-emp-select" style="flex:2;padding:10px 36px 10px 12px;font-size:13px;" onchange="loadAttendanceExport()">
+        <option value="">กำลังโหลด...</option>
       </select>
-      <select class="fi fi-sel" style="flex:1;padding:10px 36px 10px 12px;font-size:13px;">
-        <option>พ.ค. 2026</option><option>เม.ย. 2026</option><option>มี.ค. 2026</option>
+      <select class="fi fi-sel" id="export-month-select" style="flex:1;padding:10px 36px 10px 12px;font-size:13px;" onchange="loadAttendanceExport()">
       </select>
     </div>
 
@@ -970,159 +959,22 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
     <!-- Summary chips -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
-        <div style="font-size:20px;font-weight:700;color:var(--navy);">14</div>
+        <div style="font-size:20px;font-weight:700;color:var(--navy);" id="export-stat-days">—</div>
         <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">วันทำงาน</div>
       </div>
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
-        <div style="font-size:20px;font-weight:700;color:var(--green);">112.3</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green);" id="export-stat-hours">—</div>
         <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. จริง</div>
       </div>
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
-        <div style="font-size:20px;font-weight:700;color:var(--amber);">2.25</div>
+        <div style="font-size:20px;font-weight:700;color:var(--amber);" id="export-stat-ot">—</div>
         <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. OT</div>
       </div>
     </div>
 
     <!-- Day-by-day table -->
-    <div class="t-sect">บันทึกรายวัน — นาม สุขใจ</div>
-    <div class="card" style="padding:0;overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px;">
-        <thead>
-          <tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
-            <th style="padding:9px 12px;text-align:left;font-weight:600;color:var(--ink2);white-space:nowrap;">วันที่</th>
-            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ประเภทวัน</th>
-            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน เข้า</th>
-            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน ออก</th>
-            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง เข้า</th>
-            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง ออก</th>
-            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ชม.จริง</th>
-            <th style="padding:9px 12px;text-align:center;font-weight:600;color:var(--amber);">OT</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- วันแรงงาน (holiday) -->
-          <tr style="background:var(--red-bg);border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;"><div style="font-weight:600;color:var(--red);">1 พ.ค. (ศ.)</div></td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:8px;font-weight:600;">วันแรงงาน</span></td>
-            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
-            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
-          </tr>
-          <!-- เสาร์-อาทิตย์ -->
-          <tr style="background:var(--surface2);border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;color:var(--ink3);">2 พ.ค. (ส.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--surface2);color:var(--ink3);padding:2px 6px;border-radius:8px;font-weight:600;">หยุดสัปดาห์</span></td>
-            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--ink3);font-size:11px;">ไม่ได้วางแผนทำงาน</td>
-          </tr>
-          <tr style="background:var(--surface2);border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;color:var(--ink3);">3 พ.ค. (อา.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--surface2);color:var(--ink3);padding:2px 6px;border-radius:8px;font-weight:600;">หยุดสัปดาห์</span></td>
-            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--ink3);font-size:11px;">ไม่ได้วางแผนทำงาน</td>
-          </tr>
-          <!-- วันทำงานปกติ -->
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;">4 พ.ค. (จ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
-            <td style="padding:9px 6px;text-align:center;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:31</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:28</td>
-            <td style="padding:9px 6px;text-align:center;font-weight:600;">7.95</td>
-            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
-          </tr>
-          <!-- วันฉัตรมงคล (holiday) -->
-          <tr style="background:var(--red-bg);border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;"><div style="font-weight:600;color:var(--red);">5 พ.ค. (อ.)</div></td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:8px;font-weight:600;">วันฉัตรมงคล</span></td>
-            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--red);font-size:11px;">วันหยุดนักขัตฤกษ์ — ไม่ได้ทำงาน</td>
-          </tr>
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;">6 พ.ค. (พ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
-            <td style="padding:9px 6px;text-align:center;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:29</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;font-weight:600;">8.02</td>
-            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
-          </tr>
-          <!-- วัน OT อนุมัติ -->
-          <tr style="border-top:1px solid var(--border);background:#FFFBF0;">
-            <td style="padding:9px 12px;font-weight:600;">7 พ.ค. (พฤ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
-            <td style="padding:9px 6px;text-align:center;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:32</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--amber);font-weight:700;">19:45</td>
-            <td style="padding:9px 6px;text-align:center;font-weight:600;">10.22</td>
-            <td style="padding:9px 12px;text-align:center;">
-              <span style="font-weight:700;color:var(--amber);">+2.25</span>
-              <div style="font-size:9px;color:var(--green);">OT อนุมัติ ✓</div>
-            </td>
-          </tr>
-          <!-- วันที่ Clock Out ช้า แต่ไม่มี OT -->
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;">8 พ.ค. (ศ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
-            <td style="padding:9px 6px;text-align:center;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--ink2);font-weight:600;">18:10 <span style="font-size:9px;color:var(--ink3);">*</span></td>
-            <td style="padding:9px 6px;text-align:center;font-weight:600;">8.67</td>
-            <td style="padding:9px 12px;text-align:center;">
-              <span style="color:var(--ink3);">—</span>
-              <div style="font-size:9px;color:var(--ink3);">ไม่มีคำขอ OT</div>
-            </td>
-          </tr>
-          <!-- วันลา -->
-          <tr style="background:var(--info-bg);border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;color:var(--info);">11 พ.ค. (จ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:8px;font-weight:600;">วันวิสาขบูชา</span></td>
-            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--info);font-size:11px;">วันหยุดนักขัตฤกษ์ — ไม่ได้ทำงาน</td>
-          </tr>
-          <tr style="background:var(--info-bg);border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;color:var(--info);">12 พ.ค. (อ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--info-bg);color:var(--info);padding:2px 6px;border-radius:8px;font-weight:600;">ลากิจ</span></td>
-            <td style="padding:9px 6px;text-align:center;color:var(--info);">08:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--info);">17:30</td>
-            <td colspan="2" style="padding:9px 6px;text-align:center;color:var(--info);font-size:11px;">อนุมัติวันลา</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--info);">—</td>
-            <td style="padding:9px 12px;text-align:center;color:var(--info);">—</td>
-          </tr>
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;">13 พ.ค. (พ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
-            <td style="padding:9px 6px;text-align:center;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:35</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:28</td>
-            <td style="padding:9px 6px;text-align:center;font-weight:600;">7.88</td>
-            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
-          </tr>
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:9px 12px;font-weight:600;">14 พ.ค. (พฤ.)</td>
-            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
-            <td style="padding:9px 6px;text-align:center;">08:30</td>
-            <td style="padding:9px 6px;text-align:center;">17:30</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:29</td>
-            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:31</td>
-            <td style="padding:9px 6px;text-align:center;font-weight:600;">8.03</td>
-            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr style="border-top:2px solid var(--navy);background:var(--navy-lt);">
-            <td colspan="6" style="padding:10px 12px;font-weight:700;color:var(--navy);">รวม (1–14 พ.ค.)</td>
-            <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--navy);">52.1 ชม.</td>
-            <td style="padding:10px 12px;text-align:center;font-weight:700;color:var(--amber);">2.25 ชม.</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-    <div class="t-cap" style="margin-top:8px;padding:0 2px;">* Clock Out เกินแผน แต่ไม่มีคำขอ OT — ไม่นับ OT</div>
+    <div class="t-sect" id="export-table-title">บันทึกรายวัน</div>
+    <div id="export-table-container" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
   </div>
 </div>
   </div>
@@ -1133,52 +985,52 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">แก้ไขโปรไฟล์พนักงาน</div><button class="topbar-action" style="background:var(--green);color:#fff;border:none;" onclick="saveProfile()">บันทึก</button></div>
   <div class="page">
     <div style="text-align:center;padding:16px 0 20px;">
-      <div class="lavatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 10px;">น</div>
+      <div class="lavatar" id="edit-avatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 10px;">—</div>
       <div style="font-size:12px;color:var(--ink3);">แตะเพื่อเปลี่ยนรูป (Phase II)</div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ข้อมูลส่วนตัว</div>
       <div class="fg2">
-        <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" value="นาม"></div>
-        <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" value="สุขใจ"></div>
+        <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" id="edit-fname" placeholder="ชื่อจริง"></div>
+        <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" id="edit-lname" placeholder="นามสกุล"></div>
       </div>
-      <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" value="082-345-6789"></div>
-      <div class="fg"><label class="t-label">เลขบัตรประชาชน</label><input class="fi" value="1-3019-xxxxx"></div>
-      <div class="fg"><label class="t-label">วันเกิด</label><input class="fi" type="date" value="2002-01-12"></div>
-      <div class="fg"><label class="t-label">ที่อยู่</label><input class="fi" value="ต.เนินพระ อ.เมือง จ.ระยอง 21000"></div>
+      <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" id="edit-phone" placeholder="0xx-xxx-xxxx"></div>
+      <div class="fg"><label class="t-label">เลขบัตรประชาชน</label><input class="fi" id="edit-idcard" placeholder="x-xxxx-xxxxx-xx-x"></div>
+      <div class="fg"><label class="t-label">วันเกิด</label><input class="fi" type="date" id="edit-dob"></div>
+      <div class="fg"><label class="t-label">ที่อยู่</label><input class="fi" id="edit-addr" placeholder="ที่อยู่ปัจจุบัน"></div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ข้อมูลงาน</div>
       <div class="fg"><label class="t-label">ตำแหน่ง *</label>
-        <select class="fi fi-sel">
-          <option selected>บาร์หน้า (Barista)</option><option>เบเกอรี่ (Bakery)</option><option>ครัว (Kitchen)</option><option>แม่บ้าน (Housekeeper)</option>
+        <select class="fi fi-sel" id="edit-position">
+          <option value="บาร์หน้า (Barista)">บาร์หน้า (Barista)</option><option value="เบเกอรี่ (Bakery)">เบเกอรี่ (Bakery)</option><option value="ครัว (Kitchen)">ครัว (Kitchen)</option><option value="แม่บ้าน (Housekeeper)">แม่บ้าน (Housekeeper)</option>
         </select></div>
       <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
-        <select class="fi fi-sel">
-          <option selected>Full-time · ประจำ</option>
-          <option>Part-time · รายชั่วโมง</option>
-          <option>ทดลองงาน (Probation)</option>
+        <select class="fi fi-sel" id="edit-type">
+          <option value="Full-time">Full-time · ประจำ</option>
+          <option value="Part-time">Part-time · รายชั่วโมง</option>
+          <option value="Probation">ทดลองงาน (Probation)</option>
         </select></div>
       <div class="fg"><label class="t-label">สถานะบัญชี *</label>
-        <select class="fi fi-sel">
-          <option selected>Active</option>
-          <option>ระงับชั่วคราว</option>
-          <option>ออกจากงาน</option>
+        <select class="fi fi-sel" id="edit-status">
+          <option value="active">Active</option>
+          <option value="suspended">ระงับชั่วคราว</option>
+          <option value="inactive">ออกจากงาน</option>
         </select></div>
-      <div class="fg"><label class="t-label">วันเริ่มทำงาน *</label><input class="fi" type="date" value="2025-01-01"></div>
+      <div class="fg"><label class="t-label">วันเริ่มทำงาน *</label><input class="fi" type="date" id="edit-startdate"></div>
     </div>
     <div class="card" style="border-left:3px solid var(--navy);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div class="card-title">ข้อมูลเงินเดือน</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
-      <div class="fg"><label class="t-label">ฐานเงินเดือน (บาท/เดือน)</label><input class="fi" type="number" value="13000"></div>
-      <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" value="150"><div class="fhint">ใช้คำนวณค่าล่วงเวลา</div></div>
+      <div class="fg"><label class="t-label">ฐานเงินเดือน (บาท/เดือน)</label><input class="fi" type="number" id="edit-salary" placeholder="ฐานเงินเดือน"></div>
+      <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" id="edit-otrate" placeholder="คำนวณอัตโนมัติ"><div class="fhint">ใช้คำนวณค่าล่วงเวลา</div></div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">บัญชีธนาคาร</div>
       <div class="fg"><label class="t-label">ธนาคาร</label>
-        <select class="fi fi-sel"><option selected>กสิกรไทย (KBank)</option><option>ไทยพาณิชย์ (SCB)</option><option>กรุงไทย (KTB)</option></select></div>
+        <select class="fi fi-sel" id="edit-bank"><option value="KBank">กสิกรไทย (KBank)</option><option value="SCB">ไทยพาณิชย์ (SCB)</option><option value="KTB">กรุงไทย (KTB)</option></select></div>
       <div class="fg2">
-        <div class="fg"><label class="t-label">เลขบัญชี</label><input class="fi" value="123-4-56789-0"></div>
-        <div class="fg"><label class="t-label">ชื่อบัญชี</label><input class="fi" value="นาย นาม สุขใจ"></div>
+        <div class="fg"><label class="t-label">เลขบัญชี</label><input class="fi" id="edit-bankAcc" placeholder="xxx-x-xxxxx-x"></div>
+        <div class="fg"><label class="t-label">ชื่อบัญชี</label><input class="fi" id="edit-bankAccName" placeholder="ชื่อ-นามสกุล ตามบัญชี"></div>
       </div>
     </div>
     <div class="card">
@@ -1260,12 +1112,14 @@ function go(id){
   document.getElementById(id).classList.add('on');window.scrollTo(0,0);
   if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
   if(id==='s-emp-sched'){renderSchedDeadlineBanner();}
-  if(id==='s-emp-ot'){renderOTRate();}
+  if(id==='s-emp-ot'){renderOTRate();renderOTScreen();}
+  if(id==='s-emp-leave'){renderLeaveScreen();}
   if(id==='s-emp-home'){renderEmpHome();}
   if(id==='s-emp-profile-self'){renderEmpProfile();}
   if(id==='s-owner-home'){renderOwnerHome();}
   if(id==='s-owner-approve'){renderApprovalTabs();}
   if(id==='s-owner-emps'){renderEmpList();}
+  if(id==='s-owner-export'){renderAttendanceExport();}
 }
 
 /* ── GPS BANNER ON CLOCK SCREEN ── */
@@ -1346,6 +1200,18 @@ function rStep(s){
     else{d.className='step-dot';d.textContent=i;}
     if(i<3)document.getElementById('sl'+i).className='step-line'+(i<s?' done':'');
   });
+  if(s===3){
+    const fname=(document.getElementById('reg-fname')?.value||'').trim();
+    const lname=(document.getElementById('reg-lname')?.value||'').trim();
+    const user=(document.getElementById('reg-user')?.value||'').trim();
+    const pos=document.querySelector('#rp2 select')?.value||'—';
+    const start=(document.getElementById('reg-startdate')?.value||'').trim();
+    const setS=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+    setS('reg-sum-name',fname&&lname?fname+' '+lname:fname||lname||'—');
+    setS('reg-sum-user',user);
+    setS('reg-sum-pos',pos);
+    setS('reg-sum-start',start);
+  }
   window.scrollTo(0,0);
 }
 
@@ -1354,11 +1220,14 @@ function pickIV(btn,lbl){['ivb1','ivb2','ivb3'].forEach(id=>{const b=document.ge
 
 /* ── APPLICANT APPROVE ── */
 async function apvApplicant(a,empId){
-  const id=empId||'EMP_PENDING';
+  if(!empId){toast('ไม่พบข้อมูลพนักงาน');return;}
+  const salary=document.getElementById('apv-salary-input')?.value||'';
   try{
-    const res=await callAPI({action:'approveEmployee',empId:id,approve:a==='approve'?'true':'false'});
-    if(res.ok){toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ':'ปฏิเสธบัญชีแล้ว');setTimeout(back,1500);}
-    else toast('เกิดข้อผิดพลาด: '+res.error);
+    const res=await callAPI({action:'approveEmployee',empId,approve:a==='approve'?'true':'false',salary,approvedBy:currentUser?.name||'Owner'});
+    if(res.ok){
+      toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ':'ปฏิเสธบัญชีแล้ว');
+      setTimeout(()=>{back();renderApprovalTabs();renderOwnerHome();},1200);
+    } else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
 }
 
@@ -1458,6 +1327,7 @@ async function renderEmpProfile(){
 
 /* ── APPROVAL TABS DYNAMIC ── */
 const LEAVE_LABELS={v:'ลาพักร้อน',s:'ลาป่วย',p:'ลากิจ'};
+let _pendingRegsCache=[];
 async function renderApprovalTabs(){
   try{
     const res=await callAPI({action:'getPendingApprovals'});
@@ -1469,10 +1339,11 @@ async function renderApprovalTabs(){
     const empDone=document.getElementById('apv-t0-done');
     const pendCount=document.getElementById('apv-emp-pend-count');
     const pending=(d.registrations||[]);
+    _pendingRegsCache=pending;
     const done=[];
     if(pendCount)pendCount.textContent=pending.length;
     if(empPend){
-      empPend.innerHTML=pending.length?pending.map(e=>`
+      empPend.innerHTML=pending.length?pending.map((e,idx)=>`
         <div class="apv-card" style="border-left-color:var(--amber);">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
             <div class="lavatar" style="background:var(--surface2);color:var(--ink3);">${(e.name||'?').charAt(0)}</div>
@@ -1481,6 +1352,7 @@ async function renderApprovalTabs(){
           </div>
           <div class="btn-row">
             <button class="btn btn-danger btn-full" onclick="apvApplicant('reject','${e.empId}')">ปฏิเสธ</button>
+            <button class="btn btn-ghost btn-full" onclick="openApplicantDetail(_pendingRegsCache[${idx}])">ดูรายละเอียด</button>
             <button class="btn btn-success btn-full" onclick="apvApplicant('approve','${e.empId}')">รับเข้า</button>
           </div>
         </div>`).join('')
@@ -1646,8 +1518,14 @@ async function doClockIn(){
 
 /* ── PROFILE EDIT ── */
 async function saveProfile(empId){
-  const fields={empId:empId||'EMP002'};
-  ['name','position','type','salary','bank'].forEach(f=>{const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;});
+  const id=empId||_viewingEmpId||'';
+  if(!id){toast('ไม่พบข้อมูลพนักงาน');return;}
+  const fname=(document.getElementById('edit-fname')?.value||'').trim();
+  const lname=(document.getElementById('edit-lname')?.value||'').trim();
+  const fields={empId:id,name:fname&&lname?fname+' '+lname:fname||lname};
+  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName'].forEach(f=>{
+    const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
+  });
   try{
     const res=await callAPI({action:'updateEmployee',data:JSON.stringify(fields)});
     if(res.ok){toast('บันทึกข้อมูลเรียบร้อย ✓');setTimeout(()=>{back();back();},1200);}
@@ -1655,33 +1533,243 @@ async function saveProfile(empId){
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
 }
 
+/* ── REGISTRATION SUBMIT ── */
+async function submitRegistration(){
+  const fname=(document.getElementById('reg-fname')?.value||'').trim();
+  const lname=(document.getElementById('reg-lname')?.value||'').trim();
+  const user=(document.getElementById('reg-user')?.value||'').trim();
+  const bank=(document.getElementById('reg-bank-acc')?.value||'').trim();
+  const bankName=(document.getElementById('reg-bank-name')?.value||'').trim();
+  const startDate=(document.getElementById('reg-startdate')?.value||'').trim();
+  const phone=(document.getElementById('reg-phone')?.value||'').trim();
+  const idcard=(document.getElementById('reg-idcard')?.value||'').trim();
+  const addr=(document.getElementById('reg-addr')?.value||'').trim();
+  const pos=document.querySelector('#rp2 select')?.value||'';
+  try{
+    const res=await callAPI({action:'registerEmployee',name:fname+' '+lname,username:user,
+      phone,idcard,address:addr,position:pos,startDate,bankAcc:bank,bankAccName:bankName});
+    if(!res.ok){toast('เกิดข้อผิดพลาด: '+(res.error||'ลองใหม่อีกครั้ง'));return;}
+  }catch(e){}
+  // Populate reg-done screen
+  const now=new Date();
+  const thDate=now.getDate()+' '+THAI_MONTHS_FULL[now.getMonth()]+' '+(now.getFullYear()+543);
+  const thTime=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setEl('reg-done-timestamp',thDate+' · '+thTime+' น. · '+user);
+  setEl('reg-done-bank-sub','เลขบัญชี '+bank+' · '+bankName);
+  setEl('reg-done-username',user);
+  go('s-reg-done');
+}
+
+/* ── APPLICANT DETAIL (OWNER) ── */
+function openApplicantDetail(reg){
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  setEl('apv-detail-name',reg.name);
+  setEl('apv-detail-avatar',(reg.name||'?').charAt(0));
+  setEl('apv-detail-sub',(reg.position||'')+(reg.type?' · '+reg.type:'')+(reg.submittedAt?' · สมัคร '+reg.submittedAt:''));
+  setEl('apv-detail-user',reg.username||reg.empId);
+  setEl('apv-detail-phone',reg.phone);
+  setEl('apv-detail-idcard',reg.idcard);
+  setEl('apv-detail-addr',reg.address);
+  setEl('apv-detail-startdate',reg.startDate);
+  setEl('apv-detail-bookbank-file','Bookbank_'+(reg.username||reg.empId)+'.jpg');
+  setEl('apv-detail-bookbank-sub',(reg.bankName||'ธนาคาร')+' · เลขบัญชี '+(reg.bankAcc||'—')+' · '+(reg.bankAccName||reg.name||'—'));
+  // wire approve/reject to correct empId
+  document.querySelector('#s-owner-apv-detail .btn-danger').onclick=()=>apvApplicant('reject',reg.empId);
+  document.querySelector('#s-owner-apv-detail .btn-success').onclick=()=>apvApplicant('approve',reg.empId);
+  go('s-owner-apv-detail');
+}
+
+/* ── CLOCK HISTORY (EMPLOYEE) ── */
+async function renderClockHistory(){
+  const el=document.getElementById('clock-recent-history');
+  if(!el||!currentUser)return;
+  el.textContent='กำลังโหลด...';
+  try{
+    const res=await callAPI({action:'getAttendance',empId:currentUser.empId,limit:5});
+    const rows=res.ok&&res.data?res.data:[];
+    if(!rows.length){el.textContent='ยังไม่มีประวัติ';return;}
+    const DAYS_S=['อา','จ','อ','พ','พฤ','ศ','ส'];
+    el.innerHTML=rows.map(r=>{
+      const d=new Date(r.date);
+      const label=!isNaN(d)?d.getDate()+' '+THAI_MONTHS_SHORT[d.getMonth()]+' ('+DAYS_S[d.getDay()]+')':r.date;
+      const ci=r.clockIn||'—', co=r.clockOut||'—';
+      const ok=r.clockIn&&r.clockOut;
+      const color=ok?'var(--green)':'var(--amber)';
+      return`<div class="irow"><span class="ilabel">${label}</span><span class="ival" style="font-size:12px;color:${color};">${ci} → ${co}${ok?' ✓':''}</span></div>`;
+    }).join('');
+  }catch(e){el.textContent='โหลดไม่สำเร็จ';}
+}
+
+/* ── LEAVE SCREEN (EMPLOYEE) ── */
+async function renderLeaveScreen(){
+  if(!currentUser)return;
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const yr=new Date().getFullYear();
+  setEl('leave-hist-year',(yr+543));
+  // Leave balances
+  try{
+    const res=await callAPI({action:'getLeaveBalance',empId:currentUser.empId,year:yr});
+    if(res.ok&&res.data){
+      setEl('leave-bal-v',res.data.v??'—');
+      setEl('leave-bal-s',res.data.s??'—');
+      setEl('leave-bal-p',res.data.p??'—');
+    }
+  }catch(e){}
+  // Leave history
+  const histEl=document.getElementById('leave-history-list');
+  if(!histEl)return;
+  histEl.textContent='กำลังโหลด...';
+  try{
+    const res=await callAPI({action:'getLeaveHistory',empId:currentUser.empId});
+    const rows=res.ok&&res.data?res.data:[];
+    if(!rows.length){histEl.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:8px 0;">ยังไม่มีประวัติการลา</div>';return;}
+    const LEAVE_C={v:'chip-green',s:'chip-red',p:'chip-amber'};
+    const LEAVE_L={v:'ลาพักร้อน',s:'ลาป่วย',p:'ลากิจ'};
+    const STATUS_C={approved:'chip-green',rejected:'chip-red',pending:'chip-amber'};
+    const STATUS_L={approved:'อนุมัติ',rejected:'ปฏิเสธ',pending:'รออนุมัติ'};
+    histEl.innerHTML=rows.map(r=>`
+      <div class="irow">
+        <div><span class="chip ${LEAVE_C[r.type]||''}" style="font-size:10px;">${LEAVE_L[r.type]||r.type}</span>
+          <span style="font-size:12px;color:var(--ink2);margin-left:6px;">${r.startDate}${r.endDate&&r.endDate!==r.startDate?' – '+r.endDate:''} (${r.days} วัน)</span></div>
+        <span class="chip ${STATUS_C[r.status]||''}" style="font-size:10px;">${STATUS_L[r.status]||r.status}</span>
+      </div>`).join('');
+  }catch(e){histEl.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:8px 0;">โหลดไม่สำเร็จ</div>';}
+}
+
+/* ── OT SCREEN STATS (EMPLOYEE) ── */
+async function renderOTScreen(){
+  if(!currentUser)return;
+  try{
+    const now=new Date();
+    const res=await callAPI({action:'getOTHistory',empId:currentUser.empId,month:now.getMonth()+1,year:now.getFullYear()});
+    const rows=res.ok&&res.data?res.data:[];
+    const approved=rows.filter(r=>r.status==='approved');
+    const pending=rows.filter(r=>r.status==='pending');
+    const totalHrs=approved.reduce((s,r)=>s+(parseFloat(r.requestedHours)||0),0);
+    const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    setEl('ot-stat-hours',totalHrs.toFixed(1));
+    setEl('ot-stat-pending',pending.length);
+  }catch(e){}
+}
+
+/* ── ATTENDANCE EXPORT (OWNER) ── */
+let _attendanceCache=[];
+async function renderAttendanceExport(){
+  // Populate employee dropdown from cached list
+  const empSel=document.getElementById('export-emp-select');
+  const monthSel=document.getElementById('export-month-select');
+  if(!empSel||!monthSel)return;
+  // Build employee list
+  if(_empListCache&&_empListCache.length){
+    const active=_empListCache.filter(e=>e.status==='active'||e.status==='probation');
+    empSel.innerHTML=active.map(e=>`<option value="${e.id}">${e.name} — ${e.position||''}</option>`).join('');
+  } else {
+    try{
+      const res=await callAPI({action:'getEmployees'});
+      const emps=(res.ok&&res.data)?res.data:[];
+      empSel.innerHTML=emps.filter(e=>e.status!=='inactive').map(e=>`<option value="${e.id}">${e.name} — ${e.position||''}</option>`).join('');
+    }catch(e){empSel.innerHTML='<option>โหลดไม่สำเร็จ</option>';}
+  }
+  // Build month options (current + 5 months back)
+  const now=new Date();
+  let opts='';
+  for(let i=0;i<6;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const val=d.getFullYear()+'-'+(d.getMonth()+1);
+    opts+=`<option value="${val}">${THAI_MONTHS_SHORT[d.getMonth()]+' '+(d.getFullYear()+543)}</option>`;
+  }
+  monthSel.innerHTML=opts;
+  loadAttendanceExport();
+}
+
+async function loadAttendanceExport(){
+  const empSel=document.getElementById('export-emp-select');
+  const monthSel=document.getElementById('export-month-select');
+  const container=document.getElementById('export-table-container');
+  const titleEl=document.getElementById('export-table-title');
+  if(!empSel||!monthSel||!container)return;
+  const empId=empSel.value;
+  const empName=empSel.options[empSel.selectedIndex]?.text||'';
+  const [yr,mo]=(monthSel.value||'').split('-').map(Number);
+  if(!empId||!yr||!mo)return;
+  container.textContent='กำลังโหลด...';
+  if(titleEl)titleEl.textContent='บันทึกรายวัน — '+empName.split(' — ')[0];
+  document.getElementById('export-stat-days').textContent='—';
+  document.getElementById('export-stat-hours').textContent='—';
+  document.getElementById('export-stat-ot').textContent='—';
+  try{
+    const res=await callAPI({action:'getAttendance',empId,month:mo,year:yr});
+    const rows=res.ok&&res.data?res.data:[];
+    _attendanceCache=rows;
+    const DAYS_S=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+    let workDays=0,totalHrs=0,totalOT=0;
+    const tbody=rows.map(r=>{
+      const d=new Date(r.date);
+      const dayLabel=!isNaN(d)?d.getDate()+' '+THAI_MONTHS_SHORT[d.getMonth()]+' ('+DAYS_S[d.getDay()]+')':r.date;
+      const isHoliday=r.specialDay&&r.specialDay!=='ปกติ';
+      const isLeave=r.leaveType;
+      const hasWork=r.clockIn&&r.clockOut;
+      if(hasWork)workDays++;
+      let hrs=0;
+      if(hasWork){const[ah,am]=r.clockIn.split(':').map(Number);const[bh,bm]=r.clockOut.split(':').map(Number);hrs=Math.max(0,((bh*60+bm)-(ah*60+am))/60-1);totalHrs+=hrs;}
+      const otHrs=parseFloat(r.otHours)||0;totalOT+=otHrs;
+      const rowStyle=isHoliday?'background:var(--red-bg);':isLeave?'background:var(--info-bg);':'';
+      const ciColor=r.isLate?'color:var(--amber);':'color:var(--green);';
+      return`<tr style="border-top:1px solid var(--border);${rowStyle}">
+        <td style="padding:9px 12px;font-weight:600;">${dayLabel}</td>
+        <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;background:${isHoliday?'var(--red-bg);color:var(--red)':isLeave?'var(--info-bg);color:var(--info)':'var(--green-bg);color:var(--green)'};">${r.specialDay||'ปกติ'}</span></td>
+        <td style="padding:9px 6px;text-align:center;">${r.plannedStart||'—'}</td>
+        <td style="padding:9px 6px;text-align:center;">${r.plannedEnd||'—'}</td>
+        <td style="padding:9px 6px;text-align:center;${r.clockIn?ciColor:''}">${r.clockIn||'—'}</td>
+        <td style="padding:9px 6px;text-align:center;${r.clockOut?'color:var(--green);':''}">${r.clockOut||'—'}</td>
+        <td style="padding:9px 6px;text-align:center;font-weight:600;">${hasWork?hrs.toFixed(2):'—'}</td>
+        <td style="padding:9px 12px;text-align:center;">${otHrs>0?'<span style="font-weight:700;color:var(--amber);">+'+otHrs+'</span>':'<span style="color:var(--ink3);">—</span>'}</td>
+      </tr>`;
+    }).join('');
+    container.innerHTML=`<div class="card" style="padding:0;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px;">
+      <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
+        <th style="padding:9px 12px;text-align:left;font-weight:600;color:var(--ink2);">วันที่</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ประเภทวัน</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน เข้า</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน ออก</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง เข้า</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง ออก</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ชม.จริง</th>
+        <th style="padding:9px 12px;text-align:center;font-weight:600;color:var(--amber);">OT</th>
+      </tr></thead>
+      <tbody>${tbody||'<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--ink3);">ไม่มีข้อมูลในเดือนนี้</td></tr>'}</tbody>
+      <tfoot><tr style="border-top:2px solid var(--navy);background:var(--navy-lt);">
+        <td colspan="6" style="padding:10px 12px;font-weight:700;color:var(--navy);">รวม</td>
+        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--navy);">${totalHrs.toFixed(1)} ชม.</td>
+        <td style="padding:10px 12px;text-align:center;font-weight:700;color:var(--amber);">${totalOT.toFixed(2)} ชม.</td>
+      </tr></tfoot>
+    </table></div>`;
+    document.getElementById('export-stat-days').textContent=workDays;
+    document.getElementById('export-stat-hours').textContent=totalHrs.toFixed(1);
+    document.getElementById('export-stat-ot').textContent=totalOT.toFixed(2);
+  }catch(e){container.innerHTML='<div style="color:var(--ink3);padding:16px 0;">โหลดไม่สำเร็จ</div>';}
+}
+
 /* ── EXCEL EXPORT ── */
 function exportToExcel(){
   if(typeof XLSX==='undefined'){toast('กำลังโหลด SheetJS...');return;}
-  // Attendance data (prototype static data — นาม สุขใจ พ.ค. 2026)
-  const rows=[
-    ['วันที่','วัน','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม. จริง','OT (ชม.)','หมายเหตุ'],
-    ['1 พ.ค. 2026','ศุกร์','วันแรงงาน','—','—','—','—','—','—','วันหยุดนักขัตฤกษ์'],
-    ['2 พ.ค. 2026','เสาร์','หยุดสัปดาห์','—','—','—','—','—','—','ไม่ได้วางแผน'],
-    ['3 พ.ค. 2026','อาทิตย์','หยุดสัปดาห์','—','—','—','—','—','—','ไม่ได้วางแผน'],
-    ['4 พ.ค. 2026','จันทร์','ปกติ','08:30','17:30','08:31','17:28',7.95,'—',''],
-    ['5 พ.ค. 2026','อังคาร','วันฉัตรมงคล','—','—','—','—','—','—','วันหยุดนักขัตฤกษ์'],
-    ['6 พ.ค. 2026','พุธ','ปกติ','08:30','17:30','08:29','17:30',8.02,'—',''],
-    ['7 พ.ค. 2026','พฤหัสบดี','ปกติ','08:30','17:30','08:32','19:45',10.22,2.25,'OT อนุมัติ ✓'],
-    ['8 พ.ค. 2026','ศุกร์','ปกติ','08:30','17:30','08:30','18:10',8.67,'—','Clock out ช้า — ไม่มีคำขอ OT'],
-    ['11 พ.ค. 2026','จันทร์','วันวิสาขบูชา','—','—','—','—','—','—','วันหยุดนักขัตฤกษ์'],
-    ['12 พ.ค. 2026','อังคาร','ลากิจ','08:30','17:30','—','—','—','—','อนุมัติวันลา'],
-    ['13 พ.ค. 2026','พุธ','ปกติ','08:30','17:30','08:35','17:28',7.88,'—',''],
-    ['14 พ.ค. 2026','พฤหัสบดี','ปกติ','08:30','17:30','08:29','17:31',8.03,'—',''],
-    ['','','','','','','รวม','52.1 ชม.','2.25 ชม.',''],
-  ];
+  if(!_attendanceCache||!_attendanceCache.length){toast('ไม่มีข้อมูล — เลือกพนักงานและเดือนก่อน');return;}
+  const empName=(document.getElementById('export-emp-select')?.options[document.getElementById('export-emp-select')?.selectedIndex]?.text||'').split(' — ')[0]||'พนักงาน';
+  const monthLabel=document.getElementById('export-month-select')?.options[document.getElementById('export-month-select')?.selectedIndex]?.text||'';
+  const header=['วันที่','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม. จริง','OT (ชม.)','หมายเหตุ'];
+  const dataRows=_attendanceCache.map(r=>{
+    const hasWork=r.clockIn&&r.clockOut;
+    let hrs=0;
+    if(hasWork){const[ah,am]=r.clockIn.split(':').map(Number);const[bh,bm]=r.clockOut.split(':').map(Number);hrs=Math.max(0,((bh*60+bm)-(ah*60+am))/60-1);}
+    return[r.date,r.specialDay||'ปกติ',r.plannedStart||'—',r.plannedEnd||'—',r.clockIn||'—',r.clockOut||'—',hasWork?hrs.toFixed(2):'—',parseFloat(r.otHours)||'—',r.note||''];
+  });
+  const rows=[header,...dataRows];
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  // Column widths
-  ws['!cols']=[{wch:16},{wch:12},{wch:18},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:28}];
-  // Header style rows
+  ws['!cols']=[{wch:16},{wch:18},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:28}];
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,'บันทึกเวลา นาม สุขใจ',ws);
-  XLSX.writeFile(wb,'attendance_nam_sukjai_may2026.xlsx');
+  XLSX.utils.book_append_sheet(wb,'บันทึกเวลา '+empName,ws);
+  XLSX.writeFile(wb,'attendance_'+empName+'_'+monthLabel+'.xlsx');
   toast('ส่งออก Excel สำเร็จ ✓');
 }
 
@@ -1745,8 +1833,8 @@ function fmtMin(m){
 }
 
 function initClockScreen(){
-  // Load schedule then render
   initTodaySchedule().then(sched=>renderClockScreen(sched));
+  renderClockHistory();
 }
 
 function renderClockScreen(sched){
@@ -2084,6 +2172,28 @@ function viewEmpProfile(empId){
   }
   if(statusEl)statusEl.innerHTML=`<span class="chip ${e.status==='active'?'chip-green':e.status==='probation'?'chip-amber':'chip-red'}">${e.status==='active'?'Active':e.status==='probation'?'Probation':'Inactive'}</span>`;
   if(accEl)accEl.innerHTML=`<span class="chip chip-green">Active ✓</span>`;
+  // Pre-fill edit form
+  const nameParts=(e.name||'').split(' ');
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  const setTextEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  setTextEl('edit-avatar',letter);
+  setVal('edit-fname',nameParts[0]||'');
+  setVal('edit-lname',nameParts.slice(1).join(' ')||'');
+  setVal('edit-phone',e.phone||'');
+  setVal('edit-idcard',e.idcard||'');
+  setVal('edit-dob',e.dob||'');
+  setVal('edit-addr',e.address||'');
+  setVal('edit-startdate',e.startDate||'');
+  setVal('edit-salary',e.salary||'');
+  setVal('edit-bankAcc',e.bankAcc||'');
+  setVal('edit-bankAccName',e.bankAccName||'');
+  ['edit-position','edit-type','edit-status','edit-bank'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    const key=id.replace('edit-','');
+    const val=e[key]||'';
+    for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===val){sel.selectedIndex=i;break;}}
+  });
   go('s-emp-profile-view');
 }
 
