@@ -40,8 +40,9 @@ function doGet(e) {
       case 'getAttendance':   return res(getAttendance(p.empId, p.month, p.year));
       case 'getSchedules':    return res(getSchedules(p.empId));
       case 'getPending':      return res(getPendingApprovals());
-      case 'getTodayClock':   return res(getTodayClock(p.empId, p.date));
-      case 'getLeaveBalance': return res(getLeaveBalance(p.empId, p.year));
+      case 'getTodayClock':        return res(getTodayClock(p.empId, p.date));
+      case 'getTodayAttendance':   return res(getTodayAttendance(p.date));
+      case 'getLeaveBalance':      return res(getLeaveBalance(p.empId, p.year));
       case 'ping':            return res({ ok: true, message: 'Kyoto Shi API online' });
 
       // ── บันทึกข้อมูล ──
@@ -225,6 +226,47 @@ function getTodayClock(empId, date) {
     }
   }
   return { ok: true, data: null };
+}
+
+function getTodayAttendance(date) {
+  const ss      = openSS();
+  const attSh   = ss.getSheetByName(SH.ATTENDANCE);
+  const empSh   = ss.getSheetByName(SH.EMPLOYEES);
+  const attData = attSh.getDataRange().getValues();
+  const empData = empSh.getDataRange().getValues();
+
+  // Build empId → {name, position} map
+  const empMap = {};
+  for (let i = 1; i < empData.length; i++) {
+    const id = String(empData[i][0]);
+    empMap[id] = { name: empData[i][1], position: empData[i][6] };
+  }
+
+  // Filter attendance rows for today
+  const rows = [];
+  for (let i = 1; i < attData.length; i++) {
+    const row     = attData[i];
+    const rowDate = row[2] ? fmtDate(new Date(row[2])) : '';
+    if (rowDate !== date) continue;
+    const empId     = String(row[1]);
+    const clockIn   = row[3] ? String(row[3]) : '';
+    const planStart = row[5] ? String(row[5]) : '';
+    let late = false;
+    if (clockIn && planStart) {
+      const [ph, pm] = planStart.split(':').map(Number);
+      const [ch, cm] = clockIn.split(':').map(Number);
+      late = (ch * 60 + cm) > (ph * 60 + pm + 15);
+    }
+    rows.push({
+      empId,
+      name:     empMap[empId]?.name     || empId,
+      position: empMap[empId]?.position || '',
+      clockIn,
+      clockOut: row[4] ? String(row[4]) : '',
+      late,
+    });
+  }
+  return { ok: true, data: rows };
 }
 
 function clockIn(p) {
