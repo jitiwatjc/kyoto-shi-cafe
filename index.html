@@ -1439,9 +1439,6 @@ let currentUser=null; // { ok, role, empId, name, nickname, position }
 
 /* ── LOGIN ── */
 let role=null;
-// Demo credentials (ใช้เมื่อ DEMO_MODE=true)
-const OWNER_CREDS={user:'menbom888',pass:'mlb888'};
-const EMP_CREDS={user:'nam_sukjai',pass:'emp1234'};
 
 function pickRole(r){
   role=r;
@@ -1458,19 +1455,10 @@ async function doLogin(){
   const loginBtns=document.querySelectorAll('#s-login .btn-dark');
   loginBtns.forEach(b=>{b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';});
   try{
-    if(DEMO_MODE){
-      // Demo mode: validate locally
-      let ok=false;
-      if(role==='owner'&&u===OWNER_CREDS.user&&p===OWNER_CREDS.pass)ok=true;
-      if(role==='emp'&&u===EMP_CREDS.user&&p===EMP_CREDS.pass)ok=true;
-      if(!ok){errEl.style.display='block';return;}
-      currentUser={ok:true,role,empId:role==='owner'?'EMP001':'EMP002',name:role==='owner'?'เจ้าของร้าน':'นาม สุขใจ',nickname:role==='owner'?'เจ้าของ':'นาม'};
-    } else {
-      const res=await callAPI({action:'login',user:u,pass:p});
+    const res=await callAPI({action:'login',user:u,pass:p});
       if(!res.ok){errEl.style.display='block';return;}
       currentUser=res;
       role=res.role;
-    }
     errEl.style.display='none';
     hist=[];
     go(role==='owner'?'s-owner-home':'s-emp-home');
