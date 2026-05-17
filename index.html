@@ -463,10 +463,10 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">อนุมัติ</div></div>
   <div class="page">
     <div class="tabs" id="approve-tabs" style="gap:0;">
-      <div class="tab on" onclick="swApproveTab(0)" style="font-size:11px;">บัญชีใหม่</div>
-      <div class="tab" onclick="swApproveTab(1)" style="font-size:11px;">ตารางงาน</div>
-      <div class="tab" onclick="swApproveTab(2)" style="font-size:11px;">วันลา</div>
-      <div class="tab" onclick="swApproveTab(3)" style="font-size:11px;">OT<span class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;">1</span></div>
+      <div class="tab on" onclick="swApproveTab(0)" style="font-size:11px;">บัญชีใหม่<span id="apv-tab-badge-emp" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
+      <div class="tab" onclick="swApproveTab(1)" style="font-size:11px;">ตารางงาน<span id="apv-tab-badge-sched" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
+      <div class="tab" onclick="swApproveTab(2)" style="font-size:11px;">วันลา<span id="apv-tab-badge-leave" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
+      <div class="tab" onclick="swApproveTab(3)" style="font-size:11px;">OT<span id="apv-tab-badge-ot" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
     </div>
 
     <!-- TAB 0: ใบสมัคร -->
@@ -2129,9 +2129,15 @@ async function renderOwnerHome(){
       const setApv=(k,n,label)=>{
         const b=document.getElementById('apv-badge-'+k);
         const s=document.getElementById('apv-sub-'+k);
+        const tb=document.getElementById('apv-tab-badge-'+k);
         if(b)b.textContent=n;
         if(s)s.textContent=n>0?n+' '+label:'ไม่มีรายการรออนุมัติ';
+        if(tb){tb.textContent=n;tb.style.display=n>0?'':'none';}
       };
+      const empN=(d.registrations||[]).length;
+      const schedN=(d.schedules||[]).length;
+      const leaveN=(d.leave||[]).length;
+      const otN=(d.ot||[]).length;
       setApv('emp',empN,'รายการรอตรวจสอบเอกสาร');
       setApv('sched',schedN,'รายการรออนุมัติ');
       setApv('leave',leaveN,'รายการรออนุมัติ');
