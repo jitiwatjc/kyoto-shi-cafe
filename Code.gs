@@ -39,7 +39,8 @@ function doGet(e) {
       case 'getEmployees':    return res(getEmployees());
       case 'getAttendance':   return res(getAttendance(p.empId, p.month, p.year));
       case 'getSchedules':    return res(getSchedules(p.empId));
-      case 'getPending':      return res(getPendingApprovals());
+      case 'getPending':           return res(getPendingApprovals());
+      case 'getPendingApprovals':  return res(getPendingApprovals());
       case 'getTodayClock':        return res(getTodayClock(p.empId, p.date));
       case 'getTodayAttendance':   return res(getTodayAttendance(p.date));
       case 'getLeaveBalance':      return res(getLeaveBalance(p.empId, p.year));
