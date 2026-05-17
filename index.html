@@ -320,8 +320,8 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div class="fsect">ตั้งค่าบัญชี</div>
       <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username) *</label><input class="fi" id="reg-user" placeholder="ตัวอักษรภาษาอังกฤษและตัวเลข"><div class="fhint">ตัวอักษรภาษาอังกฤษและตัวเลข ไม่มีช่องว่าง · ใช้ Login เข้าระบบ</div></div>
       <div class="fg2">
-        <div class="fg"><label class="t-label">รหัสผ่าน *</label><input class="fi" type="password" placeholder="อย่างน้อย 8 ตัว"></div>
-        <div class="fg"><label class="t-label">ยืนยันรหัสผ่าน *</label><input class="fi" type="password" placeholder="กรอกซ้ำ"></div>
+        <div class="fg"><label class="t-label">รหัสผ่าน *</label><input class="fi" type="password" id="reg-pass" placeholder="อย่างน้อย 8 ตัว"></div>
+        <div class="fg"><label class="t-label">ยืนยันรหัสผ่าน *</label><input class="fi" type="password" id="reg-pass2" placeholder="กรอกซ้ำ"></div>
       </div>
       <button class="btn btn-dark btn-full" onclick="rStep(2)">ถัดไป</button>
     </div>
@@ -1192,7 +1192,50 @@ async function doLogin(){
 function doLogout(){hist=[];role=null;currentUser=null;['r-owner','r-emp'].forEach(i=>document.getElementById(i).classList.remove('on'));const u=document.getElementById('login-user');const p=document.getElementById('login-pass');if(u)u.value='';if(p)p.value='';go('s-login');}
 
 /* ── REGISTER STEPS ── */
+function regErr(id,msg){
+  const el=document.getElementById(id);
+  if(el){el.focus();el.style.borderColor='var(--red)';}
+  toast('⚠ '+msg);
+}
+function regClearBorder(...ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.style.borderColor='';});}
+
 function rStep(s){
+  // Validate before advancing
+  const cur=parseInt(document.querySelector('[id^="rp"]:not([style*="display: none"],[style*="display:none"])')?.id?.replace('rp','')||'1');
+  if(s>cur){
+    if(cur===1){
+      const fname=(document.getElementById('reg-fname')?.value||'').trim();
+      const lname=(document.getElementById('reg-lname')?.value||'').trim();
+      const idcard=(document.getElementById('reg-idcard')?.value||'').trim();
+      const dob=(document.getElementById('reg-dob')?.value||'').trim();
+      const phone=(document.getElementById('reg-phone')?.value||'').trim();
+      const addr=(document.getElementById('reg-addr')?.value||'').trim();
+      const user=(document.getElementById('reg-user')?.value||'').trim();
+      const pass=(document.getElementById('reg-pass')?.value||'');
+      const pass2=(document.getElementById('reg-pass2')?.value||'');
+      regClearBorder('reg-fname','reg-lname','reg-idcard','reg-dob','reg-phone','reg-addr','reg-user','reg-pass','reg-pass2');
+      if(!fname){regErr('reg-fname','กรุณากรอกชื่อ');return;}
+      if(!lname){regErr('reg-lname','กรุณากรอกนามสกุล');return;}
+      if(!/^\d{13}$/.test(idcard.replace(/-/g,''))){regErr('reg-idcard','เลขบัตรประชาชนต้องมี 13 หลัก');return;}
+      if(!dob){regErr('reg-dob','กรุณาเลือกวันเกิด');return;}
+      if(!phone){regErr('reg-phone','กรุณากรอกเบอร์โทร');return;}
+      if(!addr){regErr('reg-addr','กรุณากรอกที่อยู่');return;}
+      if(!user){regErr('reg-user','กรุณากรอก Username');return;}
+      if(/\s/.test(user)){regErr('reg-user','Username ต้องไม่มีช่องว่าง');return;}
+      if(pass.length<8){regErr('reg-pass','รหัสผ่านต้องมีอย่างน้อย 8 ตัว');return;}
+      if(pass!==pass2){regErr('reg-pass2','รหัสผ่านไม่ตรงกัน');return;}
+    }
+    if(cur===2){
+      const start=(document.getElementById('reg-startdate')?.value||'').trim();
+      const acc=(document.getElementById('reg-bank-acc')?.value||'').trim();
+      const accName=(document.getElementById('reg-bank-name')?.value||'').trim();
+      regClearBorder('reg-startdate','reg-bank-acc','reg-bank-name');
+      if(!start){regErr('reg-startdate','กรุณาเลือกวันที่เริ่มทำงาน');return;}
+      if(!acc){regErr('reg-bank-acc','กรุณากรอกเลขบัญชีธนาคาร');return;}
+      if(!accName){regErr('reg-bank-name','กรุณากรอกชื่อบัญชีธนาคาร');return;}
+    }
+  }
+
   [1,2,3].forEach(i=>{
     document.getElementById('rp'+i).style.display=i===s?'block':'none';
     const d=document.getElementById('sd'+i);
