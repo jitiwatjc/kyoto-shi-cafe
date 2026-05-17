@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Kyoto Shi Café — System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  /* Brand — Navy / Blue / Black / White */
+  --navy:     #1A3560;
+  --navy-dk:  #0D1E3C;
+  --navy-lt:  #C8D8F0;
+  --blue:     #2563EB;
+  --blue-lt:  #DBEAFE;
+  --ink:      #0D1117;
+  --ink2:     #1E2D40;
+  --ink3:     #6B7FA0;
+  --bg:       #F0F4FC;
+  --surface:  #FFFFFF;
+  --surface2: #E8EEF8;
+  --border:   #C0CDE8;
+  --green:    #1F6B42;
+  --green-bg: #C6E8D4;
+  --red:      #A82020;
+  --red-bg:   #F5CACA;
+  --amber:    #B06A00;
+  --amber-bg: #FADED4;
+  --info:     #1A4A7A;
+  --info-bg:  #C8DCF0;
+  --tan:      #2563EB;
+  --tan-dk:   #1A3560;
+  --tan-lt:   #C8D8F0;
+  --r:   16px;
+  --rsm: 10px;
+  --rxs: 6px;
+  --sh:    0 1px 3px rgba(13,17,23,.07), 0 4px 14px rgba(13,17,23,.07);
+  --sh-lg: 0 8px 28px rgba(13,17,23,.14);
+}
+
+body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.5;}
+
+.sc{display:none;flex-direction:column;min-height:100vh;}
+.sc.on{display:flex;}
+
+.topbar{height:56px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:100;background:rgba(240,244,252,.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
+.topbar-back{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--ink2);flex-shrink:0;transition:background .15s;}
+.topbar-back:hover{background:var(--border);}
+.topbar-title{font-size:15px;font-weight:600;color:var(--ink);flex:1;letter-spacing:-.01em;}
+.topbar-action{font-size:13px;font-weight:500;color:var(--navy);cursor:pointer;padding:6px 14px;border-radius:20px;border:1.5px solid var(--navy);background:none;}
+.topbar-avatar{width:36px;height:36px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;}
+
+.page{flex:1;padding:20px;overflow-y:auto;padding-bottom:90px;}
+
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(240,244,252,.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:200;}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;cursor:pointer;border:none;background:none;font-size:10px;font-weight:500;color:var(--ink3);gap:3px;transition:color .2s;position:relative;}
+.bn.on{color:var(--navy);}
+.bn-icon{font-size:20px;line-height:1;}
+.bn-dot{position:absolute;top:8px;right:calc(50% - 16px);width:6px;height:6px;border-radius:50%;background:var(--red);}
+
+.t-hero{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.2;}
+.t-title{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+.t-sect{font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+.t-label{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px;display:block;}
+.t-cap{font-size:12px;color:var(--ink3);}
+
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:20px;margin-bottom:12px;}
+.card-title{font-size:13px;font-weight:600;color:var(--ink2);letter-spacing:.01em;}
+
+.div{height:1px;background:var(--border);margin:14px 0;}
+
+.fg{margin-bottom:16px;}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fi{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rsm);font-size:14px;color:var(--ink);background:var(--surface);outline:none;font-family:inherit;transition:border-color .2s;}
+.fi:focus{border-color:var(--navy);}
+.fi-sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7FA0' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+.fhint{font-size:11px;color:var(--ink3);margin-top:5px;}
+.fsect{font-size:13px;font-weight:600;color:var(--navy);margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border-radius:50px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;letter-spacing:-.01em;}
+.btn:active{transform:scale(.97);}
+.btn-dark{background:var(--ink);color:#fff;}
+.btn-dark:hover{background:var(--ink2);}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-navy:hover{background:var(--navy-dk);}
+.btn-tan{background:var(--navy);color:#fff;}
+.btn-tan:hover{background:var(--navy-dk);}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-blue:hover{opacity:.9;}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--ink2);}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-success{background:var(--green);color:#fff;}
+.btn-ghost{background:var(--surface2);color:var(--ink2);}
+.btn-sm{padding:8px 16px;font-size:12px;}
+.btn-full{width:100%;}
+.btn-row{display:flex;gap:10px;}
+
+.chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.01em;}
+.chip-green{background:var(--green-bg);color:var(--green);}
+.chip-amber{background:var(--amber-bg);color:var(--amber);}
+.chip-red{background:var(--red-bg);color:var(--red);}
+.chip-blue{background:var(--info-bg);color:var(--info);}
+.chip-navy{background:var(--navy-lt);color:var(--navy);}
+.chip-tan{background:var(--navy-lt);color:var(--navy);}
+.chip-gray{background:var(--surface2);color:var(--ink3);}
+
+.lrow{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.lrow:last-child{border-bottom:none;padding-bottom:0;}
+.lrow:first-child{padding-top:0;}
+.lavatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;}
+.lcol{flex:1;min-width:0;}
+.ltitle{font-size:14px;font-weight:600;color:var(--ink);}
+.lsub{font-size:12px;color:var(--ink3);margin-top:2px;}
+
+.irow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);}
+.irow:last-child{border-bottom:none;padding-bottom:0;}
+.irow:first-child{padding-top:0;}
+.ilabel{font-size:13px;color:var(--ink3);}
+.ival{font-size:13px;font-weight:500;color:var(--ink);text-align:right;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.stat-box{background:var(--surface);border-radius:var(--rsm);padding:14px 10px;text-align:center;box-shadow:var(--sh);}
+.stat-val{font-size:24px;font-weight:700;letter-spacing:-.02em;}
+.stat-lbl{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;}
+
+.steps{display:flex;align-items:flex-start;margin-bottom:24px;}
+.step-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1.5px solid var(--border);color:var(--ink3);flex-shrink:0;transition:all .2s;}
+.step-dot.done{background:var(--ink);border-color:var(--ink);color:#fff;}
+.step-dot.cur{background:var(--navy);border-color:var(--navy);color:#fff;}
+.step-lbl{font-size:9px;color:var(--ink3);font-weight:600;letter-spacing:.03em;white-space:nowrap;}
+.step-line{flex:1;height:1.5px;background:var(--border);margin-top:14px;transition:background .2s;}
+.step-line.done{background:var(--ink);}
+
+.clock-hero{background:var(--navy-dk);border-radius:var(--r);padding:28px 20px;text-align:center;color:#fff;margin-bottom:12px;position:relative;overflow:hidden;}
+.clock-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;border-radius:50%;background:rgba(37,99,235,.15);}
+.clock-hero::after{content:'';position:absolute;bottom:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:rgba(26,53,96,.25);}
+.clock-time{font-size:54px;font-weight:300;letter-spacing:-.02em;position:relative;z-index:1;}
+.clock-sub{font-size:13px;opacity:.6;margin-top:4px;position:relative;z-index:1;}
+.clock-gps{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;opacity:.75;position:relative;z-index:1;}
+.gps-pulse{width:7px;height:7px;border-radius:50%;background:#6EC97A;animation:gpsp 1.5s infinite;}
+@keyframes gpsp{0%,100%{opacity:1}50%{opacity:.3;transform:scale(1.3)}}
+
+.gps-map{background:linear-gradient(140deg,#D4E8D4,#BCDABC);border-radius:var(--r);height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;position:relative;overflow:hidden;}
+.gps-ring{position:absolute;width:72px;height:72px;border-radius:50%;border:2px dashed rgba(31,107,66,.5);background:rgba(31,107,66,.08);}
+.gps-pin{font-size:30px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2));animation:pinb 1.2s ease-in-out infinite alternate;position:relative;z-index:1;}
+@keyframes pinb{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+.gps-tag{position:absolute;bottom:8px;right:10px;background:rgba(255,255,255,.92);padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;color:var(--green);}
+
+.leave-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.leave-bal{background:var(--surface2);border-radius:var(--rsm);padding:14px 8px;text-align:center;}
+.leave-num{font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-.02em;}
+.leave-lbl{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.04em;margin-top:2px;}
+
+.tl{padding-left:16px;border-left:2px solid var(--border);}
+.tl-item{position:relative;padding:0 0 18px 20px;}
+.tl-item::before{content:'';position:absolute;left:-7px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--border);border:2px solid var(--surface);}
+.tl-item.done::before{background:var(--green);}
+.tl-item.cur::before{background:var(--navy);}
+.tl-item:last-child{padding-bottom:0;}
+.tl-title{font-size:13px;font-weight:600;color:var(--ink);}
+.tl-sub{font-size:12px;color:var(--ink3);margin-top:2px;}
+
+.upbox{border:1.5px dashed var(--border);border-radius:var(--rsm);padding:22px;text-align:center;margin-bottom:10px;transition:border-color .2s;}
+.upbox:hover{border-color:var(--navy);}
+.upbox-icon{font-size:26px;margin-bottom:8px;}
+.upbox-title{font-size:13px;font-weight:600;color:var(--ink2);}
+.upbox-sub{font-size:11px;color:var(--ink3);margin-top:3px;}
+.upbox-ok{font-size:11px;font-weight:600;color:var(--green);margin-top:8px;}
+
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
+.role-card{background:var(--surface);border-radius:var(--r);padding:22px 14px;text-align:center;cursor:pointer;border:1.5px solid var(--border);transition:all .2s;box-shadow:var(--sh);}
+.role-card:hover{border-color:var(--blue);}
+.role-card.on{border-color:var(--navy);background:var(--navy);color:#fff;}
+.role-card.on .role-sub{color:rgba(255,255,255,.6);}
+.role-icon{font-size:30px;margin-bottom:10px;}
+.role-lbl{font-size:14px;font-weight:700;}
+.role-sub{font-size:11px;color:var(--ink3);margin-top:2px;}
+
+.alert{border-radius:var(--rsm);padding:12px 14px;font-size:12px;line-height:1.6;margin-bottom:12px;}
+.alert-warn{background:#F5E8CC;border-left:3px solid var(--amber);color:#6B3A00;}
+.alert-info{background:var(--navy-lt);border-left:3px solid var(--navy);color:var(--navy-dk);}
+.alert-success{background:#C8E8D4;border-left:3px solid var(--green);color:#0F3A22;}
+.alert-danger{background:#F5CCCC;border-left:3px solid var(--red);color:#600000;}
+
+.apv-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:18px;margin-bottom:10px;border-left:3px solid var(--navy);}
+.apv-name{font-size:15px;font-weight:700;color:var(--ink);}
+.apv-sub{font-size:12px;color:var(--ink3);margin-top:2px;}
+
+.tabs{display:flex;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:16px;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;color:var(--ink3);transition:all .2s;}
+.tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(13,17,23,.1);}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(13,17,23,.5);z-index:500;align-items:flex-end;}
+.modal.on{display:flex;}
+.modal-sheet{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;padding:22px;max-height:80vh;overflow-y:auto;}
+.modal-handle{width:32px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+
+.owner-hero{background:var(--navy-dk);border-radius:var(--r);padding:22px 20px;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
+.owner-hero::after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(37,99,235,.15);}
+
+.scroll-x{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
+.scroll-x::-webkit-scrollbar{display:none;}
+.qcard{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:18px 14px;min-width:130px;cursor:pointer;flex-shrink:0;transition:transform .15s;}
+.qcard:active{transform:scale(.97);}
+.qcard-icon{font-size:24px;margin-bottom:8px;}
+.qcard-title{font-size:13px;font-weight:600;color:var(--ink);}
+.qcard-sub{font-size:11px;color:var(--ink3);margin-top:3px;}
+
+#toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:rgba(13,17,23,.92);backdrop-filter:blur(8px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;z-index:999;display:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+
+/* ── CALENDAR ── */
+.cal-filter{display:flex;gap:8px;margin-bottom:14px;}
+.cal-filter .fi{flex:1;padding:10px 12px;font-size:13px;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-nav-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2);transition:all .15s;}
+.cal-nav-btn:hover{border-color:var(--navy);color:var(--navy);}
+.cal-month-lbl{font-size:15px;font-weight:700;color:var(--ink);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-hdr{font-size:10px;font-weight:700;text-align:center;color:var(--ink3);padding:6px 2px;}
+.cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--ink);}
+.cal-cell:not(.cal-empty):not(.cal-past):hover{background:var(--surface2);}
+.cal-cell.cal-work{background:var(--navy);color:#fff;font-weight:700;}
+.cal-cell.cal-work:hover{background:var(--blue);}
+.cal-cell.cal-empty{cursor:default;}
+.cal-cell.cal-today:not(.cal-work){box-shadow:inset 0 0 0 2px var(--blue);font-weight:700;color:var(--blue);}
+.cal-cell.cal-past{opacity:.3;cursor:not-allowed;}
+.cal-cell.cal-weekend:not(.cal-work):not(.cal-past){background:var(--surface2);color:var(--ink3);}
+.cal-cell.cal-holiday:not(.cal-work):not(.cal-past){background:var(--red-bg);color:var(--red);font-weight:700;}
+.cal-cell.cal-weekend.cal-work{box-shadow:inset 0 0 0 2.5px var(--amber);}
+.cal-cell.cal-holiday.cal-work{box-shadow:inset 0 0 0 2.5px var(--red);}
+
+/* WORK DAY TIME ROW */
+.wday-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.wday-row:last-child{border-bottom:none;}
+.wday-date{font-size:13px;font-weight:600;color:var(--ink);min-width:76px;}
+.wday-remove{width:28px;height:28px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════ LOGIN ════════════════════════ -->
+<div id="s-login" class="sc on">
+  <div style="flex:1;overflow-y:auto;">
+    <div style="background:var(--navy-dk);padding:52px 24px 36px;text-align:center;">
+      <svg viewBox="0 0 200 200" width="110" height="110" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 16px;display:block;">
+        <polyline points="20,95 100,28 180,95" fill="none" stroke="#2563EB" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="35,87 35,170 165,170 165,87" fill="none" stroke="#2563EB" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <rect x="68" y="60" width="70" height="90" rx="22" ry="22" fill="#2563EB" opacity=".12" stroke="#2563EB" stroke-width="4"/>
+        <line x1="103" y1="65" x2="103" y2="145" stroke="#2563EB" stroke-width="2" opacity=".6"/>
+        <line x1="72" y1="105" x2="134" y2="105" stroke="#2563EB" stroke-width="2" opacity=".6"/>
+        <circle cx="87" cy="87" r="9" fill="none" stroke="#C8D8F0" stroke-width="2.5"/>
+        <circle cx="87" cy="87" r="3.5" fill="#C8D8F0" opacity=".5"/>
+        <path d="M113,80 h10 v12 q0,5-5,5 h0 q-5,0-5-5z" fill="none" stroke="#C8D8F0" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M117,78 q2-3,4,0" fill="none" stroke="#C8D8F0" stroke-width="2"/>
+        <path d="M78,120 h18 q0,8-9,8 q-9,0-9-8z" fill="none" stroke="#C8D8F0" stroke-width="2.5"/>
+        <line x1="78" y1="120" x2="96" y2="120" stroke="#C8D8F0" stroke-width="2.5"/>
+        <path d="M114,127 l5-10 l5,10z" fill="none" stroke="#C8D8F0" stroke-width="2.5" stroke-linejoin="round"/>
+        <ellipse cx="119" cy="118" rx="6" ry="5" fill="none" stroke="#C8D8F0" stroke-width="2.5"/>
+      </svg>
+      <div style="font-size:13px;font-style:italic;color:rgba(200,216,240,.7);font-weight:400;letter-spacing:.08em;margin-bottom:4px;">Rayong</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:.04em;">Kyoto Shi Cafe</div>
+      <div style="font-size:11px;font-weight:500;letter-spacing:.12em;color:rgba(200,216,240,.6);margin-top:6px;text-transform:uppercase;">Management System · Phase I</div>
+    </div>
+    <div style="padding:28px 24px;">
+      <div class="t-sect" style="text-align:center;">เลือกบทบาท</div>
+      <div class="role-grid">
+        <div class="role-card" id="r-owner" onclick="pickRole('owner')">
+          <div class="role-icon">👑</div>
+          <div class="role-lbl">Owner</div>
+          <div class="role-sub">เจ้าของร้าน</div>
+        </div>
+        <div class="role-card" id="r-emp" onclick="pickRole('emp')">
+          <div class="role-icon">👤</div>
+          <div class="role-lbl">Employee</div>
+          <div class="role-sub">พนักงาน</div>
+        </div>
+      </div>
+      <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username)</label><input class="fi" id="login-user" placeholder="กรอก Username" autocomplete="username"></div>
+      <div class="fg"><label class="t-label">รหัสผ่าน (Password)</label><input class="fi" id="login-pass" type="password" placeholder="กรอกรหัสผ่าน" autocomplete="current-password"></div>
+      <div id="login-err" style="display:none;font-size:12px;color:var(--red);background:var(--red-bg);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;">Username หรือ Password ไม่ถูกต้อง</div>
+      <button class="btn btn-dark btn-full" style="padding:15px;font-size:15px;margin-bottom:14px;" onclick="doLogin()">เข้าสู่ระบบ</button>
+      <div style="text-align:center;margin-bottom:14px;">
+        <span class="t-cap" style="cursor:pointer;color:var(--navy);text-decoration:underline;" onclick="go('s-reset-pass')">ลืมรหัสผ่าน?</span>
+      </div>
+      <div class="div"></div>
+      <div style="text-align:center;padding-top:6px;">
+        <div class="t-cap" style="margin-bottom:10px;">ยังไม่มีบัญชีผู้ใช้?</div>
+        <button class="btn btn-outline btn-full" onclick="go('s-register')">สร้างบัญชีผู้ใช้ / Create Account</button>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:14px;"><div class="t-cap">Phase I · 2026</div></div>
+</div>
+
+<!-- ════════════════════════ REGISTER ════════════════════════ -->
+<div id="s-register" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">สร้างบัญชีผู้ใช้</div></div>
+  <div class="page">
+    <div class="steps">
+      <div class="step-wrap"><div class="step-dot cur" id="sd1">1</div><div class="step-lbl">ข้อมูล</div></div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step-wrap"><div class="step-dot" id="sd2">2</div><div class="step-lbl">งาน</div></div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step-wrap"><div class="step-dot" id="sd3">3</div><div class="step-lbl">เอกสาร</div></div>
+    </div>
+    <div id="rp1">
+      <div class="fsect">ข้อมูลส่วนตัว</div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" value="สมหญิง"></div>
+        <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" value="ใจดี"></div>
+      </div>
+      <div class="fg"><label class="t-label">เลขบัตรประชาชน 13 หลัก *</label><input class="fi" value="1-3019-01234-56-7"></div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">วันเกิด *</label><input class="fi" type="date" value="2000-03-15"></div>
+        <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" value="085-234-5678"></div>
+      </div>
+      <div class="fg"><label class="t-label">ที่อยู่ปัจจุบัน *</label><input class="fi" value="45/2 ถ.สุขุมวิท ต.เนินพระ จ.ระยอง 21000"></div>
+      <div class="fsect">ตั้งค่าบัญชี</div>
+      <div class="fg"><label class="t-label">ชื่อผู้ใช้ (Username) *</label><input class="fi" value="somying01"><div class="fhint">ตัวอักษรภาษาอังกฤษและตัวเลข ไม่มีช่องว่าง · ใช้ Login เข้าระบบ</div></div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">รหัสผ่าน *</label><input class="fi" type="password" placeholder="อย่างน้อย 8 ตัว"></div>
+        <div class="fg"><label class="t-label">ยืนยันรหัสผ่าน *</label><input class="fi" type="password" placeholder="กรอกซ้ำ"></div>
+      </div>
+      <button class="btn btn-dark btn-full" onclick="rStep(2)">ถัดไป</button>
+    </div>
+    <div id="rp2" style="display:none;">
+      <div class="fsect">ข้อมูลงาน</div>
+      <div class="fg"><label class="t-label">ตำแหน่ง *</label>
+        <select class="fi fi-sel"><option>บาร์หน้า (Barista)</option><option selected>เบเกอรี่ (Bakery)</option><option>ครัว (Kitchen)</option><option>แม่บ้าน (Housekeeper)</option></select></div>
+      <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
+        <select class="fi fi-sel">
+          <option selected>Full-time · ประจำ</option>
+          <option>Part-time · รายชั่วโมง</option>
+          <option>ทดลองงาน (Probation)</option>
+        </select></div>
+      <div class="fg"><label class="t-label">วันที่เริ่มทำงาน *</label><input class="fi" type="date" value="2026-06-01"><div class="fhint">Owner จะยืนยันหรือปรับเปลี่ยนวันเริ่มงานหลังอนุมัติบัญชี</div></div>
+      <div class="fsect">บัญชีธนาคาร</div>
+      <div class="fg"><label class="t-label">ธนาคาร *</label>
+        <select class="fi fi-sel"><option selected>กสิกรไทย (KBank)</option><option>ไทยพาณิชย์ (SCB)</option><option>กรุงไทย (KTB)</option></select></div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">เลขบัญชี *</label><input class="fi" value="123-4-56789-0"></div>
+        <div class="fg"><label class="t-label">ชื่อบัญชี *</label><input class="fi" value="น.ส.สมหญิง ใจดี"></div>
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost btn-full" onclick="rStep(1)">ย้อนกลับ</button><button class="btn btn-dark btn-full" onclick="rStep(3)">ถัดไป</button></div>
+    </div>
+    <div id="rp3" style="display:none;">
+      <div class="fsect">เอกสารยืนยันบัญชีธนาคาร</div>
+      <div class="alert alert-info" style="font-size:12px;">แนบสมุดบัญชีเพื่อให้ Owner ตรวจสอบ — บัญชีจะใช้งานได้เมื่อ Owner อนุมัติ</div>
+      <div class="upbox"><div class="upbox-icon">🏦</div><div class="upbox-title">หน้าสมุดบัญชีธนาคาร *</div><div class="upbox-sub">รูปภาพหน้าแรกของสมุดบัญชี หรือ PDF สูงสุด 5MB</div><button class="btn btn-ghost btn-sm" style="margin-top:10px;">เลือกไฟล์</button><div class="upbox-ok">✓ Bookbank_Somying.jpg</div></div>
+      <div class="card" style="background:var(--surface2);box-shadow:none;border:1px solid var(--border);margin-top:4px;">
+        <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px;">สรุปข้อมูลบัญชี</div>
+        <div class="irow"><span class="ilabel">ชื่อ</span><span class="ival">สมหญิง ใจดี</span></div>
+        <div class="irow"><span class="ilabel">Username</span><span class="ival">somying01</span></div>
+        <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival">เบเกอรี่ · Full-time</span></div>
+        <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival">1 มิ.ย. 2569</span></div>
+      </div>
+      <div class="btn-row" style="margin-top:4px;"><button class="btn btn-ghost btn-full" onclick="rStep(2)">ย้อนกลับ</button><button class="btn btn-success btn-full" onclick="go('s-reg-done')">สร้างบัญชี</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ REG SUCCESS ════ -->
+<div id="s-reg-done" class="sc">
+  <div class="page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;">
+    <div style="width:72px;height:72px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px;">✅</div>
+    <div class="t-title" style="margin-bottom:8px;">สร้างบัญชีสำเร็จ</div>
+    <div class="t-cap" style="margin-bottom:28px;line-height:1.8;">บัญชีถูกสร้างแล้ว รอ Owner ตรวจสอบ<br>สมุดบัญชีธนาคารของคุณ</div>
+    <div class="card" style="width:100%;text-align:left;margin-bottom:20px;">
+      <div class="card-title" style="margin-bottom:14px;">สถานะบัญชี</div>
+      <div class="tl">
+        <div class="tl-item done"><div class="tl-title">สร้างบัญชีแล้ว</div><div class="tl-sub">15 พ.ค. 2026 · 09:30 น. · somying01</div></div>
+        <div class="tl-item cur"><div class="tl-title" style="color:var(--navy);">รอ Owner ตรวจสอบเอกสาร</div><div class="tl-sub">สมุดบัญชี KBank 123-4-56789-0</div></div>
+        <div class="tl-item"><div class="tl-title">อนุมัติ → เข้าใช้งานได้</div><div class="tl-sub">หลัง Owner ยืนยันเอกสาร</div></div>
+      </div>
+    </div>
+    <div class="alert alert-info" style="width:100%;text-align:left;margin-bottom:20px;font-size:12px;">Login ได้เมื่อ Owner อนุมัติบัญชีแล้ว · Username: <strong>somying01</strong></div>
+    <button class="btn btn-outline btn-full" onclick="go('s-login')">กลับหน้า Login</button>
+  </div>
+</div>
+
+<!-- ════════════════════════ OWNER HOME ════════════════════════ -->
+<div id="s-owner-home" class="sc">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;flex:1;">
+      <svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="8" fill="#0D1E3C"/>
+        <polyline points="8,22 20,10 32,22" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="12,20 12,32 28,32 28,20" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="15" y="15" width="12" height="16" rx="4" fill="#2563EB" opacity=".2" stroke="#2563EB" stroke-width="2"/>
+      </svg>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em;">Kyoto Shi Cafe</div>
+        <div style="font-size:10px;color:var(--ink3);">Management System</div>
+      </div>
+    </div>
+    <div class="topbar-avatar" onclick="doLogout()">K</div>
+  </div>
+  <div class="page">
+    <div class="owner-hero">
+      <div>
+        <div style="font-size:13px;opacity:.6;margin-bottom:4px;">ศุกร์, 15 พฤษภาคม 2026</div>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;">สวัสดี, คุณ Ket</div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <span class="chip chip-navy" style="font-size:10px;">7 คนวันนี้</span>
+          <span style="background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;">เข้าแล้ว 5/7</span>
+        </div>
+      </div>
+      <div style="font-size:40px;opacity:.2;position:relative;z-index:1;">☕</div>
+    </div>
+
+    <!-- Probation Alerts -->
+    <div id="probation-alerts" style="display:none;margin-bottom:4px;"></div>
+
+    <div class="t-sect" style="margin-top:4px;">รออนุมัติ</div>
+    <div class="card" style="padding:0;">
+      <div style="padding:14px 18px 14px;">
+        <div class="lrow" onclick="goApprove(0)">
+          <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📝</div>
+          <div class="lcol"><div class="ltitle">บัญชีพนักงานใหม่</div><div class="lsub">1 รายการรอตรวจสอบเอกสาร</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">1</span><span style="color:var(--ink3);">›</span></div>
+        </div>
+        <div class="lrow" onclick="goApprove(1)">
+          <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📋</div>
+          <div class="lcol"><div class="ltitle">ตารางงาน</div><div class="lsub">3 รายการรออนุมัติ</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">3</span><span style="color:var(--ink3);">›</span></div>
+        </div>
+        <div class="lrow" onclick="goApprove(2)">
+          <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📅</div>
+          <div class="lcol"><div class="ltitle">คำขอวันลา</div><div class="lsub">2 รายการรออนุมัติ</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">2</span><span style="color:var(--ink3);">›</span></div>
+        </div>
+        <div class="lrow" onclick="goApprove(3)">
+          <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⏰</div>
+          <div class="lcol"><div class="ltitle">คำขอทำงานล่วงเวลา (OT)</div><div class="lsub">1 รายการรออนุมัติ</div></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip chip-amber">1</span><span style="color:var(--ink3);">›</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="t-sect" style="margin-top:4px;">Clock In วันนี้</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val" style="color:var(--green);">5</div><div class="stat-lbl">เข้าแล้ว</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--red);">1</div><div class="stat-lbl">ยังไม่เข้า</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--amber);">1</div><div class="stat-lbl">สาย</div></div>
+    </div>
+    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);">
+        <div><span class="ltitle">นาม สุขใจ</span> <span class="t-cap">บาร์หน้า</span></div><span class="chip chip-green">08:32</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div><span class="ltitle">มิน รักงาน</span> <span class="t-cap">เบเกอรี่</span></div><span class="chip chip-green">08:29</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div><span class="ltitle">แก้ว มีสุข</span> <span class="t-cap">ครัว</span></div><span class="chip chip-red">ยังไม่เข้า</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 14px;">
+        <div><span class="ltitle">ปาย ใจงาม</span> <span class="t-cap">แม่บ้าน</span></div><span class="chip chip-amber">สาย 15'</span>
+      </div>
+    </div></div>
+  </div>
+  <!-- OWNER NAV: 3 tabs only -->
+  <div class="bnav">
+    <button class="bn on"><span class="bn-icon">🏠</span>Home</button>
+    <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon">👥</span>พนักงาน</button>
+    <button class="bn" onclick="goApprove(0)"><span class="bn-icon">✅</span>อนุมัติ<span class="bn-dot"></span></button>
+  </div>
+</div>
+
+<!-- ════════════════════════ OWNER: อนุมัติ (รวม) ════════════════════════ -->
+<div id="s-owner-approve" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">อนุมัติ</div></div>
+  <div class="page">
+    <div class="tabs" id="approve-tabs" style="gap:0;">
+      <div class="tab on" onclick="swApproveTab(0)" style="font-size:11px;">บัญชีใหม่</div>
+      <div class="tab" onclick="swApproveTab(1)" style="font-size:11px;">ตารางงาน</div>
+      <div class="tab" onclick="swApproveTab(2)" style="font-size:11px;">วันลา</div>
+      <div class="tab" onclick="swApproveTab(3)" style="font-size:11px;">OT<span class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;">1</span></div>
+    </div>
+
+    <!-- TAB 0: ใบสมัคร -->
+    <div id="apv-t0">
+      <div class="tabs"><div class="tab on" onclick="swTab(this,'at-pend')">รอตรวจสอบ (1)</div><div class="tab" onclick="swTab(this,'at-done')">ดำเนินการแล้ว</div></div>
+      <div id="at-pend">
+        <div class="apv-card" style="cursor:pointer;border-left-color:var(--amber);" onclick="go('s-owner-apv-detail')">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div class="lavatar" style="background:var(--surface2);color:var(--ink3);">ส</div>
+            <div class="lcol"><div class="ltitle">สมหญิง ใจดี</div><div class="lsub">เบเกอรี่ · Full-time · สมัคร 15 พ.ค. 09:30</div></div>
+            <span class="chip chip-amber">รอตรวจสอบ</span>
+          </div>
+          <div style="background:var(--surface2);border-radius:var(--rsm);padding:10px 12px;font-size:12px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;">🏦</span>
+            <div><div style="font-weight:600;color:var(--ink2);">สมุดบัญชีธนาคาร</div><div style="color:var(--ink3);margin-top:2px;">KBank · 123-4-56789-0 · Bookbank_Somying.jpg</div></div>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto;flex-shrink:0;" onclick="event.stopPropagation();toast('เปิดไฟล์เอกสาร')">ดู</button>
+          </div>
+        </div>
+      </div>
+      <div id="at-done" style="display:none;">
+        <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+          <div class="lrow" style="cursor:default;"><div class="lavatar" style="background:#1A3560;">น</div><div class="lcol"><div class="ltitle">นาม สุขใจ</div><div class="lsub">บาร์หน้า · 10 เม.ย. 2026</div></div><span class="chip chip-green">รับเข้า</span></div>
+          <div class="lrow" style="cursor:default;"><div class="lavatar" style="background:#888;">ต</div><div class="lcol"><div class="ltitle">ตรีรัตน์ สว่าง</div><div class="lsub">ครัว · 5 มี.ค. 2026</div></div><span class="chip chip-red">ไม่รับ</span></div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- TAB 1: ตารางงาน -->
+    <div id="apv-t1" style="display:none;">
+      <div class="apv-card">
+        <div class="apv-name">มิน รักงาน</div>
+        <div class="apv-sub">เบเกอรี่ · ขออนุมัติตาราง</div>
+        <div class="div"></div>
+        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
+          <div style="font-weight:600;color:var(--ink);margin-bottom:8px;">วันทำงานที่ขออนุมัติ</div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">18 พ.ค. (จ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">08:30 น.</span></div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">20 พ.ค. (พ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">08:30 น.</span></div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">22 พ.ค. (ศ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">09:00 น.</span></div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">25 พ.ค. (จ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">08:30 น.</span></div>
+          <div class="irow" style="padding:6px 0;border-bottom:none;"><span class="ilabel">+ อีก 4 วัน</span><span class="ival">รวม 8 วัน</span></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธตาราง มิน รักงาน')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติตาราง มิน รักงาน ✓')">อนุมัติ</button></div>
+      </div>
+      <div class="apv-card">
+        <div class="apv-name">ต้น พอใจ <span class="chip chip-blue" style="font-size:10px;vertical-align:middle;">PT</span></div>
+        <div class="apv-sub">บาร์หน้า · ขออนุมัติตาราง</div>
+        <div class="div"></div>
+        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
+          <div style="font-weight:600;color:var(--ink);margin-bottom:8px;">วันทำงานที่ขออนุมัติ</div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">19 พ.ค. (อ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">10:00 น.</span></div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">21 พ.ค. (พฤ.)</span><span class="ival" style="color:var(--navy);font-weight:600;">10:00 น.</span></div>
+          <div class="irow" style="padding:6px 0;border-bottom:none;"><span class="ilabel">23 พ.ค. (ส.)</span><span class="ival" style="color:var(--navy);font-weight:600;">10:00 น.</span></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธตาราง ต้น พอใจ')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติตาราง ต้น พอใจ ✓')">อนุมัติ</button></div>
+      </div>
+      <div class="apv-card" style="border-left-color:var(--amber);">
+        <div class="apv-name">แก้ว มีสุข <span class="chip chip-amber" style="font-size:10px;vertical-align:middle;">แก้ไขเวลา</span></div>
+        <div class="apv-sub">ครัว · ขอแก้ไขเวลาเข้างาน 20 พ.ค.</div>
+        <div class="div"></div>
+        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
+          <div style="color:var(--red);margin-bottom:4px;">เดิม: 20 พ.ค. — เวลา 08:30 น.</div>
+          <div style="color:var(--green);">ใหม่: 20 พ.ค. — เวลา 10:00 น.</div>
+          <div class="t-cap" style="margin-top:6px;">เหตุผล: นัดหมอช่วงเช้า</div>
+        </div>
+        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธแก้ไข แก้ว')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติแก้ไข แก้ว ✓')">อนุมัติ</button></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: วันลา -->
+    <div id="apv-t2" style="display:none;">
+      <div class="apv-card" style="border-left-color:var(--info);">
+        <div class="apv-name">ปาย ใจงาม</div><div class="apv-sub">แม่บ้าน · ลากิจ</div>
+        <div class="div"></div>
+        <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">ลากิจ</span></div>
+        <div class="irow"><span class="ilabel">วันที่</span><span class="ival">20–21 พ.ค. 2026 (2 วัน)</span></div>
+        <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">ธุระครอบครัว</span></div>
+        <div class="irow"><span class="ilabel">แจ้งล่วงหน้า</span><span class="ival" style="color:var(--green);">5 วัน ✓</span></div>
+        <div class="irow"><span class="ilabel">วันลาคงเหลือ</span><span class="ival" style="font-weight:700;">3/3 วัน</span></div>
+        <div class="div"></div>
+        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธลากิจ ปาย')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติลากิจ ปาย ✓')">อนุมัติ</button></div>
+      </div>
+      <div class="apv-card" style="border-left-color:var(--red);">
+        <div class="apv-name">อ้อย สดใส</div><div class="apv-sub">บาร์หน้า · ลาป่วย (ย้อนหลัง)</div>
+        <div class="div"></div>
+        <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">ลาป่วย</span></div>
+        <div class="irow"><span class="ilabel">วันที่</span><span class="ival">14 พ.ค. 2026</span></div>
+        <div class="irow"><span class="ilabel">วันลาคงเหลือ</span><span class="ival" style="font-weight:700;">3/3 วัน</span></div>
+        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;margin:12px 0;">
+          <div style="font-size:12px;font-weight:600;">ใบรับรองแพทย์</div>
+          <div style="font-size:11px;color:var(--green);margin-top:4px;">✓ med_cert_aoy.pdf</div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="toast('เปิดไฟล์ med_cert_aoy.pdf')">ดูเอกสาร</button>
+        </div>
+        <div class="btn-row"><button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธลาป่วย อ้อย')">ปฏิเสธ</button><button class="btn btn-success btn-full" onclick="toast('อนุมัติลาป่วย อ้อย ✓')">อนุมัติ</button></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: OT -->
+    <div id="apv-t3" style="display:none;">
+      <div class="apv-card" style="border-left-color:var(--amber);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div class="apv-name">นาม สุขใจ</div>
+          <span class="chip chip-amber">รออนุมัติ</span>
+        </div>
+        <div class="apv-sub">บาร์หน้า · ขอทำ OT วันที่ 19 พ.ค. 2026</div>
+        <div class="div"></div>
+        <div class="irow"><span class="ilabel">วันที่</span><span class="ival">19 พ.ค. 2026 (พฤ.)</span></div>
+        <div class="irow"><span class="ilabel">เวลา OT</span><span class="ival" style="color:var(--navy);font-weight:600;">17:30 – 20:00 น.</span></div>
+        <div class="irow"><span class="ilabel">รวม</span><span class="ival" style="font-weight:700;">2.5 ชั่วโมง</span></div>
+        <div class="irow"><span class="ilabel">OT เดือนนี้ (รวม)</span><span class="ival">3.5 + 2.5 = 6 ชม.</span></div>
+        <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;margin:12px 0;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">เหตุผล</div>
+          <div style="font-size:13px;color:var(--ink2);">เตรียมสต็อควัตถุดิบสำหรับวันหยุด</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger btn-full" onclick="toast('ปฏิเสธ OT นาม สุขใจ')">ปฏิเสธ</button>
+          <button class="btn btn-success btn-full" onclick="toast('อนุมัติ OT นาม สุขใจ ✓')">อนุมัติ</button>
+        </div>
+      </div>
+      <!-- Approved OT history -->
+      <div class="t-sect">อนุมัติแล้ว เดือนนี้</div>
+      <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+        <div class="lrow" style="cursor:default;">
+          <div class="lcol"><div class="ltitle">มิน รักงาน</div><div class="lsub">10 พ.ค. · 17:00–20:00 น. · 3 ชม.</div></div>
+          <span class="chip chip-green">อนุมัติ</span>
+        </div>
+        <div class="lrow" style="cursor:default;">
+          <div class="lcol"><div class="ltitle">แก้ว มีสุข</div><div class="lsub">8 พ.ค. · 17:30–19:30 น. · 2 ชม.</div></div>
+          <span class="chip chip-green">อนุมัติ</span>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bn" onclick="go('s-owner-home')"><span class="bn-icon">🏠</span>Home</button>
+    <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon">👥</span>พนักงาน</button>
+    <button class="bn on"><span class="bn-icon">✅</span>อนุมัติ<span class="bn-dot"></span></button>
+  </div>
+</div>
+
+<!-- ════ OWNER: APPLICANT DETAIL ════ -->
+<div id="s-owner-apv-detail" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">อนุมัติการเข้าถึงระบบ</div></div>
+  <div class="page">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div class="lavatar" style="width:60px;height:60px;font-size:22px;background:var(--surface2);color:var(--ink3);">ส</div>
+      <div>
+        <div style="font-size:20px;font-weight:700;">สมหญิง ใจดี</div>
+        <div class="t-cap" style="margin-top:3px;">เบเกอรี่ · Full-time · สมัคร 15 พ.ค. 2026</div>
+        <div style="margin-top:6px;"><span class="chip chip-amber" style="font-size:10px;">รอตรวจสอบเอกสาร</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ข้อมูลผู้ใช้</div>
+      <div class="irow"><span class="ilabel">Username</span><span class="ival" style="font-weight:700;color:var(--navy);">somying01</span></div>
+      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival">085-234-5678</span></div>
+      <div class="irow"><span class="ilabel">เลขบัตร ปชช.</span><span class="ival">1-3019-xxxxx</span></div>
+      <div class="irow"><span class="ilabel">ที่อยู่</span><span class="ival" style="font-size:12px;">ต.เนินพระ อ.เมือง จ.ระยอง</span></div>
+      <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival">1 มิ.ย. 2026</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--navy);">
+      <div class="card-title" style="margin-bottom:14px;">ตรวจสอบเอกสาร — สมุดบัญชีธนาคาร</div>
+      <div class="lrow" style="cursor:default;padding-top:0;">
+        <div style="font-size:28px;">🏦</div>
+        <div class="lcol"><div class="ltitle">Bookbank_Somying.jpg</div><div class="lsub">KBank · เลขบัญชี 123-4-56789-0 · น.ส.สมหญิง ใจดี</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="toast('เปิดไฟล์ Bookbank_Somying.jpg')">ดู</button>
+      </div>
+      <div class="alert alert-info" style="margin-top:12px;margin-bottom:0;font-size:12px;">ตรวจสอบว่าชื่อบัญชีตรงกับข้อมูลผู้สมัคร และเลขบัญชีถูกต้อง</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ตั้งค่าบัญชีพนักงาน</div>
+      <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
+        <select class="fi fi-sel">
+          <option selected>Full-time · ประจำ</option>
+          <option>Part-time · รายชั่วโมง</option>
+          <option>ทดลองงาน (Probation)</option>
+        </select></div>
+      <div class="fg"><label class="t-label">ฐานเงินเดือน / ค่าแรง *</label><input class="fi" type="number" value="11000"><div class="fhint">Owner Only — พนักงานไม่เห็นข้อมูลนี้จนกว่าจะ Approve</div></div>
+      <div class="fg"><label class="t-label">หมายเหตุ</label><input class="fi" placeholder="เช่น ทดลองงาน 3 เดือน สิ้นสุด 1 ก.ย. 2026"></div>
+      <div class="btn-row" style="margin-top:4px;">
+        <button class="btn btn-danger btn-full" onclick="apvApplicant('reject')">ปฏิเสธ</button>
+        <button class="btn btn-success btn-full" onclick="apvApplicant('approve')">อนุมัติบัญชี</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ OWNER: EMPLOYEE LIST ════ -->
+<div id="s-owner-emps" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">รายชื่อพนักงาน</div><button class="topbar-action" onclick="go('s-owner-export')">⬇ บันทึกเวลา</button></div>
+  <div class="page">
+    <input class="fi" placeholder="ค้นหา..." style="margin-bottom:14px;">
+    <div class="alert alert-info" style="font-size:12px;">🔐 RBAC — Owner เห็นข้อมูลทั้งหมด · พนักงานเห็นเฉพาะของตัวเอง</div>
+    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+      <div class="t-sect" style="padding-bottom:10px;">Active · 5 คน</div>
+      <div class="lrow" onclick="go('s-emp-profile-view')"><div class="lavatar" style="background:#1A3560;">น</div><div class="lcol"><div class="ltitle">นาม สุขใจ</div><div class="lsub">บาร์หน้า · ประจำ</div></div><span class="chip chip-green">Active</span></div>
+      <div class="lrow"><div class="lavatar" style="background:#1A4A8A;">ม</div><div class="lcol"><div class="ltitle">มิน รักงาน</div><div class="lsub">เบเกอรี่ · ประจำ</div></div><span class="chip chip-green">Active</span></div>
+      <div class="lrow"><div class="lavatar" style="background:#0D2A5A;">แ</div><div class="lcol"><div class="ltitle">แก้ว มีสุข</div><div class="lsub">ครัว · ประจำ</div></div><span class="chip chip-green">Active</span></div>
+      <div class="lrow"><div class="lavatar" style="background:#1A3A6A;">ป</div><div class="lcol"><div class="ltitle">ปาย ใจงาม</div><div class="lsub">แม่บ้าน · ประจำ</div></div><span class="chip chip-green">Active</span></div>
+    </div></div>
+    <div class="card" style="padding:0;margin-top:12px;"><div style="padding:14px 18px 14px;">
+      <div class="t-sect" style="padding-bottom:10px;">ทดลองงาน (Probation) · 1 คน</div>
+      <div class="lrow" onclick="go('s-emp-profile-view')"><div class="lavatar" style="background:#2563EB;">อ</div><div class="lcol"><div class="ltitle">อ้อย สดใส</div><div class="lsub">บาร์หน้า · ทดลองงาน สิ้นสุด 1 ส.ค. 2026</div></div><span class="chip chip-amber">Probation</span></div>
+    </div></div>
+    <div class="card" style="padding:0;margin-top:12px;"><div style="padding:14px 18px 14px;">
+      <div class="t-sect" style="padding-bottom:10px;">Part-time · 2 คน</div>
+      <div class="lrow"><div class="lavatar" style="background:#2A1A8A;">ต</div><div class="lcol"><div class="ltitle">ต้น พอใจ</div><div class="lsub">บาร์หน้า · 65 บ/ชม</div></div><span class="chip chip-blue">PT</span></div>
+      <div class="lrow"><div class="lavatar" style="background:#1A5A8A;">ฝ</div><div class="lcol"><div class="ltitle">ฝน ขยัน</div><div class="lsub">เบเกอรี่ · 65 บ/ชม</div></div><span class="chip chip-blue">PT</span></div>
+    </div></div>
+  </div>
+  <div class="bnav">
+    <button class="bn" onclick="go('s-owner-home')"><span class="bn-icon">🏠</span>Home</button>
+    <button class="bn on"><span class="bn-icon">👥</span>พนักงาน</button>
+    <button class="bn" onclick="goApprove(0)"><span class="bn-icon">✅</span>อนุมัติ<span class="bn-dot"></span></button>
+  </div>
+</div>
+
+<!-- ════ EMPLOYEE PROFILE (Owner View) ════ -->
+<div id="s-emp-profile-view" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์พนักงาน</div><button class="topbar-action" onclick="go('s-emp-profile-edit')">แก้ไข</button></div>
+  <div class="page">
+    <div style="text-align:center;padding:20px 0 16px;">
+      <div class="lavatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">น</div>
+      <div style="font-size:20px;font-weight:700;">นาม สุขใจ</div>
+      <div class="t-cap" style="margin-top:4px;">บาร์หน้า · พนักงานประจำ</div>
+      <span class="chip chip-green" style="margin-top:8px;">Active</span>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ข้อมูลส่วนตัว</div>
+      <div class="irow"><span class="ilabel">วันเกิด</span><span class="ival">12 ม.ค. 2545</span></div>
+      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival">082-345-6789</span></div>
+      <div class="irow"><span class="ilabel">เลขบัตร ปชช.</span><span class="ival">1-3019-xxxxx</span></div>
+      <div class="irow"><span class="ilabel">วันเริ่มงาน</span><span class="ival">1 ม.ค. 2025</span></div>
+      <div class="irow"><span class="ilabel">ธนาคาร</span><span class="ival">KBank 123-4-56789-0</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--navy);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div class="card-title">ข้อมูลเงินเดือน</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
+      <div class="irow"><span class="ilabel">ฐานเงินเดือน</span><span class="ival" style="font-weight:700;">฿13,000 / เดือน</span></div>
+      <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">พนักงานประจำ</span></div>
+      <div class="irow"><span class="ilabel">สถานะ</span><span class="ival"><span class="chip chip-green">Active</span></span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--navy);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><div class="card-title">การเข้าถึงระบบ</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
+      <div class="irow"><span class="ilabel">Username</span><span class="ival" style="color:var(--navy);font-weight:600;">nam_sukjai</span></div>
+      <div class="irow"><span class="ilabel">Password</span><span class="ival" style="display:flex;align-items:center;gap:8px;"><span id="emp-prof-pass-val" style="font-family:monospace;letter-spacing:2px;">••••••••</span><button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:11px;" onclick="(function(btn){const el=document.getElementById('emp-prof-pass-val');if(el.dataset.shown==='1'){el.textContent='••••••••';el.dataset.shown='0';btn.textContent='👁 แสดง';}else{el.textContent='emp1234';el.dataset.shown='1';btn.textContent='🙈 ซ่อน';}})(this)">👁 แสดง</button></span></div>
+      <div class="irow"><span class="ilabel">เข้าใช้ล่าสุด</span><span class="ival">15 พ.ค. 2026 · 08:31 น.</span></div>
+      <div class="irow"><span class="ilabel">บัญชี</span><span class="ival"><span class="chip chip-green">Active ✓</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ EMPLOYEE HOME ════════════════════════ -->
+<div id="s-emp-home" class="sc">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;flex:1;">
+      <svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="8" fill="#0D1E3C"/>
+        <polyline points="8,22 20,10 32,22" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="12,20 12,32 28,32 28,20" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="15" y="15" width="12" height="16" rx="4" fill="#2563EB" opacity=".2" stroke="#2563EB" stroke-width="2"/>
+      </svg>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--ink);">Kyoto Shi Cafe</div>
+        <div style="font-size:10px;color:var(--ink3);">Management System</div>
+      </div>
+    </div>
+    <div class="topbar-avatar" onclick="doLogout()">น</div>
+  </div>
+  <div class="page">
+    <div style="margin-bottom:16px;">
+      <div class="t-cap">ศุกร์, 15 พฤษภาคม 2026</div>
+      <div class="t-title" style="margin-top:4px;">สวัสดี, นาม 👋</div>
+    </div>
+    <div class="clock-hero">
+      <div class="clock-time" id="lclock">--:--</div>
+      <div class="clock-sub">เวลาเข้างานวันนี้: 08:32 น.</div>
+      <div class="clock-gps"><span class="gps-pulse"></span> GPS: รัศมีร้าน (32 ม.)</div>
+      <button class="btn btn-blue" style="margin-top:18px;padding:12px 36px;position:relative;z-index:1;" onclick="go('s-emp-clockin')">Clock In / Out</button>
+    </div>
+    <div class="t-sect">เมนูหลัก</div>
+    <div class="scroll-x">
+      <div class="qcard" onclick="go('s-emp-profile-self')"><div class="qcard-icon">👤</div><div class="qcard-title">โปรไฟล์</div><div class="qcard-sub">ข้อมูลของฉัน</div></div>
+      <div class="qcard" onclick="go('s-emp-sched')"><div class="qcard-icon">📋</div><div class="qcard-title">ตารางงาน</div><div class="qcard-sub" style="color:var(--amber);">⚠ รออนุมัติ</div></div>
+      <div class="qcard" onclick="go('s-emp-clockin')"><div class="qcard-icon">🕐</div><div class="qcard-title">Clock In/Out</div><div class="qcard-sub">GPS Verified</div></div>
+      <div class="qcard" onclick="go('s-emp-leave')"><div class="qcard-icon">📅</div><div class="qcard-title">วันลา</div><div class="qcard-sub">เหลือ 5+3+3</div></div>
+      <div class="qcard" onclick="go('s-emp-ot')"><div class="qcard-icon">⏰</div><div class="qcard-title">ขอ OT</div><div class="qcard-sub" style="color:var(--amber);">⚠ รออนุมัติ 1</div></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bn on"><span class="bn-icon">🏠</span>Home</button>
+    <button class="bn" onclick="go('s-emp-profile-self')"><span class="bn-icon">👤</span>โปรไฟล์</button>
+    <button class="bn" onclick="go('s-emp-sched')"><span class="bn-icon">📋</span>ตาราง</button>
+    <button class="bn" onclick="go('s-emp-clockin')"><span class="bn-icon">🕐</span>Clock</button>
+    <button class="bn" onclick="go('s-emp-leave')"><span class="bn-icon">📅</span>วันลา</button>
+    <button class="bn" onclick="go('s-emp-ot')"><span class="bn-icon">⏰</span>OT</button>
+  </div>
+</div>
+
+<!-- ════ EMP: PROFILE SELF ════ -->
+<div id="s-emp-profile-self" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์ของฉัน</div></div>
+  <div class="page">
+    <div style="text-align:center;padding:20px 0 16px;">
+      <div class="lavatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">น</div>
+      <div style="font-size:20px;font-weight:700;">นาม สุขใจ</div>
+      <div class="t-cap" style="margin-top:4px;">บาร์หน้า · พนักงานประจำ</div>
+      <span class="chip chip-green" style="margin-top:8px;">Active</span>
+    </div>
+    <div class="alert alert-info" style="font-size:12px;">ข้อมูลฐานเงินเดือน — เห็นได้เฉพาะ Owner</div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ข้อมูลงาน</div>
+      <div class="irow"><span class="ilabel">ตำแหน่ง</span><span class="ival">บาร์หน้า</span></div>
+      <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">พนักงานประจำ</span></div>
+      <div class="irow"><span class="ilabel">วันเริ่มงาน</span><span class="ival">1 ม.ค. 2025</span></div>
+      <div class="irow"><span class="ilabel">เบอร์โทร</span><span class="ival">082-345-6789</span></div>
+      <div class="irow"><span class="ilabel">ธนาคาร</span><span class="ival">KBank 123-4-56789-0</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px;">วันลาปี 2026</div>
+      <div class="leave-grid">
+        <div class="leave-bal"><div class="leave-num">5</div><div class="leave-lbl">พักร้อน</div></div>
+        <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลาป่วย</div></div>
+        <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลากิจ</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ EMP: SCHEDULE (CALENDAR) ════════════════════════ -->
+<div id="s-emp-sched" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ตารางงาน</div></div>
+  <div class="page">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'sc-cur')">สร้างตาราง</div>
+      <div class="tab" onclick="swTab(this,'sc-hist')">ที่ผ่านมา</div>
+    </div>
+
+    <div id="sc-cur">
+      <div id="sched-deadline-banner"></div>
+      <div class="alert alert-info" style="font-size:12px;">📅 คลิกวันที่ต้องการทำงาน · กะ 1: 08:30 น. | กะ 2: 10:00 น. · ทำงาน 8 ชม. + พัก 1 ชม.</div>
+
+      <!-- Filter เดือน / ปี -->
+      <div class="cal-filter">
+        <select class="fi fi-sel" id="filter-month" onchange="filterCalendar()">
+          <option value="0">มกราคม</option><option value="1">กุมภาพันธ์</option>
+          <option value="2">มีนาคม</option><option value="3">เมษายน</option>
+          <option value="4" selected>พฤษภาคม</option><option value="5">มิถุนายน</option>
+          <option value="6">กรกฎาคม</option><option value="7">สิงหาคม</option>
+          <option value="8">กันยายน</option><option value="9">ตุลาคม</option>
+          <option value="10">พฤศจิกายน</option><option value="11">ธันวาคม</option>
+        </select>
+        <select class="fi fi-sel" id="filter-year" onchange="filterCalendar()">
+          <option value="2026" selected>2026</option>
+          <option value="2027">2027</option>
+        </select>
+      </div>
+
+      <!-- Calendar card -->
+      <div class="card" style="padding:16px;">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+          <div class="cal-month-lbl" id="cal-month-lbl">พฤษภาคม 2026</div>
+          <button class="cal-nav-btn" onclick="calNext()">›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3);">
+            <div style="width:13px;height:13px;border-radius:3px;background:var(--navy);flex-shrink:0;"></div>เลือกทำงาน
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3);">
+            <div style="width:13px;height:13px;border-radius:3px;box-shadow:inset 0 0 0 2px var(--blue);flex-shrink:0;"></div>วันนี้
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3);">
+            <div style="width:13px;height:13px;border-radius:3px;background:var(--surface2);flex-shrink:0;"></div>วันหยุดสัปดาห์
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--red);">
+            <div style="width:13px;height:13px;border-radius:3px;background:var(--red-bg);flex-shrink:0;"></div>วันหยุดนักขัตฤกษ์
+          </div>
+        </div>
+        <!-- วันหยุดนักขัตฤกษ์เดือนนี้ -->
+        <div id="cal-holiday-panel" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);"></div>
+      </div>
+
+      <!-- Selected days + time pickers -->
+      <div class="card" id="cal-summary-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span class="card-title">วันที่เลือก</span>
+          <span class="chip chip-navy" id="cal-count">0 วัน</span>
+        </div>
+        <div id="cal-wday-list">
+          <div class="t-cap" style="text-align:center;padding:14px 0;color:var(--ink3);">คลิกวันที่ในปฏิทินเพื่อเพิ่มวันทำงาน</div>
+        </div>
+      </div>
+
+      <button class="btn btn-navy btn-full" style="padding:14px;" onclick="submitSchedule()">ส่งตารางขออนุมัติ</button>
+    </div>
+
+    <div id="sc-hist" style="display:none;">
+      <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+        <div class="lrow" style="cursor:default;">
+          <div class="lcol"><div class="ltitle">พ.ค. 2026 (1–14)</div><div class="lsub">ทำงาน 10 วัน</div></div>
+          <span class="chip chip-green">Approved</span>
+        </div>
+        <div class="lrow" style="cursor:default;">
+          <div class="lcol"><div class="ltitle">เม.ย. 2026</div><div class="lsub">ทำงาน 22 วัน</div></div>
+          <span class="chip chip-green">Approved</span>
+        </div>
+        <div class="lrow" style="cursor:default;">
+          <div class="lcol"><div class="ltitle">มี.ค. 2026</div><div class="lsub">ทำงาน 21 วัน</div></div>
+          <span class="chip chip-green">Approved</span>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ EMP: CLOCK IN/OUT ════ -->
+<div id="s-emp-clockin" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">Clock In / Out</div></div>
+  <div class="page">
+    <!-- GPS Status -->
+    <div class="gps-map"><div class="gps-ring"></div><div class="gps-pin">📍</div><div id="gps-tag-dist" class="gps-tag">กำลังตรวจสอบ...</div></div>
+    <div id="gps-status-banner" class="alert alert-info" style="font-size:12px;">กำลังตรวจสอบตำแหน่ง GPS...</div>
+
+    <!-- No Schedule Lock -->
+    <div id="clock-no-sched" style="display:none;">
+      <div class="alert alert-danger" style="font-size:13px;font-weight:600;">🔒 ไม่พบตารางงานที่อนุมัติสำหรับวันนี้<br><span style="font-weight:400;font-size:12px;">ระบบล็อก Clock In/Out อัตโนมัติ — กรุณาสร้างตารางและรอ Owner อนุมัติก่อน</span></div>
+      <button class="btn btn-navy btn-full" onclick="go('s-emp-sched')">ไปสร้างตารางงาน →</button>
+    </div>
+
+    <!-- Clock Body (shown only when schedule approved) -->
+    <div id="clock-body">
+      <!-- Late Flag -->
+      <div id="clock-late-flag" class="alert alert-danger" style="font-size:12px;display:none;"></div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px;">สถานะวันนี้</div>
+        <div class="irow"><span class="ilabel">เวลาเข้างาน (ตาราง)</span><span class="ival" id="planned-start-display">08:30 น.</span></div>
+        <div class="irow"><span class="ilabel">เวลาออกงาน (ตาราง)</span><span class="ival" id="planned-end-display">17:00 น.</span></div>
+        <div class="irow"><span class="ilabel">ตาราง</span><span class="ival"><span class="chip chip-green">Approved ✓</span></span></div>
+        <div class="irow"><span class="ilabel">Clock In</span><span class="ival" id="ci-status-display" style="color:var(--ink3);">— ยังไม่ได้ Clock In</span></div>
+        <div class="irow"><span class="ilabel">Clock Out</span><span id="co-display" class="ival" style="color:var(--ink3);">— ยังไม่ออก</span></div>
+      </div>
+      <div class="card" style="background:var(--blue-lt);border:1px solid var(--border);padding:14px 16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px;">⏱ ช่วงเวลาที่อนุญาต (±2 ชั่วโมงจากเวลาตาราง)</div>
+        <div class="irow"><span class="ilabel" style="font-size:12px;">Clock In ได้</span><span class="ival" id="ci-window-lbl" style="font-size:12px;font-weight:600;color:var(--navy);">06:30 – 10:30 น.</span></div>
+        <div class="irow" style="margin-top:4px;"><span class="ilabel" style="font-size:12px;">Clock Out ได้</span><span class="ival" id="co-window-lbl" style="font-size:12px;font-weight:600;color:var(--navy);">15:00 – 19:00 น.</span></div>
+        <div id="clock-window-status" style="margin-top:10px;"></div>
+      </div>
+      <div class="card">
+        <div class="t-cap" style="margin-bottom:12px;">GPS ต้องยืนยันก่อน Clock In · Timestamp บันทึกเวลาจริง ไม่สามารถแก้ไขได้</div>
+        <button id="ci-btn" class="btn btn-navy btn-full" style="padding:15px;font-size:15px;margin-bottom:10px;" onclick="doClockInWithGPS()">Clock In ตอนนี้</button>
+        <button id="co-btn" class="btn btn-danger btn-full" style="padding:15px;font-size:15px;" onclick="openModal('m-clockout')">Clock Out ตอนนี้</button>
+        <div id="co-btn-msg" style="font-size:12px;color:var(--ink3);text-align:center;margin-top:8px;display:none;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px;">ประวัติ 5 วันล่าสุด</div>
+        <div class="irow"><span class="ilabel">14 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:31 → 17:28 ✓</span></div>
+        <div class="irow"><span class="ilabel">13 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:30 → 17:30 ✓</span></div>
+        <div class="irow"><span class="ilabel">12 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:35 → 16:58 ✓</span></div>
+        <div class="irow"><span class="ilabel">11 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:29 → 17:31 ✓</span></div>
+        <div class="irow"><span class="ilabel">10 พ.ค.</span><span class="ival" style="font-size:12px;color:var(--green);">08:33 → 17:29 ✓</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ EMP: LEAVE ════ -->
+<div id="s-emp-leave" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">วันลา</div></div>
+  <div class="page">
+    <div class="leave-grid">
+      <div class="leave-bal"><div class="leave-num">5</div><div class="leave-lbl">พักร้อน</div></div>
+      <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลาป่วย</div></div>
+      <div class="leave-bal"><div class="leave-num">3</div><div class="leave-lbl">ลากิจ</div></div>
+    </div>
+    <div class="t-cap" style="text-align:center;margin-bottom:16px;">นับปีปฏิทิน 1 ม.ค.–31 ธ.ค. ไม่สะสมข้ามปี</div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ยื่นคำขอ</div>
+      <div class="fg"><label class="t-label">ประเภทการลา *</label>
+        <select class="fi fi-sel" id="ltype" onchange="onLtype()">
+          <option value="v">ลาพักร้อน — แจ้งล่วงหน้า 3 วัน</option>
+          <option value="s">ลาป่วย — ต้องแนบใบรับรองแพทย์</option>
+          <option value="p">ลากิจ — แจ้งล่วงหน้า 3 วัน</option>
+        </select></div>
+      <div id="sick-info" style="display:none;"><div class="alert alert-info" style="font-size:12px;">ลาป่วยสามารถขอย้อนหลังได้ แต่ต้องแนบใบรับรองแพทย์ (บังคับสำหรับการลาย้อนหลังหรือวันนี้)</div></div>
+      <div id="advance-info" style="display:block;"><div class="alert alert-warn" style="font-size:12px;">⚠ ลาพักร้อน/ลากิจ ต้องยื่นล่วงหน้าอย่างน้อย 3 วัน</div></div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">วันที่เริ่ม *</label><input class="fi" type="date" id="leave-start-date"></div>
+        <div class="fg"><label class="t-label">วันที่สิ้นสุด *</label><input class="fi" type="date" id="leave-end-date"></div>
+      </div>
+      <div class="fg"><label class="t-label">เหตุผล *</label><input class="fi" id="leave-reason-input" placeholder="ระบุเหตุผล..."></div>
+      <div id="medcert" style="display:none;" class="fg">
+        <label class="t-label">ใบรับรองแพทย์ * (บังคับ)</label>
+        <div class="upbox" style="padding:18px;" onclick="document.getElementById('medcert-file').click()">
+          <div style="font-size:22px;margin-bottom:6px;">📄</div>
+          <button class="btn btn-ghost btn-sm" type="button">เลือกไฟล์</button>
+          <input type="file" id="medcert-file" accept="image/*,.pdf" style="display:none;" onchange="onMedCertSelected(this)">
+          <div id="medcert-ok" class="upbox-ok" style="display:none;"></div>
+        </div>
+      </div>
+      <button class="btn btn-navy btn-full" onclick="validateLeaveSubmit()">ส่งคำขอ</button>
+    </div>
+    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+      <div class="card-title" style="margin-bottom:12px;">ประวัติปี 2026</div>
+      <div class="irow"><span class="ilabel">พักร้อน 12–13 มี.ค.</span><span class="chip chip-green">อนุมัติ</span></div>
+      <div class="irow"><span class="ilabel">ลาป่วย 5 ก.พ.</span><span class="chip chip-green">อนุมัติ</span></div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════ EMP: OT REQUEST ════════════════════════ -->
+<div id="s-emp-ot" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ขอทำงานล่วงเวลา (OT)</div></div>
+  <div class="page">
+    <!-- OT Summary this month -->
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="stat-box"><div class="stat-val" style="color:var(--navy);">6</div><div class="stat-lbl">ชม. OT เดือนนี้</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--amber);">1</div><div class="stat-lbl">รออนุมัติ</div></div>
+    </div>
+
+    <!-- OT Request Form -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ยื่นคำขอ OT</div>
+      <div id="ot-parttime-warn" class="alert alert-warn" style="font-size:12px;display:none;">⚠ พนักงาน Part-time ไม่มีสิทธิ์ OT ยกเว้นได้รับ Approve พิเศษจาก Owner</div>
+      <div class="fg">
+        <label class="t-label">วันที่ขอทำ OT *</label>
+        <input class="fi" type="date" id="ot-date-input" value="2026-05-20">
+        <div class="fhint">ต้องยื่นล่วงหน้าอย่างน้อย 6 ชั่วโมงก่อนเวลาเริ่ม OT</div>
+      </div>
+      <div class="fg2">
+        <div class="fg">
+          <label class="t-label">เวลาเริ่ม OT *</label>
+          <select class="fi fi-sel" id="ot-start-sel" onchange="calcOTHours()">
+            <option value="17:00">17:00 น.</option><option value="17:30" selected>17:30 น.</option>
+            <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
+            <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
+            <option value="20:00">20:00 น.</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="t-label">เวลาสิ้นสุด OT *</label>
+          <select class="fi fi-sel" id="ot-end-sel" onchange="calcOTHours()">
+            <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
+            <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
+            <option value="20:00" selected>20:00 น.</option><option value="20:30">20:30 น.</option>
+            <option value="21:00">21:00 น.</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:var(--blue-lt);border-radius:var(--rsm);padding:12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--ink2);">รวม OT ที่ขอ</span>
+          <span id="ot-hours-display" style="font-size:18px;font-weight:700;color:var(--navy);">2.5 ชั่วโมง</span>
+        </div>
+        <div id="ot-pay-display" style="font-size:11px;color:var(--ink3);text-align:right;margin-top:4px;"></div>
+      </div>
+      <div class="alert alert-info" style="font-size:11px;margin-bottom:12px;" id="ot-rate-display"></div>
+      <div class="fg">
+        <label class="t-label">เหตุผล / งานที่ต้องทำ *</label>
+        <textarea class="fi" id="ot-reason-input" rows="3" placeholder="ระบุงานที่ต้องทำล่วงเวลา..." style="resize:none;line-height:1.6;"></textarea>
+      </div>
+      <button class="btn btn-navy btn-full" onclick="submitOTRequest()">ส่งคำขอ OT</button>
+    </div>
+
+    <!-- OT History -->
+    <div class="t-sect">ประวัติ OT ปี 2026</div>
+    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
+      <div class="lrow" style="cursor:default;">
+        <div class="lcol">
+          <div class="ltitle">19 พ.ค. 2026</div>
+          <div class="lsub">17:30 – 20:00 น. · 2.5 ชม.</div>
+        </div>
+        <span class="chip chip-amber">รออนุมัติ</span>
+      </div>
+      <div class="lrow" style="cursor:default;">
+        <div class="lcol">
+          <div class="ltitle">10 พ.ค. 2026</div>
+          <div class="lsub">17:00 – 20:00 น. · 3 ชม.</div>
+        </div>
+        <span class="chip chip-green">อนุมัติ</span>
+      </div>
+      <div class="lrow" style="cursor:default;">
+        <div class="lcol">
+          <div class="ltitle">28 เม.ย. 2026</div>
+          <div class="lsub">17:30 – 19:30 น. · 2 ชม.</div>
+        </div>
+        <span class="chip chip-green">อนุมัติ</span>
+      </div>
+      <div class="lrow" style="cursor:default;">
+        <div class="lcol">
+          <div class="ltitle">15 เม.ย. 2026</div>
+          <div class="lsub">17:00 – 18:00 น. · 1 ชม.</div>
+        </div>
+        <span class="chip chip-red">ไม่อนุมัติ</span>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ════ OWNER: ATTENDANCE EXPORT ════ -->
+<div id="s-owner-export" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">บันทึกเวลาทำงาน</div><button class="btn btn-navy btn-sm" style="font-size:11px;padding:7px 14px;" onclick="exportToExcel()">⬇ Excel</button></div>
+  <div class="page">
+
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <select class="fi fi-sel" style="flex:2;padding:10px 36px 10px 12px;font-size:13px;">
+        <option>นาม สุขใจ — บาร์หน้า</option>
+        <option>มิน รักงาน — เบเกอรี่</option>
+        <option>แก้ว มีสุข — ครัว</option>
+        <option>ปาย ใจงาม — แม่บ้าน</option>
+        <option>อ้อย สดใส — บาร์หน้า</option>
+      </select>
+      <select class="fi fi-sel" style="flex:1;padding:10px 36px 10px 12px;font-size:13px;">
+        <option>พ.ค. 2026</option><option>เม.ย. 2026</option><option>มี.ค. 2026</option>
+      </select>
+    </div>
+
+    <!-- OT rule note (Owner only — not shown to employee) -->
+    <div class="alert" style="background:var(--navy-lt);border-left:3px solid var(--navy);font-size:11px;color:var(--navy-dk);margin-bottom:14px;">
+      <strong>เกณฑ์ OT (Owner Only)</strong> — มาตรฐาน 8 ชม. ทำงาน + 1 ชม. พัก = 9 ชม./วัน<br><br>
+      <strong>วันปกติ:</strong> OT นับเฉพาะเมื่อ Clock Out เกินแผน <em>และ</em> มีคำขอ OT อนุมัติ ถ้าไม่มีคำขอ OT — ไม่นับ<br><br>
+      <strong>วันหยุดพิเศษ (วันหยุดนักขัตฤกษ์ / วันหยุดสัปดาห์):</strong><br>
+      · Clock Out &lt; เวลาออกในแผน → OT = ชม. จริง (clock out − clock in − 1 ชม. พัก)<br>
+      · Clock Out ≥ เวลาออกในแผน → OT = ชม. ตามแผน (plan end − plan start − 1 ชม. พัก) — ไม่นับส่วนเกิน
+    </div>
+
+    <!-- Summary chips -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
+        <div style="font-size:20px;font-weight:700;color:var(--navy);">14</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">วันทำงาน</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
+        <div style="font-size:20px;font-weight:700;color:var(--green);">112.3</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. จริง</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
+        <div style="font-size:20px;font-weight:700;color:var(--amber);">2.25</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. OT</div>
+      </div>
+    </div>
+
+    <!-- Day-by-day table -->
+    <div class="t-sect">บันทึกรายวัน — นาม สุขใจ</div>
+    <div class="card" style="padding:0;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px;">
+        <thead>
+          <tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
+            <th style="padding:9px 12px;text-align:left;font-weight:600;color:var(--ink2);white-space:nowrap;">วันที่</th>
+            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ประเภทวัน</th>
+            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน เข้า</th>
+            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน ออก</th>
+            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง เข้า</th>
+            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง ออก</th>
+            <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ชม.จริง</th>
+            <th style="padding:9px 12px;text-align:center;font-weight:600;color:var(--amber);">OT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- วันแรงงาน (holiday) -->
+          <tr style="background:var(--red-bg);border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;"><div style="font-weight:600;color:var(--red);">1 พ.ค. (ศ.)</div></td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:8px;font-weight:600;">วันแรงงาน</span></td>
+            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--ink3);">—</td>
+            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
+          </tr>
+          <!-- เสาร์-อาทิตย์ -->
+          <tr style="background:var(--surface2);border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;color:var(--ink3);">2 พ.ค. (ส.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--surface2);color:var(--ink3);padding:2px 6px;border-radius:8px;font-weight:600;">หยุดสัปดาห์</span></td>
+            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--ink3);font-size:11px;">ไม่ได้วางแผนทำงาน</td>
+          </tr>
+          <tr style="background:var(--surface2);border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;color:var(--ink3);">3 พ.ค. (อา.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--surface2);color:var(--ink3);padding:2px 6px;border-radius:8px;font-weight:600;">หยุดสัปดาห์</span></td>
+            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--ink3);font-size:11px;">ไม่ได้วางแผนทำงาน</td>
+          </tr>
+          <!-- วันทำงานปกติ -->
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;">4 พ.ค. (จ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
+            <td style="padding:9px 6px;text-align:center;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:31</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:28</td>
+            <td style="padding:9px 6px;text-align:center;font-weight:600;">7.95</td>
+            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
+          </tr>
+          <!-- วันฉัตรมงคล (holiday) -->
+          <tr style="background:var(--red-bg);border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;"><div style="font-weight:600;color:var(--red);">5 พ.ค. (อ.)</div></td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:8px;font-weight:600;">วันฉัตรมงคล</span></td>
+            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--red);font-size:11px;">วันหยุดนักขัตฤกษ์ — ไม่ได้ทำงาน</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;">6 พ.ค. (พ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
+            <td style="padding:9px 6px;text-align:center;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:29</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;font-weight:600;">8.02</td>
+            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
+          </tr>
+          <!-- วัน OT อนุมัติ -->
+          <tr style="border-top:1px solid var(--border);background:#FFFBF0;">
+            <td style="padding:9px 12px;font-weight:600;">7 พ.ค. (พฤ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
+            <td style="padding:9px 6px;text-align:center;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:32</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--amber);font-weight:700;">19:45</td>
+            <td style="padding:9px 6px;text-align:center;font-weight:600;">10.22</td>
+            <td style="padding:9px 12px;text-align:center;">
+              <span style="font-weight:700;color:var(--amber);">+2.25</span>
+              <div style="font-size:9px;color:var(--green);">OT อนุมัติ ✓</div>
+            </td>
+          </tr>
+          <!-- วันที่ Clock Out ช้า แต่ไม่มี OT -->
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;">8 พ.ค. (ศ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
+            <td style="padding:9px 6px;text-align:center;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--ink2);font-weight:600;">18:10 <span style="font-size:9px;color:var(--ink3);">*</span></td>
+            <td style="padding:9px 6px;text-align:center;font-weight:600;">8.67</td>
+            <td style="padding:9px 12px;text-align:center;">
+              <span style="color:var(--ink3);">—</span>
+              <div style="font-size:9px;color:var(--ink3);">ไม่มีคำขอ OT</div>
+            </td>
+          </tr>
+          <!-- วันลา -->
+          <tr style="background:var(--info-bg);border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;color:var(--info);">11 พ.ค. (จ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:8px;font-weight:600;">วันวิสาขบูชา</span></td>
+            <td colspan="6" style="padding:9px 6px;text-align:center;color:var(--info);font-size:11px;">วันหยุดนักขัตฤกษ์ — ไม่ได้ทำงาน</td>
+          </tr>
+          <tr style="background:var(--info-bg);border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;color:var(--info);">12 พ.ค. (อ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--info-bg);color:var(--info);padding:2px 6px;border-radius:8px;font-weight:600;">ลากิจ</span></td>
+            <td style="padding:9px 6px;text-align:center;color:var(--info);">08:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--info);">17:30</td>
+            <td colspan="2" style="padding:9px 6px;text-align:center;color:var(--info);font-size:11px;">อนุมัติวันลา</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--info);">—</td>
+            <td style="padding:9px 12px;text-align:center;color:var(--info);">—</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;">13 พ.ค. (พ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
+            <td style="padding:9px 6px;text-align:center;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:35</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:28</td>
+            <td style="padding:9px 6px;text-align:center;font-weight:600;">7.88</td>
+            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:9px 12px;font-weight:600;">14 พ.ค. (พฤ.)</td>
+            <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:8px;font-weight:600;">ปกติ</span></td>
+            <td style="padding:9px 6px;text-align:center;">08:30</td>
+            <td style="padding:9px 6px;text-align:center;">17:30</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">08:29</td>
+            <td style="padding:9px 6px;text-align:center;color:var(--green);font-weight:600;">17:31</td>
+            <td style="padding:9px 6px;text-align:center;font-weight:600;">8.03</td>
+            <td style="padding:9px 12px;text-align:center;color:var(--ink3);">—</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--navy);background:var(--navy-lt);">
+            <td colspan="6" style="padding:10px 12px;font-weight:700;color:var(--navy);">รวม (1–14 พ.ค.)</td>
+            <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--navy);">52.1 ชม.</td>
+            <td style="padding:10px 12px;text-align:center;font-weight:700;color:var(--amber);">2.25 ชม.</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="t-cap" style="margin-top:8px;padding:0 2px;">* Clock Out เกินแผน แต่ไม่มีคำขอ OT — ไม่นับ OT</div>
+  </div>
+</div>
+  </div>
+</div>
+
+<!-- ════ OWNER: EDIT EMPLOYEE PROFILE ════ -->
+<div id="s-emp-profile-edit" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">แก้ไขโปรไฟล์พนักงาน</div><button class="topbar-action" style="background:var(--green);color:#fff;border:none;" onclick="saveProfile()">บันทึก</button></div>
+  <div class="page">
+    <div style="text-align:center;padding:16px 0 20px;">
+      <div class="lavatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 10px;">น</div>
+      <div style="font-size:12px;color:var(--ink3);">แตะเพื่อเปลี่ยนรูป (Phase II)</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ข้อมูลส่วนตัว</div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" value="นาม"></div>
+        <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" value="สุขใจ"></div>
+      </div>
+      <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" value="082-345-6789"></div>
+      <div class="fg"><label class="t-label">เลขบัตรประชาชน</label><input class="fi" value="1-3019-xxxxx"></div>
+      <div class="fg"><label class="t-label">วันเกิด</label><input class="fi" type="date" value="2002-01-12"></div>
+      <div class="fg"><label class="t-label">ที่อยู่</label><input class="fi" value="ต.เนินพระ อ.เมือง จ.ระยอง 21000"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">ข้อมูลงาน</div>
+      <div class="fg"><label class="t-label">ตำแหน่ง *</label>
+        <select class="fi fi-sel">
+          <option selected>บาร์หน้า (Barista)</option><option>เบเกอรี่ (Bakery)</option><option>ครัว (Kitchen)</option><option>แม่บ้าน (Housekeeper)</option>
+        </select></div>
+      <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
+        <select class="fi fi-sel">
+          <option selected>Full-time · ประจำ</option>
+          <option>Part-time · รายชั่วโมง</option>
+          <option>ทดลองงาน (Probation)</option>
+        </select></div>
+      <div class="fg"><label class="t-label">สถานะบัญชี *</label>
+        <select class="fi fi-sel">
+          <option selected>Active</option>
+          <option>ระงับชั่วคราว</option>
+          <option>ออกจากงาน</option>
+        </select></div>
+      <div class="fg"><label class="t-label">วันเริ่มทำงาน *</label><input class="fi" type="date" value="2025-01-01"></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--navy);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div class="card-title">ข้อมูลเงินเดือน</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
+      <div class="fg"><label class="t-label">ฐานเงินเดือน (บาท/เดือน)</label><input class="fi" type="number" value="13000"></div>
+      <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" value="150"><div class="fhint">ใช้คำนวณค่าล่วงเวลา</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">บัญชีธนาคาร</div>
+      <div class="fg"><label class="t-label">ธนาคาร</label>
+        <select class="fi fi-sel"><option selected>กสิกรไทย (KBank)</option><option>ไทยพาณิชย์ (SCB)</option><option>กรุงไทย (KTB)</option></select></div>
+      <div class="fg2">
+        <div class="fg"><label class="t-label">เลขบัญชี</label><input class="fi" value="123-4-56789-0"></div>
+        <div class="fg"><label class="t-label">ชื่อบัญชี</label><input class="fi" value="นาย นาม สุขใจ"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">หมายเหตุ / บันทึก Owner</div>
+      <textarea class="fi" rows="3" style="resize:none;line-height:1.6;" placeholder="บันทึกภายในสำหรับ Owner..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-full" onclick="back()">ยกเลิก</button>
+      <button class="btn btn-success btn-full" onclick="saveProfile()">บันทึกการแก้ไข</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PASSWORD RESET ════ -->
+<div id="s-reset-pass" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">เปลี่ยนรหัสผ่าน</div></div>
+  <div class="page" style="max-width:420px;margin:0 auto;">
+    <div style="text-align:center;padding:32px 0 24px;">
+      <div style="font-size:40px;margin-bottom:12px;">🔑</div>
+      <div class="t-title">รีเซ็ตรหัสผ่าน</div>
+      <div class="t-cap" style="margin-top:6px;">กรอก Username และรหัสผ่านใหม่ของคุณ</div>
+    </div>
+    <div class="card">
+      <div class="fg">
+        <label class="t-label">Username *</label>
+        <input class="fi" id="reset-user" placeholder="กรอก Username ของคุณ" autocomplete="username">
+      </div>
+      <div class="fg">
+        <label class="t-label">รหัสผ่านใหม่ * (อย่างน้อย 6 ตัวอักษร)</label>
+        <input class="fi" id="reset-pass1" type="password" placeholder="รหัสผ่านใหม่" autocomplete="new-password">
+      </div>
+      <div class="fg">
+        <label class="t-label">ยืนยันรหัสผ่านใหม่ *</label>
+        <input class="fi" id="reset-pass2" type="password" placeholder="ยืนยันรหัสผ่าน" autocomplete="new-password">
+      </div>
+      <button class="btn btn-navy btn-full" onclick="doResetPassword()">เปลี่ยนรหัสผ่าน</button>
+    </div>
+    <div class="t-cap" style="text-align:center;margin-top:12px;">หากลืม Username กรุณาติดต่อ Owner โดยตรง</div>
+  </div>
+</div>
+
+<!-- MODAL: EARLY CLOCK-OUT REQUEST -->
+<div class="modal" id="m-early-clockout">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:6px;">ขอ Clock Out ก่อนเวลา</div>
+    <div class="alert alert-warn" style="font-size:12px;margin-bottom:14px;">เวลาออกตามแผน: <strong id="early-co-plan-end">--:--</strong> · เวลาปัจจุบัน: <strong id="early-co-now">--:--</strong><br>การ Clock Out ก่อนเวลาต้องได้รับ Owner Approve ก่อนดำเนินการ</div>
+    <div class="fg">
+      <label class="t-label">เหตุผล *</label>
+      <textarea id="early-co-reason" class="fi" rows="3" placeholder="ระบุเหตุผลที่ต้องออกก่อนเวลา..." style="resize:none;line-height:1.6;"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-full" onclick="closeModal('m-early-clockout')">ยกเลิก</button>
+      <button class="btn btn-navy btn-full" onclick="requestEarlyClockOut()">ส่งคำขอ</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CLOCK OUT -->
+<div class="modal" id="m-clockout">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:6px;">ยืนยัน Clock Out?</div>
+    <div class="t-cap" style="margin-bottom:20px;">เวลา <strong id="co-now">--:--</strong> — บันทึกทันที ไม่สามารถแก้ไขได้</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-full" onclick="closeModal('m-clockout')">ยกเลิก</button>
+      <button class="btn btn-danger btn-full" onclick="doClockOut()">ยืนยัน Clock Out</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── NAV ── */
+let hist=[];
+function go(id){
+  const c=document.querySelector('.sc.on');if(c){c.classList.remove('on');hist.push(c.id);}
+  document.getElementById(id).classList.add('on');window.scrollTo(0,0);
+  if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
+  if(id==='s-emp-sched'){renderSchedDeadlineBanner();}
+  if(id==='s-emp-ot'){renderOTRate();}
+  if(id==='s-owner-home'){renderProbationAlerts();}
+}
+
+/* ── GPS BANNER ON CLOCK SCREEN ── */
+async function startGPSBanner(){
+  const banner=document.getElementById('gps-status-banner');
+  const tag=document.getElementById('gps-tag-dist');
+  if(banner){banner.className='alert alert-info';banner.textContent='กำลังตรวจสอบตำแหน่ง GPS...';}
+  const gps=await checkGPS();
+  if(gps.ok){
+    if(banner){banner.className='alert alert-success';banner.textContent='✓ GPS ยืนยัน: '+gps.msg+' · Kyoto Shi Cafe Rayong';}
+    if(tag)tag.textContent=gps.dist?'✓ '+gps.dist+' ม.':'✓ Demo';
+  } else {
+    if(banner){banner.className='alert alert-danger';banner.textContent='❌ '+gps.msg;}
+    if(tag){tag.textContent='⚠ นอกรัศมี';tag.style.background='rgba(168,32,32,.8)';tag.style.color='#fff';}
+  }
+}
+function back(){if(!hist.length)return;const c=document.querySelector('.sc.on');if(c)c.classList.remove('on');document.getElementById(hist.pop()).classList.add('on');window.scrollTo(0,0);}
+
+/* ── API CONFIG ── */
+// วาง URL ของ Apps Script Web App ที่นี่หลัง Deploy
+const SCRIPT_URL='YOUR_APPS_SCRIPT_URL';
+const DEMO_MODE=SCRIPT_URL==='YOUR_APPS_SCRIPT_URL'; // true = ใช้ข้อมูล demo
+
+// Helper: เรียก API ผ่าน GET (ไม่มีปัญหา CORS กับ Apps Script)
+async function callAPI(params){
+  if(DEMO_MODE)return{ok:false,error:'Demo mode — กรุณาตั้งค่า SCRIPT_URL'};
+  const url=new URL(SCRIPT_URL);
+  Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
+  const r=await fetch(url.toString());
+  return r.json();
+}
+
+/* ── SESSION ── */
+let currentUser=null; // { ok, role, empId, name, nickname, position }
+
+/* ── LOGIN ── */
+let role=null;
+// Demo credentials (ใช้เมื่อ DEMO_MODE=true)
+const OWNER_CREDS={user:'menbom888',pass:'mlb888'};
+const EMP_CREDS={user:'nam_sukjai',pass:'emp1234'};
+
+function pickRole(r){
+  role=r;
+  document.getElementById('r-owner').classList.toggle('on',r==='owner');
+  document.getElementById('r-emp').classList.toggle('on',r==='emp');
+  document.getElementById('login-err').style.display='none';
+}
+async function doLogin(){
+  if(!role){toast('กรุณาเลือกบทบาทก่อน');return;}
+  const u=(document.getElementById('login-user').value||'').trim();
+  const p=(document.getElementById('login-pass').value||'').trim();
+  const errEl=document.getElementById('login-err');
+  if(!u||!p){errEl.style.display='block';return;}
+  const loginBtns=document.querySelectorAll('#s-login .btn-dark');
+  loginBtns.forEach(b=>{b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';});
+  try{
+    if(DEMO_MODE){
+      // Demo mode: validate locally
+      let ok=false;
+      if(role==='owner'&&u===OWNER_CREDS.user&&p===OWNER_CREDS.pass)ok=true;
+      if(role==='emp'&&u===EMP_CREDS.user&&p===EMP_CREDS.pass)ok=true;
+      if(!ok){errEl.style.display='block';return;}
+      currentUser={ok:true,role,empId:role==='owner'?'EMP001':'EMP002',name:role==='owner'?'เจ้าของร้าน':'นาม สุขใจ',nickname:role==='owner'?'เจ้าของ':'นาม'};
+    } else {
+      const res=await callAPI({action:'login',user:u,pass:p});
+      if(!res.ok){errEl.style.display='block';return;}
+      currentUser=res;
+      role=res.role;
+    }
+    errEl.style.display='none';
+    hist=[];
+    go(role==='owner'?'s-owner-home':'s-emp-home');
+  }catch(e){
+    toast('ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+  }finally{
+    loginBtns.forEach(b=>{b.disabled=false;b.textContent='เข้าสู่ระบบ';});
+  }
+}
+function doLogout(){hist=[];role=null;currentUser=null;['r-owner','r-emp'].forEach(i=>document.getElementById(i).classList.remove('on'));const u=document.getElementById('login-user');const p=document.getElementById('login-pass');if(u)u.value='';if(p)p.value='';go('s-login');}
+
+/* ── REGISTER STEPS ── */
+function rStep(s){
+  [1,2,3].forEach(i=>{
+    document.getElementById('rp'+i).style.display=i===s?'block':'none';
+    const d=document.getElementById('sd'+i);
+    if(i<s){d.className='step-dot done';d.textContent='✓';}
+    else if(i===s){d.className='step-dot cur';d.textContent=i;}
+    else{d.className='step-dot';d.textContent=i;}
+    if(i<3)document.getElementById('sl'+i).className='step-line'+(i<s?' done':'');
+  });
+  window.scrollTo(0,0);
+}
+
+/* ── INTERVIEW ── */
+function pickIV(btn,lbl){['ivb1','ivb2','ivb3'].forEach(id=>{const b=document.getElementById(id);b.className=b===btn?'btn btn-dark btn-sm':'btn btn-outline btn-sm';});toast('นัดสัมภาษณ์: '+lbl);}
+
+/* ── APPLICANT APPROVE ── */
+async function apvApplicant(a,empId){
+  const id=empId||'EMP_PENDING';
+  if(DEMO_MODE){toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ (Demo)':'ปฏิเสธบัญชี (Demo)');setTimeout(back,1500);return;}
+  try{
+    const res=await callAPI({action:'approveEmployee',empId:id,approve:a==='approve'?'true':'false'});
+    if(res.ok){toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ':'ปฏิเสธบัญชีแล้ว');setTimeout(back,1500);}
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+/* ── GENERIC TABS ── */
+function swTab(el,tid){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+  const pre=tid.split('-').slice(0,-1).join('-');
+  document.querySelectorAll('[id^="'+pre+'"]').forEach(d=>d.style.display='none');
+  document.getElementById(tid).style.display='block';
+}
+
+/* ── OWNER APPROVE TABS ── */
+function swApproveTab(idx){
+  document.querySelectorAll('#approve-tabs .tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  [0,1,2,3].forEach(i=>{const el=document.getElementById('apv-t'+i);if(el)el.style.display=i===idx?'block':'none';});
+}
+function goApprove(tab){swApproveTab(tab);go('s-owner-approve');}
+
+/* ── LEAVE ── */
+function onLtype(){
+  const t=document.getElementById('ltype').value;
+  document.getElementById('sick-info').style.display=t==='s'?'block':'none';
+  document.getElementById('advance-info').style.display=t!=='s'?'block':'none';
+  document.getElementById('medcert').style.display=t==='s'?'block':'none';
+}
+function onMedCertSelected(input){
+  const ok=document.getElementById('medcert-ok');
+  if(ok&&input.files&&input.files.length){
+    ok.style.display='block';
+    ok.textContent='✓ '+input.files[0].name;
+  }
+}
+
+/* ── CLOCK ── */
+function updateClock(){const n=new Date(),e=document.getElementById('lclock');if(e)e.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
+setInterval(updateClock,1000);updateClock();
+function openModal(id){const n=new Date(),el=document.getElementById('co-now');if(el)el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+' น.';document.getElementById(id).classList.add('on');}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function todayISO(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function nowHHMM(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
+
+async function doClockOut(){
+  closeModal('m-clockout');
+  const t=nowHHMM();
+  // Update UI immediately
+  document.getElementById('co-display').textContent=t+' น. ✓';
+  document.getElementById('co-display').style.color='var(--green)';
+  const b=document.getElementById('co-btn');b.disabled=true;b.textContent='Clock Out แล้ว · '+t+' น.';b.style.background='var(--ink3)';
+  toast('Clock Out สำเร็จ · '+t+' น.');
+  // Save to API
+  if(!DEMO_MODE&&currentUser){
+    try{await callAPI({action:'clockOut',empId:currentUser.empId,date:todayISO(),time:t});}
+    catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
+  }
+}
+
+async function doClockIn(){
+  const t=nowHHMM();
+  // Update UI
+  const ciEl=document.getElementById('ci-status-display');
+  if(ciEl){ciEl.textContent=t+' น. ✓';ciEl.style.color='var(--green)';}
+  const ciBtn=document.getElementById('ci-btn');
+  if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='Clock In แล้ว · '+t+' น.';ciBtn.style.background='var(--ink3)';}
+  toast('Clock In สำเร็จ · '+t+' น.');
+  // Save to API
+  if(!DEMO_MODE&&currentUser){
+    try{await callAPI({action:'clockIn',empId:currentUser.empId,date:todayISO(),time:t,plannedStart:'08:30',plannedEnd:'17:00'});}
+    catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
+  }
+}
+
+/* ── PROFILE EDIT ── */
+async function saveProfile(empId){
+  if(DEMO_MODE){toast('บันทึกข้อมูลพนักงานเรียบร้อย ✓ (Demo)');setTimeout(()=>{back();back();},1200);return;}
+  const fields={empId:empId||'EMP002'};
+  ['name','position','type','salary','bank'].forEach(f=>{const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;});
+  try{
+    const res=await callAPI({action:'updateEmployee',data:JSON.stringify(fields)});
+    if(res.ok){toast('บันทึกข้อมูลเรียบร้อย ✓');setTimeout(()=>{back();back();},1200);}
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+/* ── EXCEL EXPORT ── */
+function exportToExcel(){
+  if(typeof XLSX==='undefined'){toast('กำลังโหลด SheetJS...');return;}
+  // Attendance data (prototype static data — นาม สุขใจ พ.ค. 2026)
+  const rows=[
+    ['วันที่','วัน','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม. จริง','OT (ชม.)','หมายเหตุ'],
+    ['1 พ.ค. 2026','ศุกร์','วันแรงงาน','—','—','—','—','—','—','วันหยุดนักขัตฤกษ์'],
+    ['2 พ.ค. 2026','เสาร์','หยุดสัปดาห์','—','—','—','—','—','—','ไม่ได้วางแผน'],
+    ['3 พ.ค. 2026','อาทิตย์','หยุดสัปดาห์','—','—','—','—','—','—','ไม่ได้วางแผน'],
+    ['4 พ.ค. 2026','จันทร์','ปกติ','08:30','17:30','08:31','17:28',7.95,'—',''],
+    ['5 พ.ค. 2026','อังคาร','วันฉัตรมงคล','—','—','—','—','—','—','วันหยุดนักขัตฤกษ์'],
+    ['6 พ.ค. 2026','พุธ','ปกติ','08:30','17:30','08:29','17:30',8.02,'—',''],
+    ['7 พ.ค. 2026','พฤหัสบดี','ปกติ','08:30','17:30','08:32','19:45',10.22,2.25,'OT อนุมัติ ✓'],
+    ['8 พ.ค. 2026','ศุกร์','ปกติ','08:30','17:30','08:30','18:10',8.67,'—','Clock out ช้า — ไม่มีคำขอ OT'],
+    ['11 พ.ค. 2026','จันทร์','วันวิสาขบูชา','—','—','—','—','—','—','วันหยุดนักขัตฤกษ์'],
+    ['12 พ.ค. 2026','อังคาร','ลากิจ','08:30','17:30','—','—','—','—','อนุมัติวันลา'],
+    ['13 พ.ค. 2026','พุธ','ปกติ','08:30','17:30','08:35','17:28',7.88,'—',''],
+    ['14 พ.ค. 2026','พฤหัสบดี','ปกติ','08:30','17:30','08:29','17:31',8.03,'—',''],
+    ['','','','','','','รวม','52.1 ชม.','2.25 ชม.',''],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // Column widths
+  ws['!cols']=[{wch:16},{wch:12},{wch:18},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:28}];
+  // Header style rows
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,'บันทึกเวลา นาม สุขใจ',ws);
+  XLSX.writeFile(wb,'attendance_nam_sukjai_may2026.xlsx');
+  toast('ส่งออก Excel สำเร็จ ✓');
+}
+
+/* ── GPS GEOFENCING ── */
+// Kyoto Shi Café coordinates (Rayong — update with exact coords after on-site measurement)
+const SHOP_LAT=12.6853, SHOP_LNG=101.2782;
+const GPS_RADIUS_M=50;
+
+function haversineM(lat1,lng1,lat2,lng2){
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// Returns promise resolving to { ok:bool, dist:number, msg:string }
+function checkGPS(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){resolve({ok:false,dist:null,msg:'อุปกรณ์ไม่รองรับ GPS'});return;}
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        const dist=Math.round(haversineM(pos.coords.latitude,pos.coords.longitude,SHOP_LAT,SHOP_LNG));
+        if(dist<=GPS_RADIUS_M)resolve({ok:true,dist,msg:'อยู่ในรัศมีร้าน ('+dist+' ม.)'});
+        else resolve({ok:false,dist,msg:'อยู่นอกรัศมีร้าน ('+dist+' ม.) — ต้องอยู่ภายใน '+GPS_RADIUS_M+' ม.'});
+      },
+      err=>{
+        // In demo/localhost environment, GPS often unavailable — treat as within range
+        const demoOk=DEMO_MODE||err.code===1;
+        resolve({ok:demoOk,dist:null,msg:demoOk?'GPS: ใช้ Demo Mode (ข้ามตรวจสอบ)':'ไม่สามารถดึง GPS ได้ — '+err.message});
+      },
+      {timeout:8000,maximumAge:30000,enableHighAccuracy:true}
+    );
+  });
+}
+
+/* ── TODAY SCHEDULE STATE ── */
+// todaySchedule = { approved: bool, planStart: 'HH:MM', planEnd: 'HH:MM' } | null
+let todaySchedule=null;
+
+function initTodaySchedule(){
+  // Demo: simulate employee has an approved schedule today for shift 1 (08:30-17:00)
+  if(DEMO_MODE||!currentUser){
+    todaySchedule={approved:true,planStart:'08:30',planEnd:'17:00'};
+    return Promise.resolve(todaySchedule);
+  }
+  return callAPI({action:'getTodayClock',empId:currentUser.empId,date:todayISO()})
+    .then(r=>{
+      if(r.ok&&r.data&&r.data.plannedStart){
+        todaySchedule={approved:true,planStart:r.data.plannedStart,planEnd:r.data.plannedEnd};
+      } else {
+        todaySchedule={approved:false};
+      }
+      return todaySchedule;
+    })
+    .catch(()=>{todaySchedule={approved:true,planStart:'08:30',planEnd:'17:00'};return todaySchedule;});
+}
+
+/* ── CLOCK WINDOW ── */
+function fmtMin(m){
+  if(m<0)m=0;if(m>1439)m=1439;
+  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+}
+
+function initClockScreen(){
+  // Load schedule then render
+  initTodaySchedule().then(sched=>renderClockScreen(sched));
+}
+
+function renderClockScreen(sched){
+  const noSchedEl=document.getElementById('clock-no-sched');
+  const clockBody=document.getElementById('clock-body');
+
+  if(!sched||!sched.approved){
+    // LOCK: no approved schedule
+    if(noSchedEl)noSchedEl.style.display='block';
+    if(clockBody)clockBody.style.display='none';
+    return;
+  }
+  if(noSchedEl)noSchedEl.style.display='none';
+  if(clockBody)clockBody.style.display='block';
+
+  const planStart=sched.planStart||'08:30', planEnd=sched.planEnd||'17:00';
+  const [sh,sm]=planStart.split(':').map(Number);
+  const [eh,em]=planEnd.split(':').map(Number);
+  const ciStart=sh*60+sm-120, ciEnd=sh*60+sm+120;
+  const coStart=eh*60+em-120, coEnd=eh*60+em+120;
+
+  // Update window labels
+  const ciLbl=document.getElementById('ci-window-lbl');
+  const coLbl=document.getElementById('co-window-lbl');
+  if(ciLbl)ciLbl.textContent=fmtMin(ciStart)+' – '+fmtMin(ciEnd)+' น.';
+  if(coLbl)coLbl.textContent=fmtMin(coStart)+' – '+fmtMin(coEnd)+' น.';
+
+  // Update planned times display
+  const psEl=document.getElementById('planned-start-display');
+  const peEl=document.getElementById('planned-end-display');
+  if(psEl)psEl.textContent=planStart+' น.';
+  if(peEl)peEl.textContent=planEnd+' น.';
+
+  // Current time
+  const now=new Date(), nowMin=now.getHours()*60+now.getMinutes();
+  const inCi=nowMin>=ciStart&&nowMin<=ciEnd;
+  const inCo=nowMin>=coStart&&nowMin<=coEnd;
+
+  // Late flag: if current time > planStart + 15min and not yet clocked in
+  const lateEl=document.getElementById('clock-late-flag');
+  if(lateEl){
+    if(nowMin>sh*60+sm+15&&nowMin<coStart){
+      lateEl.style.display='block';
+      lateEl.textContent='⚠ สายเกิน 15 นาที — ระบบบันทึกและแจ้ง Owner อัตโนมัติ';
+    } else lateEl.style.display='none';
+  }
+
+  // Clock Out button
+  const coBtn=document.getElementById('co-btn');
+  const coBtnMsg=document.getElementById('co-btn-msg');
+  if(coBtn&&!coBtn.disabled){
+    // Early clock-out (before planned end - 120min window)
+    if(nowMin<coStart){
+      coBtn.textContent='ขอ Clock Out ก่อนเวลา';
+      coBtn.className='btn btn-outline btn-full';
+      coBtn.onclick=()=>openEarlyClockOutModal(planEnd);
+      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.textContent='ยังไม่ถึงช่วง Clock Out ('+fmtMin(coStart)+'–'+fmtMin(coEnd)+')';}
+    } else if(nowMin>coEnd){
+      coBtn.disabled=true;coBtn.style.opacity='0.4';
+      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.textContent='เลยเวลา Clock Out แล้ว กรุณาติดต่อ Owner';}
+    } else {
+      coBtn.disabled=false;coBtn.style.opacity='1';coBtn.textContent='Clock Out ตอนนี้';
+      coBtn.className='btn btn-danger btn-full';coBtn.onclick=()=>openModal('m-clockout');
+      if(coBtnMsg)coBtnMsg.style.display='none';
+    }
+  }
+
+  // Status banner
+  const statusEl=document.getElementById('clock-window-status');
+  if(statusEl){
+    if(inCo)
+      statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ อยู่ในช่วงเวลา Clock Out ได้แล้ว</div>';
+    else if(inCi)
+      statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ อยู่ในช่วงเวลา Clock In ได้แล้ว</div>';
+    else if(nowMin<ciStart)
+      statusEl.innerHTML='<div class="alert alert-info" style="font-size:12px;margin:0;padding:8px 12px;">⏳ ยังไม่ถึงเวลา — Clock In เปิดใช้ '+fmtMin(ciStart)+' น.</div>';
+    else if(nowMin>ciEnd&&nowMin<coStart)
+      statusEl.innerHTML='<div class="alert" style="font-size:12px;margin:0;padding:8px 12px;background:var(--amber-bg);color:var(--amber);">☕ กำลังทำงาน — Clock Out เปิดใช้ '+fmtMin(coStart)+' น.</div>';
+    else
+      statusEl.innerHTML='<div class="alert" style="font-size:12px;margin:0;padding:8px 12px;background:var(--red-bg);color:var(--red);">⚠ เลยเวลาที่กำหนด กรุณาติดต่อ Owner</div>';
+  }
+}
+
+/* ── EARLY CLOCK-OUT ── */
+function openEarlyClockOutModal(planEnd){
+  const t=nowHHMM();
+  const el=document.getElementById('early-co-plan-end');if(el)el.textContent=planEnd+' น.';
+  const el2=document.getElementById('early-co-now');if(el2)el2.textContent=t;
+  document.getElementById('m-early-clockout').classList.add('on');
+}
+async function requestEarlyClockOut(){
+  const reason=(document.getElementById('early-co-reason')||{}).value||'';
+  if(!reason.trim()){toast('กรุณาระบุเหตุผล');return;}
+  closeModal('m-early-clockout');
+  if(!DEMO_MODE&&currentUser){
+    try{await callAPI({action:'submitOT',empId:currentUser.empId,date:todayISO(),requestedHours:0,reason:'ขอ Clock Out ก่อนเวลา: '+reason});}catch(e){}
+  }
+  toast('ส่งคำขอ Clock Out ก่อนเวลาแล้ว รอ Owner อนุมัติ');
+}
+
+/* ── CLOCK IN WITH GPS ── */
+async function doClockInWithGPS(){
+  const ciBtn=document.getElementById('ci-btn');
+  if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='กำลังตรวจสอบ GPS...';}
+  const gps=await checkGPS();
+  if(!gps.ok){
+    if(ciBtn){ciBtn.disabled=false;ciBtn.textContent='Clock In ตอนนี้';}
+    toast('❌ '+gps.msg);
+    const gpsEl=document.getElementById('gps-status-text');if(gpsEl){gpsEl.textContent=gps.msg;gpsEl.style.color='var(--red)';}
+    return;
+  }
+  // GPS OK
+  const gpsEl=document.getElementById('gps-status-text');
+  if(gpsEl){gpsEl.textContent=gps.msg;gpsEl.style.color='var(--green)';}
+  const t=nowHHMM();
+  // Late flag
+  if(todaySchedule&&todaySchedule.planStart){
+    const [ph,pm]=todaySchedule.planStart.split(':').map(Number);
+    const now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
+    if(nowMin>ph*60+pm+15)toast('⚠ Clock In สาย '+Math.round(nowMin-(ph*60+pm))+' นาที — แจ้ง Owner แล้ว');
+    else toast('Clock In สำเร็จ · '+t+' น. ✓ GPS OK');
+  } else toast('Clock In สำเร็จ · '+t+' น. ✓ GPS OK');
+
+  const ciEl=document.getElementById('ci-status-display');
+  if(ciEl){ciEl.textContent=t+' น. ✓';ciEl.style.color='var(--green)';}
+  if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='Clock In แล้ว · '+t+' น.';ciBtn.style.background='var(--ink3)';}
+
+  if(!DEMO_MODE&&currentUser){
+    try{await callAPI({action:'clockIn',empId:currentUser.empId,date:todayISO(),time:t,
+      plannedStart:todaySchedule?.planStart||'',plannedEnd:todaySchedule?.planEnd||''});}
+    catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
+  }
+}
+
+/* ── SCHEDULE DEADLINE BANNER (15-day periods) ── */
+function renderSchedDeadlineBanner(){
+  const el=document.getElementById('sched-deadline-banner');
+  if(!el)return;
+  const now=new Date();
+  const day=now.getDate();
+  // Period 1: 1–15, Period 2: 16–end of month
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  let periodEnd, periodLabel;
+  if(day<=15){
+    periodEnd=new Date(now.getFullYear(),now.getMonth(),15);
+    periodLabel='รอบ 1 (1–15 '+THAI_MONTHS_SHORT[now.getMonth()]+')';
+  } else {
+    periodEnd=new Date(now.getFullYear(),now.getMonth(),daysInMonth);
+    periodLabel='รอบ 2 (16–'+daysInMonth+' '+THAI_MONTHS_SHORT[now.getMonth()]+')';
+  }
+  // Adjust if deadline falls on weekend/holiday
+  while(periodEnd.getDay()===0||periodEnd.getDay()===6||THAI_HOLIDAYS[periodEnd.toISOString().slice(0,10)]){
+    periodEnd.setDate(periodEnd.getDate()-1);
+  }
+  const daysLeft=Math.ceil((periodEnd-now)/(86400000));
+  const ddlStr=periodEnd.getDate()+' '+THAI_MONTHS_SHORT[periodEnd.getMonth()]+' '+periodEnd.getFullYear();
+  const banner=`<div class="alert ${daysLeft<=2?'alert-danger':daysLeft<=5?'alert-warn':'alert-info'}" style="font-size:12px;margin-bottom:12px;">
+    📅 <strong>${periodLabel}</strong> — Deadline ส่งตาราง: <strong>${ddlStr}</strong>
+    ${daysLeft<=5?'<br>⚠ เหลืออีก <strong>'+daysLeft+' วัน</strong> — กรุณาส่งตารางโดยด่วน':''}
+  </div>`;
+  el.innerHTML=banner;
+}
+
+/* ── OT RATE DISPLAY ── */
+function renderOTRate(){
+  const el=document.getElementById('ot-rate-display');if(!el)return;
+  // Demo: salary 13000
+  const salary=DEMO_MODE?13000:0;
+  const hourlyBase=salary/240;
+  const otRate=(hourlyBase*1.5).toFixed(2);
+  el.textContent=salary?'อัตรา OT: '+otRate+' บาท/ชม. (ฐาน '+salary.toLocaleString()+'/240 × 1.5)':'— (ไม่ทราบฐานเงินเดือน)';
+  // Part-time restriction
+  const partEl=document.getElementById('ot-parttime-warn');
+  if(partEl){
+    const isPartTime=currentUser&&(currentUser.type==='Part-time'||currentUser.position==='Part-time');
+    partEl.style.display=isPartTime?'block':'none';
+  }
+}
+
+function calcOTHours(){
+  const startSel=document.getElementById('ot-start-sel');
+  const endSel=document.getElementById('ot-end-sel');
+  const dispEl=document.getElementById('ot-hours-display');
+  if(!startSel||!endSel||!dispEl)return;
+  const [sh,sm]=startSel.value.split(':').map(Number);
+  const [eh,em]=endSel.value.split(':').map(Number);
+  const hrs=((eh*60+em)-(sh*60+sm))/60;
+  dispEl.textContent=hrs>0?hrs.toFixed(1)+' ชั่วโมง':'—';
+  // OT rate calc
+  const salary=DEMO_MODE?13000:0;
+  const otPay=salary?(hrs*(salary/240)*1.5).toFixed(0):'—';
+  const payEl=document.getElementById('ot-pay-display');
+  if(payEl)payEl.textContent=salary&&hrs>0?'≈ '+parseInt(otPay).toLocaleString()+' บาท':'';
+}
+
+async function submitOTRequest(){
+  const dateSel=document.getElementById('ot-date-input');
+  const startSel=document.getElementById('ot-start-sel');
+  const reasonEl=document.getElementById('ot-reason-input');
+  const partEl=document.getElementById('ot-parttime-warn');
+  if(partEl&&partEl.style.display!=='none'&&!confirm('คุณเป็นพนักงาน Part-time — OT ต้องได้รับ Approve พิเศษจาก Owner ต้องการส่งคำขอต่อไปหรือไม่?'))return;
+  if(!dateSel||!startSel||!reasonEl){toast('กรุณากรอกข้อมูลให้ครบ');return;}
+  // Validate: OT must be submitted ≥6 hours before start time
+  const otDate=dateSel.value;
+  const [sh,sm]=startSel.value.split(':').map(Number);
+  const otStartMs=new Date(otDate+'T'+startSel.value).getTime();
+  const nowMs=Date.now();
+  const diffHrs=(otStartMs-nowMs)/3600000;
+  if(diffHrs<6){toast('⚠ ต้องยื่นขอ OT ล่วงหน้าอย่างน้อย 6 ชั่วโมง (เหลือ '+Math.round(diffHrs*10)/10+' ชม.)');return;}
+  if(!reasonEl.value.trim()){toast('กรุณาระบุเหตุผล');return;}
+  if(DEMO_MODE||!currentUser){toast('ส่งคำขอ OT แล้ว รอ Owner อนุมัติ ✓ (Demo)');return;}
+  try{
+    const endSel=document.getElementById('ot-end-sel');
+    const [eh,em]=(endSel?.value||'18:00').split(':').map(Number);
+    const hrs=((eh*60+em)-(sh*60+sm))/60;
+    const res=await callAPI({action:'submitOT',empId:currentUser.empId,date:otDate,requestedHours:hrs,reason:reasonEl.value});
+    if(res.ok)toast('ส่งคำขอ OT สำเร็จ ✓ รอ Owner อนุมัติ');
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+/* ── LEAVE VALIDATION ── */
+function validateLeaveSubmit(){
+  const typeEl=document.getElementById('ltype');
+  const startEl=document.getElementById('leave-start-date');
+  const endEl=document.getElementById('leave-end-date');
+  const reasonEl=document.getElementById('leave-reason-input');
+  if(!typeEl||!startEl||!endEl||!reasonEl){toast('กรุณากรอกข้อมูลให้ครบ');return;}
+  const type=typeEl.value;
+  const startDate=new Date(startEl.value);
+  const now=new Date(); now.setHours(0,0,0,0);
+  if(!startEl.value){toast('กรุณาเลือกวันที่');return;}
+  if(!reasonEl.value.trim()){toast('กรุณาระบุเหตุผล');return;}
+  // 3-day advance for vacation and personal leave
+  if(type!=='s'){
+    const diffDays=Math.ceil((startDate-now)/86400000);
+    if(diffDays<3){toast('⚠ ลาพักร้อน/ลากิจ ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน (วันที่เลือกเหลือ '+diffDays+' วัน)');return;}
+  }
+  // Sick leave: require medical cert if leave is today or past
+  if(type==='s'){
+    const fileEl=document.getElementById('medcert-file');
+    const diffDays=Math.ceil((startDate-now)/86400000);
+    if(diffDays<=0&&(!fileEl||!fileEl.files||!fileEl.files.length)){
+      toast('⚠ ลาป่วยย้อนหลัง/วันนี้ ต้องแนบใบรับรองแพทย์ก่อน');return;
+    }
+  }
+  if(DEMO_MODE||!currentUser){toast('ส่งคำขอวันลาแล้ว รอ Owner อนุมัติ ✓ (Demo)');return;}
+  submitLeaveRequest(type,startEl.value,endEl.value,reasonEl.value);
+}
+
+async function submitLeaveRequest(type,startDate,endDate,reason){
+  try{
+    const res=await callAPI({action:'submitLeave',empId:currentUser.empId,type,startDate,endDate,reason});
+    if(res.ok)toast('ส่งคำขอวันลาสำเร็จ ✓ รอ Owner อนุมัติ');
+    else toast('เกิดข้อผิดพลาด: '+res.error);
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+/* ── PROBATION ALERTS ── */
+function renderProbationAlerts(){
+  const el=document.getElementById('probation-alerts');if(!el)return;
+  // Demo probation data
+  const alerts=[
+    {name:'สมหญิง ใจดี',endDate:'2026-09-01',daysLeft:107},
+    {name:'ต้น พอใจ',endDate:'2026-06-01',daysLeft:15},
+  ];
+  const urgent=alerts.filter(a=>a.daysLeft<=30);
+  if(!urgent.length){el.style.display='none';return;}
+  let html='';
+  urgent.forEach(a=>{
+    const color=a.daysLeft<=7?'var(--red)':a.daysLeft<=15?'var(--amber)':'var(--navy)';
+    html+=`<div class="alert" style="background:${a.daysLeft<=7?'var(--red-bg)':a.daysLeft<=15?'var(--amber-bg)':'var(--navy-lt)'};border-left:3px solid ${color};font-size:12px;margin-bottom:8px;">
+      ⏰ <strong>${a.name}</strong> — ทดลองงานหมด <strong>${a.daysLeft} วัน</strong> (${a.endDate})
+      <br><span style="font-size:11px;opacity:.8;">กรุณาตัดสินใจรับเข้า/ต่อสัญญา ก่อนวันดังกล่าว</span>
+    </div>`;
+  });
+  el.innerHTML=html;el.style.display='block';
+}
+
+/* ── PASSWORD RESET ── */
+function doResetPassword(){
+  const u=document.getElementById('reset-user')?.value?.trim();
+  const p1=document.getElementById('reset-pass1')?.value;
+  const p2=document.getElementById('reset-pass2')?.value;
+  if(!u){toast('กรุณากรอก Username');return;}
+  if(!p1||p1.length<6){toast('Password ต้องมีอย่างน้อย 6 ตัวอักษร');return;}
+  if(p1!==p2){toast('Password ไม่ตรงกัน กรุณาตรวจสอบ');return;}
+  if(DEMO_MODE){toast('เปลี่ยน Password สำเร็จ ✓ (Demo)');setTimeout(()=>go('s-login'),1500);return;}
+  toast('เปลี่ยน Password สำเร็จ ✓');setTimeout(()=>go('s-login'),1500);
+}
+
+/* ── TOAST ── */
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800);}
+
+/* ════════════════════════════════════
+   CALENDAR SCHEDULE
+════════════════════════════════════ */
+let calYear=2026, calMonth=4; // พฤษภาคม 2026
+let calSelected={}; // { "2026-05-18": { start:"08:30", end:"17:00" } }
+
+const THAI_MONTHS_FULL=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const THAI_MONTHS_SHORT=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const DAY_HDRS=['จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.'];
+const TIME_OPTIONS=['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','13:00'];
+const END_TIME_OPTIONS=['12:00','13:00','14:00','15:00','16:00','17:00','17:30','18:00','18:30','19:00','20:00','21:00','22:00'];
+
+// วันหยุดนักขัตฤกษ์ไทย 2026 (Thai Public Holidays)
+const THAI_HOLIDAYS={
+  '2026-01-01':'วันขึ้นปีใหม่',
+  '2026-02-06':'วันมาฆบูชา',
+  '2026-04-06':'วันจักรี',
+  '2026-04-13':'วันสงกรานต์',
+  '2026-04-14':'วันสงกรานต์',
+  '2026-04-15':'วันสงกรานต์',
+  '2026-05-01':'วันแรงงานแห่งชาติ',
+  '2026-05-05':'วันฉัตรมงคล',
+  '2026-05-11':'วันวิสาขบูชา',
+  '2026-07-28':'วันเฉลิมพระชนมพรรษา ร.10',
+  '2026-08-12':'วันแม่แห่งชาติ',
+  '2026-10-13':'วันนวมินทรมหาราช',
+  '2026-10-23':'วันปิยมหาราช',
+  '2026-12-05':'วันพ่อแห่งชาติ',
+  '2026-12-10':'วันรัฐธรรมนูญ',
+  '2026-12-31':'วันสิ้นปี',
+};
+
+function buildCalendar(){
+  // Update label and selects
+  document.getElementById('cal-month-lbl').textContent=THAI_MONTHS_FULL[calMonth]+' '+calYear;
+  const fm=document.getElementById('filter-month');if(fm)fm.value=calMonth;
+  const fy=document.getElementById('filter-year');if(fy)fy.value=calYear;
+
+  const grid=document.getElementById('cal-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+
+  // Day headers
+  DAY_HDRS.forEach(d=>{const h=document.createElement('div');h.className='cal-hdr';h.textContent=d;grid.appendChild(h);});
+
+  const firstDayOfWeek=new Date(calYear,calMonth,1).getDay(); // 0=Sun
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const leadingBlanks=(firstDayOfWeek+6)%7; // Mon=0
+
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  // Empty leading cells
+  for(let i=0;i<leadingBlanks;i++){const e=document.createElement('div');e.className='cal-cell cal-empty';grid.appendChild(e);}
+
+  // Day cells
+  for(let d=1;d<=daysInMonth;d++){
+    const cell=document.createElement('div');
+    const m2=String(calMonth+1).padStart(2,'0');
+    const d2=String(d).padStart(2,'0');
+    const key=`${calYear}-${m2}-${d2}`;
+    const cellDate=new Date(calYear,calMonth,d);
+
+    cell.className='cal-cell';
+
+    const isPast=cellDate<today;
+    const isToday=cellDate.getTime()===today.getTime();
+    const dow=cellDate.getDay(); // 0=Sun, 6=Sat
+    const isWeekend=dow===0||dow===6;
+    const isHoliday=Object.prototype.hasOwnProperty.call(THAI_HOLIDAYS,key);
+    const holidayLabel=isHoliday?THAI_HOLIDAYS[key]:null;
+
+    if(isHoliday&&!isPast){
+      cell.title=holidayLabel;
+      cell.style.flexDirection='column';
+      cell.style.gap='1px';
+      cell.innerHTML=`<span style="font-size:12px;font-weight:700;line-height:1;">${d}</span><span style="font-size:7px;line-height:1;opacity:.85;">🎌</span>`;
+    } else {
+      cell.textContent=d;
+    }
+
+    if(isPast) cell.classList.add('cal-past');
+    else if(isToday) cell.classList.add('cal-today');
+    if(!isPast&&isHoliday) cell.classList.add('cal-holiday');
+    else if(!isPast&&isWeekend) cell.classList.add('cal-weekend');
+    if(calSelected[key]) cell.classList.add('cal-work');
+
+    if(!isPast){
+      cell.addEventListener('click',()=>toggleCalDay(key));
+    }
+    grid.appendChild(cell);
+  }
+  renderWorkDayList();
+  renderHolidayPanel();
+}
+
+function renderHolidayPanel(){
+  const panel=document.getElementById('cal-holiday-panel');
+  if(!panel)return;
+  const m2=String(calMonth+1).padStart(2,'0');
+  const prefix=`${calYear}-${m2}-`;
+  const monthHolidays=Object.keys(THAI_HOLIDAYS)
+    .filter(k=>k.startsWith(prefix))
+    .sort();
+  if(!monthHolidays.length){panel.style.display='none';return;}
+  const THAI_SHORT_DAYS=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  const THAI_SHORT_MONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  let html=`<div style="font-size:10px;font-weight:700;color:var(--red);letter-spacing:.05em;margin-bottom:8px;">🎌 วันหยุดนักขัตฤกษ์เดือนนี้</div>`;
+  monthHolidays.forEach(k=>{
+    const [y,mo,d]=k.split('-');
+    const dt=new Date(parseInt(y),parseInt(mo)-1,parseInt(d));
+    const dayName=THAI_SHORT_DAYS[dt.getDay()];
+    const dd=parseInt(d);
+    const mon=THAI_SHORT_MONTHS[parseInt(mo)-1];
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">
+      <div style="min-width:32px;text-align:center;background:var(--red-bg);color:var(--red);font-weight:700;font-size:13px;border-radius:6px;padding:2px 4px;">${dd}</div>
+      <div style="font-size:11px;color:var(--ink3);">${dayName} ${mon}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--ink2);flex:1;">${THAI_HOLIDAYS[k]}</div>
+    </div>`;
+  });
+  panel.innerHTML=html;
+  panel.style.display='block';
+}
+
+function toggleCalDay(key){
+  if(calSelected[key]){
+    delete calSelected[key];
+  } else {
+    calSelected[key]={start:'08:30',end:'17:00'};
+  }
+  buildCalendar();
+}
+
+function renderWorkDayList(){
+  const list=document.getElementById('cal-wday-list');
+  if(!list)return;
+  const keys=Object.keys(calSelected).sort();
+  const count=keys.length;
+  const countEl=document.getElementById('cal-count');
+  if(countEl)countEl.textContent=count+' วัน';
+
+  if(count===0){
+    list.innerHTML='<div class="t-cap" style="text-align:center;padding:14px 0;">คลิกวันที่ในปฏิทินเพื่อเพิ่มวันทำงาน</div>';
+    return;
+  }
+
+  let html='';
+  keys.forEach(key=>{
+    const [y,m,d]=key.split('-');
+    const dt=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+    const dow2=dt.getDay();
+    const thaiDay=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][dow2];
+    const isWknd=dow2===0||dow2===6;
+    const holidayName=THAI_HOLIDAYS[key]||null;
+    // Day-type badge
+    let badge='';
+    if(holidayName)
+      badge=`<span style="font-size:10px;font-weight:600;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:10px;margin-left:6px;">🎌 ${holidayName}</span>`;
+    else if(isWknd)
+      badge=`<span style="font-size:10px;font-weight:600;color:var(--amber);background:var(--amber-bg);padding:2px 8px;border-radius:10px;margin-left:6px;">📅 วันหยุดสัปดาห์</span>`;
+    // Special day checkbox (pre-checked, employee can uncheck)
+    let warn='';
+    if(holidayName||isWknd){
+      const cbColor=holidayName?'var(--red)':'var(--amber)';
+      const cbBg=holidayName?'var(--red-bg)':'var(--amber-bg)';
+      const cbLabel=holidayName
+        ?`🎌 ${holidayName} — ยืนยันทำงานในวันหยุดนักขัตฤกษ์`
+        :`📅 วันหยุดสัปดาห์ — ยืนยันทำงานในวันหยุด`;
+      const cbNote=holidayName
+        ?'OT จะนับตามเวลาจริง แต่ไม่เกินที่วางแผนไว้'
+        :'ต้องได้รับการอนุมัติจาก Owner';
+      warn=`<label style="width:100%;display:flex;align-items:flex-start;gap:8px;background:${cbBg};border-radius:6px;padding:8px 10px;margin-top:2px;cursor:pointer;">
+        <input type="checkbox" checked style="margin-top:2px;flex-shrink:0;accent-color:${cbColor};" onchange="calSelected['${key}'].specialDay=this.checked;">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:${cbColor};">${cbLabel}</div>
+          <div style="font-size:10px;color:${cbColor};opacity:.8;margin-top:2px;">${cbNote}</div>
+        </div>
+      </label>`;
+      // Initialize specialDay flag
+      if(calSelected[key].specialDay===undefined) calSelected[key].specialDay=true;
+    }
+    const label=`${thaiDay} ${parseInt(d)} ${THAI_MONTHS_SHORT[parseInt(m)-1]}`;
+    const startOpts=TIME_OPTIONS.map(t=>`<option value="${t}"${calSelected[key].start===t?' selected':''}>${t} น.</option>`).join('');
+    const endOpts=END_TIME_OPTIONS.map(t=>`<option value="${t}"${calSelected[key].end===t?' selected':''}>${t} น.</option>`).join('');
+    html+=`<div class="wday-row" style="flex-wrap:wrap;gap:6px;">
+      <div style="width:100%;display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:2px;">
+        <span class="wday-date" style="min-width:unset;">${label}</span>${badge}
+      </div>
+      ${warn}
+      <div style="flex:1;min-width:100px;">
+        <label style="font-size:10px;color:var(--ink3);display:block;margin-bottom:3px;">เวลาเข้า</label>
+        <select class="fi fi-sel" style="padding:8px 26px 8px 8px;font-size:12px;" onchange="updateTime('${key}','start',this.value)">${startOpts}</select>
+      </div>
+      <div style="flex:1;min-width:100px;">
+        <label style="font-size:10px;color:var(--ink3);display:block;margin-bottom:3px;">เวลาออก</label>
+        <select class="fi fi-sel" style="padding:8px 26px 8px 8px;font-size:12px;" onchange="updateTime('${key}','end',this.value)">${endOpts}</select>
+      </div>
+      <button class="wday-remove" style="align-self:flex-end;margin-bottom:2px;" onclick="removeCalDay('${key}')">✕</button>
+    </div>`;
+  });
+  list.innerHTML=html;
+}
+
+function updateTime(key,field,val){calSelected[key][field]=val;}
+function removeCalDay(key){delete calSelected[key];buildCalendar();}
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}buildCalendar();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}buildCalendar();}
+function filterCalendar(){
+  const fm=document.getElementById('filter-month');
+  const fy=document.getElementById('filter-year');
+  if(fm)calMonth=parseInt(fm.value);
+  if(fy)calYear=parseInt(fy.value);
+  buildCalendar();
+}
+
+async function submitSchedule(){
+  const keys=Object.keys(calSelected);
+  if(!keys.length){toast('กรุณาเลือกวันทำงานก่อน');return;}
+  if(DEMO_MODE||!currentUser){
+    toast('ส่งตาราง '+keys.length+' วัน รอ Owner อนุมัติ ✓ (Demo)');
+    return;
+  }
+  toast('กำลังส่งตาราง...');
+  try{
+    const res=await callAPI({
+      action:'submitSchedule',
+      empId:currentUser.empId,
+      month:calMonth+1,
+      year:calYear,
+      dates:JSON.stringify(calSelected),
+    });
+    if(res.ok){
+      toast('ส่งตาราง '+keys.length+' วัน สำเร็จ รอ Owner อนุมัติ ✓');
+      calSelected={};buildCalendar();
+    }else{toast('เกิดข้อผิดพลาด: '+res.error);}
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
+
+// Init
+buildCalendar();
+</script>
+</body>
+</html>
