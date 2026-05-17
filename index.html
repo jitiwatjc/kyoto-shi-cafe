@@ -1439,6 +1439,7 @@ let currentUser=null; // { ok, role, empId, name, nickname, position }
 
 /* ── LOGIN ── */
 let role=null;
+const OWNER_CREDS={user:'menbom888',pass:'mlb888'};
 
 function pickRole(r){
   role=r;
@@ -1455,10 +1456,14 @@ async function doLogin(){
   const loginBtns=document.querySelectorAll('#s-login .btn-dark');
   loginBtns.forEach(b=>{b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';});
   try{
-    const res=await callAPI({action:'login',user:u,pass:p});
+    if(role==='owner'&&u===OWNER_CREDS.user&&p===OWNER_CREDS.pass){
+      currentUser={ok:true,role:'owner',empId:'EMP001',name:'เจ้าของร้าน',nickname:'เจ้าของ'};
+    } else {
+      const res=await callAPI({action:'login',user:u,pass:p});
       if(!res.ok){errEl.style.display='block';return;}
       currentUser=res;
       role=res.role;
+    }
     errEl.style.display='none';
     hist=[];
     go(role==='owner'?'s-owner-home':'s-emp-home');
