@@ -501,7 +501,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
       <div class="irow"><span class="ilabel">วันเริ่มทำงาน</span><span class="ival" id="apv-detail-startdate">—</span></div>
     </div>
     <div class="card" style="border-left:3px solid var(--navy);">
-      <div class="card-title" style="margin-bottom:14px;">ตรวจสอบเอกสาร — สมุดบัญชีธนาคาร</div>
+      <div class="card-title" style="margin-bottom:14px;">ข้อมูลบัญชีธนาคาร</div>
       <div class="lrow" style="cursor:default;padding-top:0;">
         <div style="font-size:28px;">🏦</div>
         <div class="lcol"><div class="ltitle" id="apv-detail-bookbank-file">—</div><div class="lsub" id="apv-detail-bookbank-sub">—</div></div>
@@ -1602,8 +1602,8 @@ function openApplicantDetail(reg){
   setEl('apv-detail-idcard',reg.idcard);
   setEl('apv-detail-addr',reg.address);
   setEl('apv-detail-startdate',reg.startDate);
-  setEl('apv-detail-bookbank-file','Bookbank_'+(reg.username||reg.empId)+'.jpg');
-  setEl('apv-detail-bookbank-sub',(reg.bankName||'ธนาคาร')+' · เลขบัญชี '+(reg.bankAcc||'—')+' · '+(reg.bankAccName||reg.name||'—'));
+  setEl('apv-detail-bookbank-file',(reg.bankName||'ธนาคาร')+' · เลขบัญชี '+(reg.bankAcc||'—'));
+  setEl('apv-detail-bookbank-sub','ชื่อบัญชี: '+(reg.bankAccName||reg.name||'—'));
   // Pre-fill the account-setup form with the applicant's submitted values
   const typeSel=document.getElementById('apv-type-input');
   if(typeSel&&reg.type){for(let i=0;i<typeSel.options.length;i++){if(typeSel.options[i].value===reg.type){typeSel.selectedIndex=i;break;}}}
