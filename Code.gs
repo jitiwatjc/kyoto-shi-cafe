@@ -62,7 +62,7 @@ function doGet(e) {
       case 'approveLeave':    return res(approveLeave({ leaveId: p.leaveId, approve: p.approve === 'true', approvedBy: p.approvedBy }));
       case 'approveOT':       return res(approveOT({ otId: p.otId, approve: p.approve === 'true', approvedBy: p.approvedBy }));
       case 'registerEmployee':return res(registerEmployee(JSON.parse(decodeURIComponent(p.data || '{}'))));
-      case 'approveEmployee': return res(approveEmployee({ empId: p.empId, approve: p.approve === 'true' }));
+      case 'approveEmployee': return res(approveEmployee({ empId: p.empId, approve: p.approve === 'true', salary: p.salary, type: p.type, note: p.note }));
       case 'updateEmployee':  return res(updateEmployee(JSON.parse(decodeURIComponent(p.data || '{}'))));
 
       default:                return res({ ok: false, error: 'Unknown action: ' + p.action });
@@ -92,7 +92,7 @@ function login(username, password) {
     const row = data[i];
     if (String(row[2]) === String(username) &&
         String(row[3]) === String(password) &&
-        row[10] === 'Active') {
+        String(row[10]).trim().toLowerCase() === 'active') {
       const isOwner = row[6] === 'Owner';
       return {
         ok:       true,
@@ -129,9 +129,17 @@ function getEmployees() {
       type:        row[6],
       salary:      row[7],
       bank:        row[8],
-      startDate:   row[9] ? fmtDate(new Date(row[9])) : '',
-      status:      row[10],
-      probationEnd:row[11] ? fmtDate(new Date(row[11])) : '',
+      startDate:   row[9] ? fmtMaybe(row[9]) : '',
+      status:      String(row[10] || '').trim().toLowerCase(),
+      probationEnd:row[11] ? fmtMaybe(row[11]) : '',
+      phone:       row[12] || '',
+      idcard:      row[13] || '',
+      address:     row[14] || '',
+      dob:         fmtMaybe(row[15]),
+      bankAcc:     row[16] || '',
+      bankAccName: row[17] || '',
+      note:        row[18] || '',
+      otrate:      row[19] || '',
     });
   }
   return { ok: true, data: employees };
@@ -151,16 +159,42 @@ function registerEmployee(p) {
     p.position    || '',
     p.type        || 'Full-time',
     p.salary      || 0,
-    p.bank        || '',
+    p.bank        || '',          // [8] bank brand (e.g. กสิกรไทย (KBank))
     p.startDate   || '',
     'Pending',
     p.probationEnd|| '',
+    p.phone       || '',          // [12]
+    p.idcard      || '',          // [13]
+    p.address     || '',          // [14]
+    p.dob         || '',          // [15]
+    p.bankAcc     || '',          // [16] account number
+    p.bankAccName || '',          // [17] account holder name
+    p.note        || '',          // [18]
+    p.otrate      || '',          // [19]
   ]);
   return { ok: true, empId: newId };
 }
 
 function approveEmployee(p) {
-  return setEmployeeStatus(p.empId, p.approve ? 'Active' : 'Rejected');
+  const ss   = openSS();
+  const sh   = ss.getSheetByName(SH.EMPLOYEES);
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === p.empId) {
+      const r = i + 1;
+      if (p.approve) {
+        // Save the account settings the Owner entered on the approval screen
+        if (p.type   !== undefined && p.type   !== '') sh.getRange(r, 7).setValue(p.type);    // [6] type
+        if (p.salary !== undefined && p.salary !== '') sh.getRange(r, 8).setValue(p.salary);  // [7] salary
+        if (p.note   !== undefined && p.note   !== '') sh.getRange(r, 19).setValue(p.note);   // [18] note
+        sh.getRange(r, 11).setValue('Active');   // [10] status
+      } else {
+        sh.getRange(r, 11).setValue('Rejected');
+      }
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'Employee not found' };
 }
 
 function setEmployeeStatus(empId, status) {
@@ -180,6 +214,9 @@ function updateEmployee(p) {
   const ss   = openSS();
   const sh   = ss.getSheetByName(SH.EMPLOYEES);
   const data = sh.getDataRange().getValues();
+  // Accept both naming conventions used by the two frontend forms (register vs. edit)
+  const address   = (p.address   !== undefined) ? p.address   : p.addr;
+  const startDate = (p.startDate !== undefined) ? p.startDate : p.startdate;
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === p.empId) {
       const r = i + 1;
@@ -189,9 +226,17 @@ function updateEmployee(p) {
       if (p.type        !== undefined) sh.getRange(r, 7).setValue(p.type);
       if (p.salary      !== undefined) sh.getRange(r, 8).setValue(p.salary);
       if (p.bank        !== undefined) sh.getRange(r, 9).setValue(p.bank);
-      if (p.startDate   !== undefined) sh.getRange(r, 10).setValue(p.startDate);
+      if (startDate     !== undefined) sh.getRange(r, 10).setValue(startDate);
       if (p.status      !== undefined) sh.getRange(r, 11).setValue(p.status);
       if (p.probationEnd!== undefined) sh.getRange(r, 12).setValue(p.probationEnd);
+      if (p.phone       !== undefined) sh.getRange(r, 13).setValue(p.phone);
+      if (p.idcard      !== undefined) sh.getRange(r, 14).setValue(p.idcard);
+      if (address       !== undefined) sh.getRange(r, 15).setValue(address);
+      if (p.dob         !== undefined) sh.getRange(r, 16).setValue(p.dob);
+      if (p.bankAcc     !== undefined) sh.getRange(r, 17).setValue(p.bankAcc);
+      if (p.bankAccName !== undefined) sh.getRange(r, 18).setValue(p.bankAccName);
+      if (p.note        !== undefined) sh.getRange(r, 19).setValue(p.note);
+      if (p.otrate      !== undefined) sh.getRange(r, 20).setValue(p.otrate);
       return { ok: true };
     }
   }
@@ -430,77 +475,6 @@ function setOTStatus(otId, status, approvedBy) {
 }
 
 // ════════════════════════════════════════════════════════════
-// PENDING APPROVALS — รอการอนุมัติ
-// ════════════════════════════════════════════════════════════
-function getPendingApprovals() {
-  const ss      = openSS();
-  const empSh   = ss.getSheetByName(SH.EMPLOYEES);
-  const schSh   = ss.getSheetByName(SH.SCHEDULES);
-  const otSh    = ss.getSheetByName(SH.OT_REQUESTS);
-
-  // Build employee name map
-  const empData = empSh.getDataRange().getValues();
-  const empMap  = {};
-  for (let i = 1; i < empData.length; i++) {
-    empMap[empData[i][0]] = empData[i][1];
-  }
-
-  // Pending schedules
-  const schData  = schSh.getDataRange().getValues();
-  const pendSch  = [];
-  for (let i = 1; i < schData.length; i++) {
-    if (schData[i][5] === 'Pending') {
-      pendSch.push({
-        id:          schData[i][0],
-        empId:       schData[i][1],
-        name:        empMap[schData[i][1]] || schData[i][1],
-        month:       schData[i][2],
-        year:        schData[i][3],
-        dates:       schData[i][4] ? JSON.parse(schData[i][4]) : {},
-        submittedAt: schData[i][6],
-      });
-    }
-  }
-
-  // Pending OT
-  const otData  = otSh.getDataRange().getValues();
-  const pendOT  = [];
-  for (let i = 1; i < otData.length; i++) {
-    if (otData[i][5] === 'Pending') {
-      pendOT.push({
-        id:             otData[i][0],
-        empId:          otData[i][1],
-        name:           empMap[otData[i][1]] || otData[i][1],
-        date:           otData[i][2] ? fmtDate(new Date(otData[i][2])) : '',
-        requestedHours: otData[i][3],
-        reason:         otData[i][4],
-        submittedAt:    otData[i][6],
-      });
-    }
-  }
-
-  // Pending registrations
-  const pendReg = [];
-  for (let i = 1; i < empData.length; i++) {
-    if (empData[i][10] === 'Pending') {
-      pendReg.push({
-        empId:    empData[i][0],
-        name:     empData[i][1],
-        username: empData[i][2],
-        position: empData[i][5],
-        type:     empData[i][6],
-        bank:     empData[i][8],
-      });
-    }
-  }
-
-  return {
-    ok: true,
-    data: { schedules: pendSch, ot: pendOT, registrations: pendReg },
-  };
-}
-
-// ════════════════════════════════════════════════════════════
 // ATTENDANCE — ดึงบันทึกเวลา (สำหรับ Export)
 // ════════════════════════════════════════════════════════════
 function getAttendance(empId, month, year) {
@@ -693,14 +667,25 @@ function getPendingApprovals() {
     }
   }
 
-  // Pending registrations
+  // Pending registrations — return ALL fields the approval screen needs
   const pendReg = [];
   for (let i = 1; i < empData.length; i++) {
     if (empData[i][10] === 'Pending') {
       pendReg.push({
-        empId: empData[i][0], name: empData[i][1],
-        username: empData[i][2], position: empData[i][5],
-        type: empData[i][6], bank: empData[i][8],
+        empId:       empData[i][0],
+        name:        empData[i][1] || empData[i][4] || empData[i][2],
+        username:    empData[i][2],
+        position:    empData[i][5],
+        type:        empData[i][6],
+        bank:        empData[i][8],   // bank brand
+        bankName:    empData[i][8],   // alias used by the approval screen
+        startDate:   fmtMaybe(empData[i][9]),
+        phone:       empData[i][12] || '',
+        idcard:      empData[i][13] || '',
+        address:     empData[i][14] || '',
+        dob:         fmtMaybe(empData[i][15]),
+        bankAcc:     empData[i][16] || '',
+        bankAccName: empData[i][17] || '',
       });
     }
   }
@@ -720,7 +705,7 @@ function setupSheets() {
   const defs = [
     {
       name:    'Employees',
-      headers: ['id','name','username','password','nickname','position','type','salary','bank','startDate','status','probationEnd'],
+      headers: ['id','name','username','password','nickname','position','type','salary','bank','startDate','status','probationEnd','phone','idcard','address','dob','bankAcc','bankAccName','note','otrate'],
     },
     {
       name:    'Attendance',
@@ -756,8 +741,8 @@ function setupSheets() {
   // Add demo accounts if Employees sheet is empty
   const empSh = ss.getSheetByName('Employees');
   if (empSh.getLastRow() <= 1) {
-    empSh.appendRow(['EMP001','เจ้าของร้าน','menbom888','mlb888','เจ้าของ','Owner','Owner',0,'','2024-01-01','Active','']);
-    empSh.appendRow(['EMP002','นาม สุขใจ','nam_sukjai','emp1234','นาม','เบเกอรี่','Full-time',13000,'KBank 123-4-56789-0','2025-01-01','Active','']);
+    empSh.appendRow(['EMP001','เจ้าของร้าน','menbom888','mlb888','เจ้าของ','Owner','Owner',0,'','2024-01-01','Active','','','','','','','','','']);
+    empSh.appendRow(['EMP002','นาม สุขใจ','nam_sukjai','emp1234','นาม','เบเกอรี่ (Bakery)','Full-time',13000,'กสิกรไทย (KBank)','2025-01-01','Active','','081-234-5678','1-2345-67890-12-3','123 ถ.สุขุมวิท ต.เนินพระ อ.เมือง ระยอง 21000','1998-05-20','123-4-56789-0','นาม สุขใจ','','75']);
   }
 
   SpreadsheetApp.getUi().alert('✅ ตั้งค่า Google Sheets สำเร็จ!\nพร้อมใช้งานแล้วครับ');
@@ -772,4 +757,10 @@ function fmtDate(d) {
 
 function fmtDateTime(d) {
   return Utilities.formatDate(d, 'Asia/Bangkok', 'yyyy-MM-dd HH:mm:ss');
+}
+
+// Format a cell that may hold either a Date object or a plain string (e.g. 'yyyy-MM-dd')
+function fmtMaybe(v) {
+  if (!v) return '';
+  return (v instanceof Date) ? fmtDate(v) : String(v);
 }
