@@ -326,17 +326,17 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
     <div id="rp2" style="display:none;">
       <div class="fsect">ข้อมูลงาน</div>
       <div class="fg"><label class="t-label">ตำแหน่ง *</label>
-        <select class="fi fi-sel"><option>บาร์หน้า (Barista)</option><option selected>เบเกอรี่ (Bakery)</option><option>ครัว (Kitchen)</option><option>แม่บ้าน (Housekeeper)</option></select></div>
+        <select class="fi fi-sel" id="reg-position"><option>บาร์หน้า (Barista)</option><option selected>เบเกอรี่ (Bakery)</option><option>ครัว (Kitchen)</option><option>แม่บ้าน (Housekeeper)</option></select></div>
       <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
-        <select class="fi fi-sel">
-          <option selected>Full-time · ประจำ</option>
-          <option>Part-time · รายชั่วโมง</option>
-          <option>ทดลองงาน (Probation)</option>
+        <select class="fi fi-sel" id="reg-type">
+          <option value="Full-time" selected>Full-time · ประจำ</option>
+          <option value="Part-time">Part-time · รายชั่วโมง</option>
+          <option value="Probation">ทดลองงาน (Probation)</option>
         </select></div>
       <div class="fg"><label class="t-label">วันที่เริ่มทำงาน *</label><input class="fi" type="date" id="reg-startdate"><div class="fhint">Owner จะยืนยันหรือปรับเปลี่ยนวันเริ่มงานหลังอนุมัติบัญชี</div></div>
       <div class="fsect">บัญชีธนาคาร</div>
       <div class="fg"><label class="t-label">ธนาคาร *</label>
-        <select class="fi fi-sel"><option selected>กสิกรไทย (KBank)</option><option>ไทยพาณิชย์ (SCB)</option><option>กรุงไทย (KTB)</option></select></div>
+        <select class="fi fi-sel" id="reg-bank-brand"><option selected>กสิกรไทย (KBank)</option><option>ไทยพาณิชย์ (SCB)</option><option>กรุงไทย (KTB)</option></select></div>
       <div class="fg2">
         <div class="fg"><label class="t-label">เลขบัญชี *</label><input class="fi" id="reg-bank-acc" placeholder="xxx-x-xxxxx-x"></div>
         <div class="fg"><label class="t-label">ชื่อบัญชี *</label><input class="fi" id="reg-bank-name" placeholder="ชื่อ-นามสกุล ตามบัญชี"></div>
@@ -511,13 +511,13 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ตั้งค่าบัญชีพนักงาน</div>
       <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
-        <select class="fi fi-sel">
-          <option selected>Full-time · ประจำ</option>
-          <option>Part-time · รายชั่วโมง</option>
-          <option>ทดลองงาน (Probation)</option>
+        <select class="fi fi-sel" id="apv-type-input">
+          <option value="Full-time" selected>Full-time · ประจำ</option>
+          <option value="Part-time">Part-time · รายชั่วโมง</option>
+          <option value="Probation">ทดลองงาน (Probation)</option>
         </select></div>
       <div class="fg"><label class="t-label">ฐานเงินเดือน / ค่าแรง *</label><input class="fi" type="number" id="apv-salary-input" placeholder="กรอกฐานเงินเดือน"><div class="fhint">Owner Only — พนักงานไม่เห็นข้อมูลนี้จนกว่าจะ Approve</div></div>
-      <div class="fg"><label class="t-label">หมายเหตุ</label><input class="fi" placeholder="เช่น ทดลองงาน 3 เดือน สิ้นสุด 1 ก.ย. 2026"></div>
+      <div class="fg"><label class="t-label">หมายเหตุ</label><input class="fi" id="apv-note-input" placeholder="เช่น ทดลองงาน 3 เดือน สิ้นสุด 1 ก.ย. 2026"></div>
       <div class="btn-row" style="margin-top:4px;">
         <button class="btn btn-danger btn-full" onclick="apvApplicant('reject')">ปฏิเสธ</button>
         <button class="btn btn-success btn-full" onclick="apvApplicant('approve')">อนุมัติบัญชี</button>
@@ -1230,8 +1230,10 @@ function pickIV(btn,lbl){['ivb1','ivb2','ivb3'].forEach(id=>{const b=document.ge
 async function apvApplicant(a,empId){
   if(!empId){toast('ไม่พบข้อมูลพนักงาน');return;}
   const salary=document.getElementById('apv-salary-input')?.value||'';
+  const type=document.getElementById('apv-type-input')?.value||'';
+  const note=document.getElementById('apv-note-input')?.value||'';
   try{
-    const res=await callAPI({action:'approveEmployee',empId,approve:a==='approve'?'true':'false',salary,approvedBy:currentUser?.name||'Owner'});
+    const res=await callAPI({action:'approveEmployee',empId,approve:a==='approve'?'true':'false',salary,type,note,approvedBy:currentUser?.name||'Owner'});
     if(res.ok){
       toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ':'ปฏิเสธบัญชีแล้ว');
       setTimeout(()=>{back();renderApprovalTabs();renderOwnerHome();},1200);
@@ -1361,8 +1363,8 @@ async function renderApprovalTabs(){
       empPend.innerHTML=pending.length?pending.map((e,idx)=>`
         <div class="apv-card" style="border-left-color:var(--amber);">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <div class="lavatar" style="background:var(--surface2);color:var(--ink3);">${(e.name||'?').charAt(0)}</div>
-            <div class="lcol"><div class="ltitle">${e.name||e.empId}</div><div class="lsub">${e.position||''} · ${e.type||''} · สมัคร ${e.submittedAt||''}</div></div>
+            <div class="lavatar" style="background:var(--surface2);color:var(--ink3);">${(empName(e.empId,e.name)||'?').charAt(0)}</div>
+            <div class="lcol"><div class="ltitle">${empName(e.empId,e.name)}</div><div class="lsub">${e.position||''} · ${e.type||''} · สมัคร ${e.submittedAt||''}</div></div>
             <span class="chip chip-amber">รอตรวจสอบ</span>
           </div>
           <div class="btn-row">
@@ -1553,21 +1555,29 @@ async function submitRegistration(){
   const fname=(document.getElementById('reg-fname')?.value||'').trim();
   const lname=(document.getElementById('reg-lname')?.value||'').trim();
   const user=(document.getElementById('reg-user')?.value||'').trim();
+  const pass=(document.getElementById('reg-pass')?.value||'');
   const bank=(document.getElementById('reg-bank-acc')?.value||'').trim();
   const bankName=(document.getElementById('reg-bank-name')?.value||'').trim();
+  const bankBrand=(document.getElementById('reg-bank-brand')?.value||'').trim();
   const startDate=(document.getElementById('reg-startdate')?.value||'').trim();
+  const dob=(document.getElementById('reg-dob')?.value||'').trim();
   const phone=(document.getElementById('reg-phone')?.value||'').trim();
   const idcard=(document.getElementById('reg-idcard')?.value||'').trim();
   const addr=(document.getElementById('reg-addr')?.value||'').trim();
-  const pos=document.querySelector('#rp2 select')?.value||'';
+  const pos=(document.getElementById('reg-position')?.value||'').trim();
+  const type=(document.getElementById('reg-type')?.value||'Full-time').trim();
   // Step 2 validation
   regClearBorder('reg-startdate','reg-bank-acc','reg-bank-name');
   if(!startDate){regErr('reg-startdate','กรุณาเลือกวันที่เริ่มทำงาน');return;}
   if(!bank){regErr('reg-bank-acc','กรุณากรอกเลขบัญชีธนาคาร');return;}
   if(!bankName){regErr('reg-bank-name','กรุณากรอกชื่อบัญชีธนาคาร');return;}
   try{
-    const res=await callAPI({action:'registerEmployee',name:fname+' '+lname,username:user,
-      phone,idcard,address:addr,position:pos,startDate,bankAcc:bank,bankAccName:bankName});
+    const res=await callAPI({action:'registerEmployee',data:JSON.stringify({
+      name:fname+' '+lname, username:user, password:pass,
+      phone, idcard, dob, address:addr,
+      position:pos, type, startDate,
+      bank:bankBrand, bankAcc:bank, bankAccName:bankName
+    })});
     if(!res.ok){toast('เกิดข้อผิดพลาด: '+(res.error||'ลองใหม่อีกครั้ง'));return;}
   }catch(e){}
   // Populate reg-done screen
@@ -1594,6 +1604,11 @@ function openApplicantDetail(reg){
   setEl('apv-detail-startdate',reg.startDate);
   setEl('apv-detail-bookbank-file','Bookbank_'+(reg.username||reg.empId)+'.jpg');
   setEl('apv-detail-bookbank-sub',(reg.bankName||'ธนาคาร')+' · เลขบัญชี '+(reg.bankAcc||'—')+' · '+(reg.bankAccName||reg.name||'—'));
+  // Pre-fill the account-setup form with the applicant's submitted values
+  const typeSel=document.getElementById('apv-type-input');
+  if(typeSel&&reg.type){for(let i=0;i<typeSel.options.length;i++){if(typeSel.options[i].value===reg.type){typeSel.selectedIndex=i;break;}}}
+  const salIn=document.getElementById('apv-salary-input'); if(salIn)salIn.value=reg.salary||'';
+  const noteIn=document.getElementById('apv-note-input'); if(noteIn)noteIn.value='';
   // wire approve/reject to correct empId
   document.querySelector('#s-owner-apv-detail .btn-danger').onclick=()=>apvApplicant('reject',reg.empId);
   document.querySelector('#s-owner-apv-detail .btn-success').onclick=()=>apvApplicant('approve',reg.empId);
