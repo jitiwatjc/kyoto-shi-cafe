@@ -1571,6 +1571,8 @@ async function submitRegistration(){
   if(!startDate){regErr('reg-startdate','กรุณาเลือกวันที่เริ่มทำงาน');return;}
   if(!bank){regErr('reg-bank-acc','กรุณากรอกเลขบัญชีธนาคาร');return;}
   if(!bankName){regErr('reg-bank-name','กรุณากรอกชื่อบัญชีธนาคาร');return;}
+  const _regBtn=document.querySelector('#rp2 .btn-success');
+  if(_regBtn){_regBtn.disabled=true;_regBtn.textContent='กำลังสร้างบัญชี...';}
   try{
     const res=await callAPI({action:'registerEmployee',data:JSON.stringify({
       name:fname+' '+lname, username:user, password:pass,
@@ -1578,8 +1580,8 @@ async function submitRegistration(){
       position:pos, type, startDate,
       bank:bankBrand, bankAcc:bank, bankAccName:bankName
     })});
-    if(!res.ok){toast('เกิดข้อผิดพลาด: '+(res.error||'ลองใหม่อีกครั้ง'));return;}
-  }catch(e){}
+    if(!res.ok){toast('เกิดข้อผิดพลาด: '+(res.error||'ลองใหม่อีกครั้ง'));if(_regBtn){_regBtn.disabled=false;_regBtn.textContent='สร้างบัญชี';}return;}
+  }catch(e){if(_regBtn){_regBtn.disabled=false;_regBtn.textContent='สร้างบัญชี';}return;}
   // Populate reg-done screen
   const now=new Date();
   const thDate=now.getDate()+' '+THAI_MONTHS_FULL[now.getMonth()]+' '+(now.getFullYear()+543);
