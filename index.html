@@ -1135,7 +1135,6 @@ let currentUser=null; // { ok, role, empId, name, nickname, position }
 
 /* ── LOGIN ── */
 let role=null;
-const OWNER_CREDS={user:'menbom888',pass:'mlb888'};
 
 function pickRole(r){
   role=r;
@@ -1152,19 +1151,13 @@ async function doLogin(){
   const loginBtns=document.querySelectorAll('#s-login .btn-dark');
   loginBtns.forEach(b=>{b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';});
   try{
-    if(role==='owner'){
-      if(u===OWNER_CREDS.user&&p===OWNER_CREDS.pass){
-        currentUser={ok:true,role:'owner',empId:'EMP001',name:'เจ้าของร้าน',nickname:'เจ้าของ'};
-      } else {
-        errEl.style.display='block';
-        return;
-      }
-    } else {
-      const res=await callAPI({action:'login',user:u,pass:p});
-      if(!res.ok){errEl.style.display='block';return;}
-      currentUser=res;
-      role=res.role;
-    }
+    // Always authenticate on the server — no credentials are hardcoded in this page
+    const res=await callAPI({action:'login',user:u,pass:p});
+    if(!res.ok){errEl.style.display='block';return;}
+    // The account's real role is decided server-side and must match the selected tab
+    if(res.role!==role){errEl.style.display='block';return;}
+    currentUser=res;
+    role=res.role;
     errEl.style.display='none';
     hist=[];
     go(role==='owner'?'s-owner-home':'s-emp-home');
