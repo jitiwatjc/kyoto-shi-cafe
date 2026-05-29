@@ -341,6 +341,19 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
         <div class="fg"><label class="t-label">เลขบัญชี *</label><input class="fi" id="reg-bank-acc" placeholder="xxx-x-xxxxx-x"></div>
         <div class="fg"><label class="t-label">ชื่อบัญชี *</label><input class="fi" id="reg-bank-name" placeholder="ชื่อ-นามสกุล ตามบัญชี"></div>
       </div>
+      <div class="fsect">ความยินยอมข้อมูลส่วนบุคคล (PDPA)</div>
+      <div class="card" style="background:var(--surface2);font-size:12px;line-height:1.7;max-height:170px;overflow-y:auto;">
+        <strong>นโยบายความเป็นส่วนตัว — Kyoto Shi Café ระยอง</strong><br>
+        <b>ข้อมูลที่เก็บ:</b> ชื่อ-สกุล, เลขบัตรประชาชน, วันเกิด, ที่อยู่, เบอร์โทร, บัญชีธนาคาร และข้อมูลการทำงาน (เวลา/เงินเดือน/วันลา)<br>
+        <b>วัตถุประสงค์:</b> บริหารงานบุคคล จ่ายค่าจ้าง ลงเวลา สวัสดิการ และปฏิบัติตามกฎหมายแรงงาน/ภาษี/ประกันสังคม<br>
+        <b>การเปิดเผย:</b> เฉพาะเท่าที่จำเป็น เช่น ธนาคาร (จ่ายเงินเดือน) และหน่วยงานรัฐ (สรรพากร/ประกันสังคม)<br>
+        <b>ระยะเวลาเก็บ:</b> ตลอดการจ้างงานและตามระยะเวลาที่กฎหมายกำหนด จากนั้นจะลบหรือทำลายอย่างปลอดภัย<br>
+        <b>สิทธิของคุณ:</b> ขอเข้าถึง แก้ไข ลบ คัดค้าน หรือถอนความยินยอมได้ที่ <b>[ใส่อีเมล/เบอร์ติดต่อร้าน]</b>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;margin:10px 0 6px;cursor:pointer;">
+        <input type="checkbox" id="reg-pdpa" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
+        <span>ข้าพเจ้าได้อ่านและ<b>ยินยอม</b>ให้ Kyoto Shi Café เก็บ ใช้ และเปิดเผยข้อมูลส่วนบุคคลข้างต้นตามวัตถุประสงค์ที่ระบุ ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</span>
+      </label>
       <div class="btn-row"><button class="btn btn-ghost btn-full" onclick="rStep(1)">ย้อนกลับ</button><button class="btn btn-success btn-full" onclick="submitRegistration()">สร้างบัญชี</button></div>
     </div>
   </div>
@@ -1564,6 +1577,8 @@ async function submitRegistration(){
   if(!startDate){regErr('reg-startdate','กรุณาเลือกวันที่เริ่มทำงาน');return;}
   if(!bank){regErr('reg-bank-acc','กรุณากรอกเลขบัญชีธนาคาร');return;}
   if(!bankName){regErr('reg-bank-name','กรุณากรอกชื่อบัญชีธนาคาร');return;}
+  const pdpa=document.getElementById('reg-pdpa');
+  if(pdpa&&!pdpa.checked){toast('⚠ กรุณายินยอมนโยบายความเป็นส่วนตัว (PDPA) ก่อนสร้างบัญชี');pdpa.focus();return;}
   const _regBtn=document.querySelector('#rp2 .btn-success');
   if(_regBtn){_regBtn.disabled=true;_regBtn.textContent='กำลังสร้างบัญชี...';}
   try{
@@ -1571,7 +1586,8 @@ async function submitRegistration(){
       name:fname+' '+lname, username:user, password:pass,
       phone, idcard, dob, address:addr,
       position:pos, type, startDate,
-      bank:bankBrand, bankAcc:bank, bankAccName:bankName
+      bank:bankBrand, bankAcc:bank, bankAccName:bankName,
+      pdpaConsent:'v1.0'
     })});
     if(!res.ok){toast('เกิดข้อผิดพลาด: '+(res.error||'ลองใหม่อีกครั้ง'));if(_regBtn){_regBtn.disabled=false;_regBtn.textContent='สร้างบัญชี';}return;}
   }catch(e){if(_regBtn){_regBtn.disabled=false;_regBtn.textContent='สร้างบัญชี';}return;}
