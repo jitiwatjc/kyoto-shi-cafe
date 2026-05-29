@@ -10,35 +10,35 @@
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  /* Brand — Navy / Blue / Black / White */
-  --navy:     #1A3560;
-  --navy-dk:  #0D1E3C;
-  --navy-lt:  #C8D8F0;
-  --blue:     #2563EB;
-  --blue-lt:  #DBEAFE;
-  --ink:      #0D1117;
-  --ink2:     #1E2D40;
-  --ink3:     #6B7FA0;
-  --bg:       #F0F4FC;
+  /* Brand — Sumi ink & Vermilion (Japanese minimal) */
+  --navy:     #C8462E;   /* primary accent = vermilion (แดงชาด) */
+  --navy-dk:  #A6371F;   /* deep vermilion (hover) */
+  --navy-lt:  #F4DAD2;   /* vermilion tint */
+  --blue:     #C8462E;   /* alias -> accent */
+  --blue-lt:  #F4DAD2;
+  --ink:      #1C1C1C;   /* sumi black (text) */
+  --ink2:     #2B2B2B;   /* charcoal (dark surfaces) */
+  --ink3:     #8A847C;   /* warm muted gray */
+  --bg:       #FBFAF7;   /* washi paper */
   --surface:  #FFFFFF;
-  --surface2: #E8EEF8;
-  --border:   #C0CDE8;
-  --green:    #1F6B42;
-  --green-bg: #C6E8D4;
-  --red:      #A82020;
-  --red-bg:   #F5CACA;
-  --amber:    #B06A00;
-  --amber-bg: #FADED4;
-  --info:     #1A4A7A;
-  --info-bg:  #C8DCF0;
-  --tan:      #2563EB;
-  --tan-dk:   #1A3560;
-  --tan-lt:   #C8D8F0;
-  --r:   16px;
-  --rsm: 10px;
+  --surface2: #F2EEE7;   /* warm light surface */
+  --border:   #E5DFD5;   /* warm border */
+  --green:    #4F7A52;   /* matcha / success */
+  --green-bg: #DDE8DC;
+  --red:      #B3261E;   /* danger crimson */
+  --red-bg:   #F3D6D2;
+  --amber:    #B07A28;   /* ochre */
+  --amber-bg: #F3E6CD;
+  --info:     #4A6670;   /* slate */
+  --info-bg:  #DEE7EA;
+  --tan:      #C8462E;
+  --tan-dk:   #A6371F;
+  --tan-lt:   #F4DAD2;
+  --r:   14px;
+  --rsm: 9px;
   --rxs: 6px;
-  --sh:    0 1px 3px rgba(13,17,23,.07), 0 4px 14px rgba(13,17,23,.07);
-  --sh-lg: 0 8px 28px rgba(13,17,23,.14);
+  --sh:    0 1px 2px rgba(28,24,20,.04), 0 2px 10px rgba(28,24,20,.05);
+  --sh-lg: 0 10px 30px rgba(28,24,20,.12);
 }
 
 body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.5;}
@@ -136,9 +136,9 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
 .step-line{flex:1;height:1.5px;background:var(--border);margin-top:14px;transition:background .2s;}
 .step-line.done{background:var(--ink);}
 
-.clock-hero{background:var(--navy-dk);border-radius:var(--r);padding:28px 20px;text-align:center;color:#fff;margin-bottom:12px;position:relative;overflow:hidden;}
-.clock-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;border-radius:50%;background:rgba(37,99,235,.15);}
-.clock-hero::after{content:'';position:absolute;bottom:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:rgba(26,53,96,.25);}
+.clock-hero{background:var(--ink2);border-radius:var(--r);padding:28px 20px;text-align:center;color:#fff;margin-bottom:12px;position:relative;overflow:hidden;}
+.clock-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;border-radius:50%;background:rgba(200,70,46,.20);}
+.clock-hero::after{content:'';position:absolute;bottom:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:rgba(200,70,46,.10);}
 .clock-time{font-size:54px;font-weight:300;letter-spacing:-.02em;position:relative;z-index:1;}
 .clock-sub{font-size:13px;opacity:.6;margin-top:4px;position:relative;z-index:1;}
 .clock-gps{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;opacity:.75;position:relative;z-index:1;}
@@ -200,8 +200,8 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
 .modal-sheet{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;padding:22px;max-height:80vh;overflow-y:auto;}
 .modal-handle{width:32px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
 
-.owner-hero{background:var(--navy-dk);border-radius:var(--r);padding:22px 20px;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
-.owner-hero::after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(37,99,235,.15);}
+.owner-hero{background:var(--ink2);border-radius:var(--r);padding:22px 20px;color:#fff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
+.owner-hero::after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(200,70,46,.18);}
 
 .scroll-x{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
 .scroll-x::-webkit-scrollbar{display:none;}
@@ -248,19 +248,19 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div style="flex:1;overflow-y:auto;">
     <div style="background:var(--navy-dk);padding:52px 24px 36px;text-align:center;">
       <svg viewBox="0 0 200 200" width="110" height="110" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 16px;display:block;">
-        <polyline points="20,95 100,28 180,95" fill="none" stroke="#2563EB" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
-        <polyline points="35,87 35,170 165,170 165,87" fill="none" stroke="#2563EB" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
-        <rect x="68" y="60" width="70" height="90" rx="22" ry="22" fill="#2563EB" opacity=".12" stroke="#2563EB" stroke-width="4"/>
-        <line x1="103" y1="65" x2="103" y2="145" stroke="#2563EB" stroke-width="2" opacity=".6"/>
-        <line x1="72" y1="105" x2="134" y2="105" stroke="#2563EB" stroke-width="2" opacity=".6"/>
-        <circle cx="87" cy="87" r="9" fill="none" stroke="#C8D8F0" stroke-width="2.5"/>
-        <circle cx="87" cy="87" r="3.5" fill="#C8D8F0" opacity=".5"/>
-        <path d="M113,80 h10 v12 q0,5-5,5 h0 q-5,0-5-5z" fill="none" stroke="#C8D8F0" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M117,78 q2-3,4,0" fill="none" stroke="#C8D8F0" stroke-width="2"/>
-        <path d="M78,120 h18 q0,8-9,8 q-9,0-9-8z" fill="none" stroke="#C8D8F0" stroke-width="2.5"/>
-        <line x1="78" y1="120" x2="96" y2="120" stroke="#C8D8F0" stroke-width="2.5"/>
-        <path d="M114,127 l5-10 l5,10z" fill="none" stroke="#C8D8F0" stroke-width="2.5" stroke-linejoin="round"/>
-        <ellipse cx="119" cy="118" rx="6" ry="5" fill="none" stroke="#C8D8F0" stroke-width="2.5"/>
+        <polyline points="20,95 100,28 180,95" fill="none" stroke="#C8462E" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="35,87 35,170 165,170 165,87" fill="none" stroke="#C8462E" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <rect x="68" y="60" width="70" height="90" rx="22" ry="22" fill="#C8462E" opacity=".12" stroke="#C8462E" stroke-width="4"/>
+        <line x1="103" y1="65" x2="103" y2="145" stroke="#C8462E" stroke-width="2" opacity=".6"/>
+        <line x1="72" y1="105" x2="134" y2="105" stroke="#C8462E" stroke-width="2" opacity=".6"/>
+        <circle cx="87" cy="87" r="9" fill="none" stroke="#E2A99C" stroke-width="2.5"/>
+        <circle cx="87" cy="87" r="3.5" fill="#E2A99C" opacity=".5"/>
+        <path d="M113,80 h10 v12 q0,5-5,5 h0 q-5,0-5-5z" fill="none" stroke="#E2A99C" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M117,78 q2-3,4,0" fill="none" stroke="#E2A99C" stroke-width="2"/>
+        <path d="M78,120 h18 q0,8-9,8 q-9,0-9-8z" fill="none" stroke="#E2A99C" stroke-width="2.5"/>
+        <line x1="78" y1="120" x2="96" y2="120" stroke="#E2A99C" stroke-width="2.5"/>
+        <path d="M114,127 l5-10 l5,10z" fill="none" stroke="#E2A99C" stroke-width="2.5" stroke-linejoin="round"/>
+        <ellipse cx="119" cy="118" rx="6" ry="5" fill="none" stroke="#E2A99C" stroke-width="2.5"/>
       </svg>
       <div style="font-size:13px;font-style:italic;color:rgba(200,216,240,.7);font-weight:400;letter-spacing:.08em;margin-bottom:4px;">Rayong</div>
       <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:.04em;">Kyoto Shi Cafe</div>
@@ -383,10 +383,10 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px;flex:1;">
       <svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-        <rect width="40" height="40" rx="8" fill="#0D1E3C"/>
-        <polyline points="8,22 20,10 32,22" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-        <polyline points="12,20 12,32 28,32 28,20" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round"/>
-        <rect x="15" y="15" width="12" height="16" rx="4" fill="#2563EB" opacity=".2" stroke="#2563EB" stroke-width="2"/>
+        <rect width="40" height="40" rx="8" fill="#2B2B2B"/>
+        <polyline points="8,22 20,10 32,22" fill="none" stroke="#C8462E" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="12,20 12,32 28,32 28,20" fill="none" stroke="#C8462E" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="15" y="15" width="12" height="16" rx="4" fill="#C8462E" opacity=".2" stroke="#C8462E" stroke-width="2"/>
       </svg>
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em;">Kyoto Shi Cafe</div>
@@ -559,7 +559,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์พนักงาน</div><button class="topbar-action" onclick="go('s-emp-profile-edit')">แก้ไข</button></div>
   <div class="page">
     <div style="text-align:center;padding:20px 0 16px;">
-      <div class="lavatar" id="view-avatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">—</div>
+      <div class="lavatar" id="view-avatar" style="width:72px;height:72px;font-size:26px;background:#2B2B2B;margin:0 auto 12px;">—</div>
       <div style="font-size:20px;font-weight:700;" id="view-name">—</div>
       <div class="t-cap" style="margin-top:4px;" id="view-pos">—</div>
       <span class="chip chip-green" id="view-status-chip" style="margin-top:8px;">—</span>
@@ -589,10 +589,10 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px;flex:1;">
       <svg viewBox="0 0 40 40" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-        <rect width="40" height="40" rx="8" fill="#0D1E3C"/>
-        <polyline points="8,22 20,10 32,22" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-        <polyline points="12,20 12,32 28,32 28,20" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round"/>
-        <rect x="15" y="15" width="12" height="16" rx="4" fill="#2563EB" opacity=".2" stroke="#2563EB" stroke-width="2"/>
+        <rect width="40" height="40" rx="8" fill="#2B2B2B"/>
+        <polyline points="8,22 20,10 32,22" fill="none" stroke="#C8462E" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="12,20 12,32 28,32 28,20" fill="none" stroke="#C8462E" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="15" y="15" width="12" height="16" rx="4" fill="#C8462E" opacity=".2" stroke="#C8462E" stroke-width="2"/>
       </svg>
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--ink);">Kyoto Shi Cafe</div>
@@ -636,7 +636,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์ของฉัน</div></div>
   <div class="page">
     <div style="text-align:center;padding:20px 0 16px;">
-      <div class="lavatar" id="profile-avatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 12px;">—</div>
+      <div class="lavatar" id="profile-avatar" style="width:72px;height:72px;font-size:26px;background:#2B2B2B;margin:0 auto 12px;">—</div>
       <div style="font-size:20px;font-weight:700;" id="profile-name">—</div>
       <div class="t-cap" style="margin-top:4px;" id="profile-pos">—</div>
       <span class="chip chip-green" style="margin-top:8px;">Active</span>
@@ -979,7 +979,7 @@ body{font-family:'Inter','Noto Sans Thai',system-ui,sans-serif;background:var(--
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">แก้ไขโปรไฟล์พนักงาน</div><button class="topbar-action" style="background:var(--green);color:#fff;border:none;" onclick="saveProfile()">บันทึก</button></div>
   <div class="page">
     <div style="text-align:center;padding:16px 0 20px;">
-      <div class="lavatar" id="edit-avatar" style="width:72px;height:72px;font-size:26px;background:#1A3560;margin:0 auto 10px;">—</div>
+      <div class="lavatar" id="edit-avatar" style="width:72px;height:72px;font-size:26px;background:#2B2B2B;margin:0 auto 10px;">—</div>
       <div style="font-size:12px;color:var(--ink3);">แตะเพื่อเปลี่ยนรูป (Phase II)</div>
     </div>
     <div class="card">
@@ -1384,7 +1384,7 @@ async function renderApprovalTabs(){
     if(empDone){
       empDone.innerHTML=done.length?`<div class="card" style="padding:0;"><div style="padding:14px 18px;">
         ${done.map(e=>`<div class="lrow" style="cursor:default;">
-          <div class="lavatar" style="background:#1A3560;">${(e.name||'?').charAt(0)}</div>
+          <div class="lavatar" style="background:#2B2B2B;">${(e.name||'?').charAt(0)}</div>
           <div class="lcol"><div class="ltitle">${e.name||e.empId}</div><div class="lsub">${e.position||''} · ${e.approvedAt||''}</div></div>
           <span class="chip ${e.status==='active'?'chip-green':'chip-red'}">${e.status==='active'?'รับเข้า':'ไม่รับ'}</span>
         </div>`).join('')}
@@ -2143,7 +2143,7 @@ async function submitLeaveRequest(type,startDate,endDate,reason){
 
 /* ── EMPLOYEE LIST (OWNER) ── */
 let _empListCache=[];
-const EMP_AVATAR_COLORS=['#1A3560','#1A4A8A','#0D2A5A','#1A3A6A','#2563EB','#2A1A8A','#1A5A8A','#0D4060','#1A6A3A','#6A1A3A'];
+const EMP_AVATAR_COLORS=['#2B2B2B','#C8462E','#4F7A52','#B07A28','#7A5C3E','#A6371F','#5C6E58','#8A4A3A','#6B4226','#3A3A3A'];
 
 async function renderEmpList(){
   const container=document.getElementById('emp-list-container');
