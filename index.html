@@ -1399,7 +1399,7 @@ async function renderApprovalTabs(){
           <div class="apv-sub">ขออนุมัติตาราง ${s.month}/${s.year} · ${total} วัน</div>
           <div class="div"></div>
           <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
-            ${dateEntries.map(([dt,v])=>`<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:var(--navy);font-weight:600;">${(v&&v.start)||'—'} น.</span></div>`).join('')}
+            ${dateEntries.map(([dt,v])=>{const s=(v&&v.start)||'',e=(v&&v.end)||'';const range=(s&&e)?`${s} – ${e}`:(s||'—');return `<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:var(--navy);font-weight:600;">${range} น.</span></div>`;}).join('')}
             ${total>5?`<div class="irow" style="padding:4px 0;border-bottom:none;"><span class="ilabel">รวม</span><span class="ival">${total} วัน</span></div>`:''}
           </div>
           <div class="btn-row">
