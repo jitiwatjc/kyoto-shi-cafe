@@ -913,37 +913,10 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       <button class="btn btn-navy btn-full" onclick="submitOTRequest()">ส่งคำขอ OT</button>
     </div>
 
-    <!-- OT History -->
-    <div class="t-sect">ประวัติ OT ปี 2026</div>
-    <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-      <div class="lrow" style="cursor:default;">
-        <div class="lcol">
-          <div class="ltitle">19 พ.ค. 2026</div>
-          <div class="lsub">17:30 – 20:00 น. · 2.5 ชม.</div>
-        </div>
-        <span class="chip chip-amber">รออนุมัติ</span>
-      </div>
-      <div class="lrow" style="cursor:default;">
-        <div class="lcol">
-          <div class="ltitle">10 พ.ค. 2026</div>
-          <div class="lsub">17:00 – 20:00 น. · 3 ชม.</div>
-        </div>
-        <span class="chip chip-green">อนุมัติ</span>
-      </div>
-      <div class="lrow" style="cursor:default;">
-        <div class="lcol">
-          <div class="ltitle">28 เม.ย. 2026</div>
-          <div class="lsub">17:30 – 19:30 น. · 2 ชม.</div>
-        </div>
-        <span class="chip chip-green">อนุมัติ</span>
-      </div>
-      <div class="lrow" style="cursor:default;">
-        <div class="lcol">
-          <div class="ltitle">15 เม.ย. 2026</div>
-          <div class="lsub">17:00 – 18:00 น. · 1 ชม.</div>
-        </div>
-        <span class="chip chip-red">ไม่อนุมัติ</span>
-      </div>
+    <!-- OT History (dynamic — fetched from API) -->
+    <div class="t-sect">ประวัติ OT ปี <span id="ot-history-year">2026</span></div>
+    <div class="card" style="padding:0;"><div style="padding:14px 18px;" id="ot-history-list">
+      <div class="t-cap" style="text-align:center;padding:8px 0;">กำลังโหลด...</div>
     </div></div>
   </div>
 </div>
@@ -1127,7 +1100,7 @@ function go(id){
   document.getElementById(id).classList.add('on');window.scrollTo(0,0);
   if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
   if(id==='s-emp-sched'){renderSchedDeadlineBanner();}
-  if(id==='s-emp-ot'){renderOTRate();renderOTScreen();}
+  if(id==='s-emp-ot'){renderOTRate();renderOTScreen();renderOTHistory();}
   if(id==='s-emp-leave'){renderLeaveScreen();}
   if(id==='s-emp-home'){renderEmpHome();}
   if(id==='s-emp-profile-self'){renderEmpProfile();}
@@ -2074,6 +2047,38 @@ function calcOTHours(){
   if(payEl)payEl.textContent=salary&&hrs>0?'≈ '+parseInt(otPay).toLocaleString()+' บาท':'';
 }
 
+/* ── OT HISTORY ── */
+async function renderOTHistory(){
+  if(!currentUser)return;
+  const el=document.getElementById('ot-history-list');
+  if(!el)return;
+  const yr=new Date().getFullYear();
+  const yrEl=document.getElementById('ot-history-year'); if(yrEl)yrEl.textContent=yr;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:8px 0;">กำลังโหลด...</div>';
+  try{
+    const res=await callAPI({action:'getOT',empId:currentUser.empId});
+    if(!res.ok){el.innerHTML='<div class="t-cap" style="text-align:center;padding:10px 0;color:var(--red);">โหลดไม่สำเร็จ</div>';return;}
+    const rows=(res.data||[]).filter(r=>{const y=parseInt((r.date||'').slice(0,4),10);return y===yr;});
+    if(rows.length===0){el.innerHTML='<div class="t-cap" style="text-align:center;padding:14px 0;">ยังไม่มีประวัติ OT</div>';return;}
+    el.innerHTML=rows.map(r=>{
+      const d=new Date(r.date);
+      const lbl=!isNaN(d)?d.getDate()+' '+THAI_MONTHS_SHORT[d.getMonth()]+' '+(d.getFullYear()+543):r.date;
+      const s=String(r.status||'').toLowerCase();
+      const chipClass=s==='approved'?'chip-green':s==='rejected'?'chip-red':'chip-amber';
+      const chipText=s==='approved'?'อนุมัติ':s==='rejected'?'ไม่อนุมัติ':'รออนุมัติ';
+      const timeStr=r.startTime&&r.endTime?(r.startTime+' – '+r.endTime+' น. · '):'';
+      const hrs=r.requestedHours||0;
+      return `<div class="lrow" style="cursor:default;">
+        <div class="lcol">
+          <div class="ltitle">${lbl}</div>
+          <div class="lsub">${timeStr}${hrs} ชม.</div>
+        </div>
+        <span class="chip ${chipClass}">${chipText}</span>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="t-cap" style="text-align:center;padding:10px 0;color:var(--red);">ไม่สามารถเชื่อมต่อได้</div>';}
+}
+
 async function submitOTRequest(){
   const dateSel=document.getElementById('ot-date-input');
   const startSel=document.getElementById('ot-start-sel');
@@ -2096,8 +2101,8 @@ async function submitOTRequest(){
     const endSel=document.getElementById('ot-end-sel');
     const [eh,em]=(endSel?.value||'18:00').split(':').map(Number);
     const hrs=((eh*60+em)-(sh*60+sm))/60;
-    const res=await callAPI({action:'submitOT',empId:currentUser.empId,date:otDate,requestedHours:hrs,reason:reasonEl.value});
-    if(res.ok)toast('ส่งคำขอ OT สำเร็จ ✓ รอ Owner อนุมัติ');
+    const res=await callAPI({action:'submitOT',empId:currentUser.empId,date:otDate,requestedHours:hrs,reason:reasonEl.value,startTime:startSel.value,endTime:endSel?.value||''});
+    if(res.ok){toast('ส่งคำขอ OT สำเร็จ ✓ รอ Owner อนุมัติ');renderOTHistory();}
     else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
 }
