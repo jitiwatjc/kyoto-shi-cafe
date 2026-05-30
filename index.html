@@ -1236,7 +1236,7 @@ async function apvApplicant(a,empId){
     const res=await callAPI({action:'approveEmployee',empId,approve:a==='approve'?'true':'false',salary,type,note,approvedBy:currentUser?.name||'Owner'});
     if(res.ok){
       toast(a==='approve'?'✓ อนุมัติบัญชีสำเร็จ':'ปฏิเสธบัญชีแล้ว');
-      setTimeout(()=>{back();renderApprovalTabs();renderOwnerHome();},1200);
+      setTimeout(()=>{const cur=document.querySelector('.sc.on')?.id;if(cur==='s-owner-apv-detail')back();renderApprovalTabs();renderOwnerHome();},1200);
     } else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
 }
