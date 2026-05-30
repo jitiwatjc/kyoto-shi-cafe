@@ -694,7 +694,6 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 
     <div id="sc-cur">
       <div id="sched-deadline-banner"></div>
-      <div class="alert alert-info" style="font-size:12px;">📅 คลิกวันที่ต้องการทำงาน · กะ 1: 08:30 น. | กะ 2: 10:00 น. · ทำงาน 8 ชม. + พัก 1 ชม.</div>
 
       <!-- Filter เดือน / ปี -->
       <div class="cal-filter">
@@ -2039,33 +2038,10 @@ async function doClockInWithGPS(){
   }
 }
 
-/* ── SCHEDULE DEADLINE BANNER (15-day periods) ── */
+/* ── SCHEDULE DEADLINE BANNER — disabled per request (banner hidden) ── */
 function renderSchedDeadlineBanner(){
   const el=document.getElementById('sched-deadline-banner');
-  if(!el)return;
-  const now=new Date();
-  const day=now.getDate();
-  // Period 1: 1–15, Period 2: 16–end of month
-  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  let periodEnd, periodLabel;
-  if(day<=15){
-    periodEnd=new Date(now.getFullYear(),now.getMonth(),15);
-    periodLabel='รอบ 1 (1–15 '+THAI_MONTHS_SHORT[now.getMonth()]+')';
-  } else {
-    periodEnd=new Date(now.getFullYear(),now.getMonth(),daysInMonth);
-    periodLabel='รอบ 2 (16–'+daysInMonth+' '+THAI_MONTHS_SHORT[now.getMonth()]+')';
-  }
-  // Adjust if deadline falls on weekend/holiday
-  while(periodEnd.getDay()===0||periodEnd.getDay()===6||THAI_HOLIDAYS[periodEnd.toISOString().slice(0,10)]){
-    periodEnd.setDate(periodEnd.getDate()-1);
-  }
-  const daysLeft=Math.ceil((periodEnd-now)/(86400000));
-  const ddlStr=periodEnd.getDate()+' '+THAI_MONTHS_SHORT[periodEnd.getMonth()]+' '+periodEnd.getFullYear();
-  const banner=`<div class="alert ${daysLeft<=2?'alert-danger':daysLeft<=5?'alert-warn':'alert-info'}" style="font-size:12px;margin-bottom:12px;">
-    📅 <strong>${periodLabel}</strong> — Deadline ส่งตาราง: <strong>${ddlStr}</strong>
-    ${daysLeft<=5?'<br>⚠ เหลืออีก <strong>'+daysLeft+' วัน</strong> — กรุณาส่งตารางโดยด่วน':''}
-  </div>`;
-  el.innerHTML=banner;
+  if(el) el.innerHTML='';
 }
 
 /* ── OT RATE DISPLAY ── */
