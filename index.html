@@ -2561,27 +2561,35 @@ function renderWorkDayList(){
       badge=`<span style="font-size:10px;font-weight:600;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:10px;margin-left:6px;">🎌 ${holidayName}</span>`;
     else if(isWknd)
       badge=`<span style="font-size:10px;font-weight:600;color:var(--amber);background:var(--amber-bg);padding:2px 8px;border-radius:10px;margin-left:6px;">📅 วันหยุดสัปดาห์</span>`;
-    // Special day checkbox (pre-checked, employee can uncheck)
-    let warn='';
-    if(holidayName||isWknd){
-      const cbColor=holidayName?'var(--red)':'var(--amber)';
-      const cbBg=holidayName?'var(--red-bg)':'var(--amber-bg)';
-      const cbLabel=holidayName
-        ?`🎌 ${holidayName} — ยืนยันทำงานในวันหยุดนักขัตฤกษ์`
-        :`📅 วันหยุดสัปดาห์ — ยืนยันทำงานในวันหยุด`;
-      const cbNote=holidayName
-        ?'OT จะนับตามเวลาจริง แต่ไม่เกินที่วางแผนไว้'
-        :'ต้องได้รับการอนุมัติจาก Owner';
-      warn=`<label style="width:100%;display:flex;align-items:flex-start;gap:8px;background:${cbBg};border-radius:6px;padding:8px 10px;margin-top:2px;cursor:pointer;">
-        <input type="checkbox" checked style="margin-top:2px;flex-shrink:0;accent-color:${cbColor};" onchange="calSelected['${key}'].specialDay=this.checked;">
+    // Special-day checkbox — shown for EVERY selected date.
+    // Pre-checked for known holidays/weekends; unchecked-but-available for regular weekdays
+    // so the employee can flag a custom special day (religious day, company day-off, etc.).
+    let cbColor, cbBg, cbLabel, cbNote, defaultChecked;
+    if(holidayName){
+      cbColor='var(--red)'; cbBg='var(--red-bg)';
+      cbLabel=`🎌 ${holidayName} — ยืนยันทำงานในวันหยุดนักขัตฤกษ์`;
+      cbNote='OT จะนับตามเวลาจริง แต่ไม่เกินที่วางแผนไว้';
+      defaultChecked=true;
+    }else if(isWknd){
+      cbColor='var(--amber)'; cbBg='var(--amber-bg)';
+      cbLabel='📅 วันหยุดสัปดาห์ — ยืนยันทำงานในวันหยุด';
+      cbNote='ต้องได้รับการอนุมัติจาก Owner';
+      defaultChecked=true;
+    }else{
+      cbColor='var(--ink3)'; cbBg='var(--surface2)';
+      cbLabel='วันหยุดพิเศษ (ระบุเอง)';
+      cbNote='ติ๊กถ้าวันนี้เป็นวันหยุดศาสนา/วันสำคัญที่ไม่อยู่ในรายการ — รออนุมัติ';
+      defaultChecked=false;
+    }
+    if(calSelected[key].specialDay===undefined) calSelected[key].specialDay=defaultChecked;
+    const isChecked=calSelected[key].specialDay;
+    const warn=`<label style="width:100%;display:flex;align-items:flex-start;gap:8px;background:${cbBg};border-radius:6px;padding:8px 10px;margin-top:2px;cursor:pointer;">
+        <input type="checkbox"${isChecked?' checked':''} style="margin-top:2px;flex-shrink:0;accent-color:${cbColor};" onchange="calSelected['${key}'].specialDay=this.checked;">
         <div>
           <div style="font-size:11px;font-weight:600;color:${cbColor};">${cbLabel}</div>
           <div style="font-size:10px;color:${cbColor};opacity:.8;margin-top:2px;">${cbNote}</div>
         </div>
       </label>`;
-      // Initialize specialDay flag
-      if(calSelected[key].specialDay===undefined) calSelected[key].specialDay=true;
-    }
     const label=`${thaiDay} ${parseInt(d)} ${THAI_MONTHS_SHORT[parseInt(m)-1]}`;
     const startOpts=TIME_OPTIONS.map(t=>`<option value="${t}"${calSelected[key].start===t?' selected':''}>${t} น.</option>`).join('');
     const endOpts=END_TIME_OPTIONS.map(t=>`<option value="${t}"${calSelected[key].end===t?' selected':''}>${t} น.</option>`).join('');
