@@ -1559,7 +1559,7 @@ async function submitRegistration(){
   const fname=(document.getElementById('reg-fname')?.value||'').trim();
   const lname=(document.getElementById('reg-lname')?.value||'').trim();
   const user=(document.getElementById('reg-user')?.value||'').trim();
-  const pass=(document.getElementById('reg-pass')?.value||'');
+  const pass=(document.getElementById('reg-pass')?.value||'').trim();   // trim to match login (prevents stray-space hash mismatch)
   const bank=(document.getElementById('reg-bank-acc')?.value||'').trim();
   const bankName=(document.getElementById('reg-bank-name')?.value||'').trim();
   const bankBrand=(document.getElementById('reg-bank-brand')?.value||'').trim();
