@@ -1851,21 +1851,32 @@ function checkGPS(){
 let todaySchedule=null;
 
 function initTodaySchedule(){
-  // Demo: simulate employee has an approved schedule today for shift 1 (08:30-17:00)
+  // Unlock Clock In/Out only if the employee has an APPROVED schedule (Schedules sheet)
+  // that includes today's date. (Previously this checked the Attendance sheet, which only
+  // exists AFTER clocking in — a catch-22 that blocked every clock-in.)
   if(!currentUser){
     todaySchedule=null;
     return Promise.resolve(null);
   }
-  return callAPI({action:'getTodayClock',empId:currentUser.empId,date:todayISO()})
+  const today=todayISO();
+  return callAPI({action:'getSchedules',empId:currentUser.empId})
     .then(r=>{
-      if(r.ok&&r.data&&r.data.plannedStart){
-        todaySchedule={approved:true,planStart:r.data.plannedStart,planEnd:r.data.plannedEnd};
-      } else {
+      let slot=null;
+      if(r.ok&&Array.isArray(r.data)){
+        for(const s of r.data){
+          if(String(s.status||'').toLowerCase()!=='approved')continue;
+          const dates=s.dates||{};
+          if(dates[today]){slot=dates[today];break;}
+        }
+      }
+      if(slot){
+        todaySchedule={approved:true,planStart:slot.start||'08:30',planEnd:slot.end||'17:00'};
+      }else{
         todaySchedule={approved:false};
       }
       return todaySchedule;
     })
-    .catch(()=>{todaySchedule={approved:true,planStart:'08:30',planEnd:'17:00'};return todaySchedule;});
+    .catch(()=>{todaySchedule={approved:false};return todaySchedule;}); // fail closed (stay locked on error)
 }
 
 /* ── CLOCK WINDOW ── */
