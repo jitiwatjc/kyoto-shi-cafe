@@ -808,12 +808,6 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
         <div class="irow"><span class="ilabel">Clock In</span><span class="ival" id="ci-status-display" style="color:var(--ink3);">— ยังไม่ได้ Clock In</span></div>
         <div class="irow"><span class="ilabel">Clock Out</span><span id="co-display" class="ival" style="color:var(--ink3);">— ยังไม่ออก</span></div>
       </div>
-      <div class="card" style="background:var(--blue-lt);border:1px solid var(--border);padding:14px 16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px;">⏱ ช่วงเวลาที่อนุญาต (±2 ชั่วโมงจากเวลาตาราง)</div>
-        <div class="irow"><span class="ilabel" style="font-size:12px;">Clock In ได้</span><span class="ival" id="ci-window-lbl" style="font-size:12px;font-weight:600;color:var(--navy);">06:30 – 10:30 น.</span></div>
-        <div class="irow" style="margin-top:4px;"><span class="ilabel" style="font-size:12px;">Clock Out ได้</span><span class="ival" id="co-window-lbl" style="font-size:12px;font-weight:600;color:var(--navy);">15:00 – 19:00 น.</span></div>
-        <div id="clock-window-status" style="margin-top:10px;"></div>
-      </div>
       <div class="card">
         <div class="t-cap" style="margin-bottom:12px;">GPS ต้องยืนยันก่อน Clock In · Timestamp บันทึกเวลาจริง ไม่สามารถแก้ไขได้</div>
         <button id="ci-btn" class="btn btn-navy btn-full" style="padding:15px;font-size:15px;margin-bottom:10px;" onclick="doClockInWithGPS()">Clock In ตอนนี้</button>
@@ -947,15 +941,6 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       </select>
     </div>
 
-    <!-- OT rule note (Owner only — not shown to employee) -->
-    <div class="alert" style="background:var(--navy-lt);border-left:3px solid var(--navy);font-size:11px;color:var(--navy-dk);margin-bottom:14px;">
-      <strong>เกณฑ์ OT (Owner Only)</strong> — มาตรฐาน 8 ชม. ทำงาน + 1 ชม. พัก = 9 ชม./วัน<br><br>
-      <strong>วันปกติ:</strong> OT นับเฉพาะเมื่อ Clock Out เกินแผน <em>และ</em> มีคำขอ OT อนุมัติ ถ้าไม่มีคำขอ OT — ไม่นับ<br><br>
-      <strong>วันหยุดพิเศษ (วันหยุดนักขัตฤกษ์ / วันหยุดสัปดาห์):</strong><br>
-      · Clock Out &lt; เวลาออกในแผน → OT = ชม. จริง (clock out − clock in − 1 ชม. พัก)<br>
-      · Clock Out ≥ เวลาออกในแผน → OT = ชม. ตามแผน (plan end − plan start − 1 ชม. พัก) — ไม่นับส่วนเกิน
-    </div>
-
     <!-- Summary chips -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
@@ -968,7 +953,11 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       </div>
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
         <div style="font-size:20px;font-weight:700;color:var(--amber);" id="export-stat-ot">—</div>
-        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. OT</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. OT รวม</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
+        <div style="font-size:20px;font-weight:700;color:var(--navy);" id="export-stat-weighted">—</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">แรงรวม (×)</div>
       </div>
     </div>
 
@@ -1549,22 +1538,27 @@ function todayISO(){const n=new Date();return n.getFullYear()+'-'+String(n.getMo
 function nowHHMM(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
 
 async function doClockOut(){
+  // กัน Clock Out โดยไม่ได้ Clock In
+  if(!_clockedInToday){closeModal('m-clockout');toast('⚠ ยังไม่ได้ Clock In — ไม่สามารถ Clock Out ได้');return;}
   closeModal('m-clockout');
   const t=nowHHMM();
-  // Update UI immediately
+  // บันทึกผ่าน API ก่อน — แสดง "สำเร็จ" ต่อเมื่อ backend ยืนยันเท่านั้น (ไม่ optimistic)
+  if(currentUser){
+    let res;
+    try{res=await callAPI({action:'clockOut',empId:currentUser.empId,date:todayISO(),time:t});}
+    catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');return;}
+    if(!res||!res.ok){toast('❌ '+((res&&res.error)||'Clock Out ไม่สำเร็จ'));return;}
+  }
+  // สำเร็จ → อัปเดต UI
   document.getElementById('co-display').textContent=t+' น. ✓';
   document.getElementById('co-display').style.color='var(--green)';
   const b=document.getElementById('co-btn');b.disabled=true;b.textContent='Clock Out แล้ว · '+t+' น.';b.style.background='var(--ink3)';
   toast('Clock Out สำเร็จ · '+t+' น.');
-  // Save to API
-  if(currentUser){
-    try{await callAPI({action:'clockOut',empId:currentUser.empId,date:todayISO(),time:t});}
-    catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
-  }
 }
 
 async function doClockIn(){
   const t=nowHHMM();
+  _clockedInToday=true;
   // Update UI
   const ciEl=document.getElementById('ci-status-display');
   if(ciEl){ciEl.textContent=t+' น. ✓';ciEl.style.color='var(--green)';}
@@ -1785,36 +1779,42 @@ async function loadAttendanceExport(){
   document.getElementById('export-stat-days').textContent='—';
   document.getElementById('export-stat-hours').textContent='—';
   document.getElementById('export-stat-ot').textContent='—';
+  const _w0=document.getElementById('export-stat-weighted');if(_w0)_w0.textContent='—';
   try{
     const res=await callAPI({action:'getAttendance',empId,month:mo,year:yr});
     const rows=res.ok&&res.data?res.data:[];
     _attendanceCache=rows;
     const DAYS_S=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
-    let workDays=0,totalHrs=0,totalOT=0;
+    let workDays=0,totalHrs=0,tOt1=0,tOt15=0,tOt2=0;
+    const otCell=v=>v>0?'<span style="font-weight:700;color:var(--amber);">+'+v+'</span>':'<span style="color:var(--ink3);">—</span>';
     const tbody=rows.map(r=>{
       const d=new Date(r.date);
       const dayLabel=!isNaN(d)?d.getDate()+' '+THAI_MONTHS_SHORT[d.getMonth()]+' ('+DAYS_S[d.getDay()]+')':r.date;
       const isHoliday=r.specialDay&&r.specialDay!=='ปกติ';
-      const isLeave=r.leaveType;
       const hasWork=r.clockIn&&r.clockOut;
       if(hasWork)workDays++;
       let hrs=0;
       if(hasWork){const[ah,am]=r.clockIn.split(':').map(Number);const[bh,bm]=r.clockOut.split(':').map(Number);hrs=Math.max(0,((bh*60+bm)-(ah*60+am))/60-1);totalHrs+=hrs;}
-      const otHrs=parseFloat(r.otHours)||0;totalOT+=otHrs;
-      const rowStyle=isHoliday?'background:var(--red-bg);':isLeave?'background:var(--info-bg);':'';
+      const ot1=parseFloat(r.ot1)||0,ot15=parseFloat(r.ot15)||0,ot2=parseFloat(r.ot2)||0;
+      tOt1+=ot1;tOt15+=ot15;tOt2+=ot2;
+      const rowStyle=isHoliday?'background:var(--red-bg);':'';
       const ciColor=r.isLate?'color:var(--amber);':'color:var(--green);';
       return`<tr style="border-top:1px solid var(--border);${rowStyle}">
-        <td style="padding:9px 12px;font-weight:600;">${dayLabel}</td>
-        <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;background:${isHoliday?'var(--red-bg);color:var(--red)':isLeave?'var(--info-bg);color:var(--info)':'var(--green-bg);color:var(--green)'};">${r.specialDay||'ปกติ'}</span></td>
+        <td style="padding:9px 12px;font-weight:600;white-space:nowrap;">${dayLabel}</td>
+        <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;background:${isHoliday?'var(--red-bg);color:var(--red)':'var(--green-bg);color:var(--green)'};">${r.specialDay||'ปกติ'}</span></td>
         <td style="padding:9px 6px;text-align:center;">${r.plannedStart||'—'}</td>
         <td style="padding:9px 6px;text-align:center;">${r.plannedEnd||'—'}</td>
         <td style="padding:9px 6px;text-align:center;${r.clockIn?ciColor:''}">${r.clockIn||'—'}</td>
         <td style="padding:9px 6px;text-align:center;${r.clockOut?'color:var(--green);':''}">${r.clockOut||'—'}</td>
         <td style="padding:9px 6px;text-align:center;font-weight:600;">${hasWork?hrs.toFixed(2):'—'}</td>
-        <td style="padding:9px 12px;text-align:center;">${otHrs>0?'<span style="font-weight:700;color:var(--amber);">+'+otHrs+'</span>':'<span style="color:var(--ink3);">—</span>'}</td>
+        <td style="padding:9px 6px;text-align:center;">${otCell(ot1)}</td>
+        <td style="padding:9px 6px;text-align:center;">${otCell(ot15)}</td>
+        <td style="padding:9px 6px;text-align:center;">${otCell(ot2)}</td>
       </tr>`;
     }).join('');
-    container.innerHTML=`<div class="card" style="padding:0;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px;">
+    const totalOT=tOt1+tOt15+tOt2;
+    const weighted=tOt1*1+tOt15*1.5+tOt2*2;
+    container.innerHTML=`<div class="card" style="padding:0;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:680px;">
       <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
         <th style="padding:9px 12px;text-align:left;font-weight:600;color:var(--ink2);">วันที่</th>
         <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ประเภทวัน</th>
@@ -1823,18 +1823,23 @@ async function loadAttendanceExport(){
         <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง เข้า</th>
         <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง ออก</th>
         <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ชม.จริง</th>
-        <th style="padding:9px 12px;text-align:center;font-weight:600;color:var(--amber);">OT</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--amber);">OT×1</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--amber);">OT×1.5</th>
+        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--amber);">OT×2</th>
       </tr></thead>
-      <tbody>${tbody||'<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--ink3);">ไม่มีข้อมูลในเดือนนี้</td></tr>'}</tbody>
+      <tbody>${tbody||'<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--ink3);">ไม่มีข้อมูลในเดือนนี้</td></tr>'}</tbody>
       <tfoot><tr style="border-top:2px solid var(--navy);background:var(--navy-lt);">
         <td colspan="6" style="padding:10px 12px;font-weight:700;color:var(--navy);">รวม</td>
-        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--navy);">${totalHrs.toFixed(1)} ชม.</td>
-        <td style="padding:10px 12px;text-align:center;font-weight:700;color:var(--amber);">${totalOT.toFixed(2)} ชม.</td>
+        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--navy);">${totalHrs.toFixed(1)}</td>
+        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt1.toFixed(2)}</td>
+        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt15.toFixed(2)}</td>
+        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt2.toFixed(2)}</td>
       </tr></tfoot>
     </table></div>`;
     document.getElementById('export-stat-days').textContent=workDays;
     document.getElementById('export-stat-hours').textContent=totalHrs.toFixed(1);
     document.getElementById('export-stat-ot').textContent=totalOT.toFixed(2);
+    const wEl=document.getElementById('export-stat-weighted');if(wEl)wEl.textContent=weighted.toFixed(2);
   }catch(e){container.innerHTML='<div style="color:var(--ink3);padding:16px 0;">โหลดไม่สำเร็จ</div>';}
 }
 
@@ -1844,16 +1849,21 @@ function exportToExcel(){
   if(!_attendanceCache||!_attendanceCache.length){toast('ไม่มีข้อมูล — เลือกพนักงานและเดือนก่อน');return;}
   const empName=(document.getElementById('export-emp-select')?.options[document.getElementById('export-emp-select')?.selectedIndex]?.text||'').split(' — ')[0]||'พนักงาน';
   const monthLabel=document.getElementById('export-month-select')?.options[document.getElementById('export-month-select')?.selectedIndex]?.text||'';
-  const header=['วันที่','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม. จริง','OT (ชม.)','หมายเหตุ'];
+  const header=['วันที่','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม. จริง','OT×1','OT×1.5','OT×2','แรงรวม'];
+  let sumHrs=0,sOt1=0,sOt15=0,sOt2=0;
   const dataRows=_attendanceCache.map(r=>{
     const hasWork=r.clockIn&&r.clockOut;
     let hrs=0;
     if(hasWork){const[ah,am]=r.clockIn.split(':').map(Number);const[bh,bm]=r.clockOut.split(':').map(Number);hrs=Math.max(0,((bh*60+bm)-(ah*60+am))/60-1);}
-    return[r.date,r.specialDay||'ปกติ',r.plannedStart||'—',r.plannedEnd||'—',r.clockIn||'—',r.clockOut||'—',hasWork?hrs.toFixed(2):'—',parseFloat(r.otHours)||'—',r.note||''];
+    const ot1=parseFloat(r.ot1)||0,ot15=parseFloat(r.ot15)||0,ot2=parseFloat(r.ot2)||0;
+    const weighted=ot1*1+ot15*1.5+ot2*2;
+    sumHrs+=hasWork?hrs:0;sOt1+=ot1;sOt15+=ot15;sOt2+=ot2;
+    return[r.date,r.specialDay||'ปกติ',r.plannedStart||'—',r.plannedEnd||'—',r.clockIn||'—',r.clockOut||'—',hasWork?+hrs.toFixed(2):'—',ot1||'',ot15||'',ot2||'',weighted||''];
   });
-  const rows=[header,...dataRows];
+  const totalRow=['รวม','','','','','',+sumHrs.toFixed(2),+sOt1.toFixed(2),+sOt15.toFixed(2),+sOt2.toFixed(2),+(sOt1*1+sOt15*1.5+sOt2*2).toFixed(2)];
+  const rows=[header,...dataRows,totalRow];
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:16},{wch:18},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:28}];
+  ws['!cols']=[{wch:16},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:9},{wch:9},{wch:9},{wch:10}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,'บันทึกเวลา '+empName,ws);
   XLSX.writeFile(wb,'attendance_'+empName+'_'+monthLabel+'.xlsx');
@@ -1894,6 +1904,7 @@ function checkGPS(){
 /* ── TODAY SCHEDULE STATE ── */
 // todaySchedule = { approved: bool, planStart: 'HH:MM', planEnd: 'HH:MM' } | null
 let todaySchedule=null;
+let _clockedInToday=false;  // กัน Clock Out โดยไม่ได้ Clock In
 
 function initTodaySchedule(){
   // Unlock Clock In/Out only if the employee has an APPROVED schedule (Schedules sheet)
@@ -1932,18 +1943,19 @@ function fmtMin(m){
 
 function initClockScreen(){
   const attProm=currentUser
-    ?callAPI({action:'getAttendance',empId:currentUser.empId,limit:1}).catch(()=>({ok:false}))
+    ?callAPI({action:'getAttendance',empId:currentUser.empId,limit:10}).catch(()=>({ok:false}))
     :Promise.resolve({ok:false});
   Promise.all([initTodaySchedule(),attProm]).then(([sched,attRes])=>{
     const today=todayISO();
-    const lastRec=attRes.ok&&Array.isArray(attRes.data)&&attRes.data[0]?attRes.data[0]:null;
-    // Auto clock-out: ถ้าวันก่อนมี clockIn แต่ไม่มี clockOut → บันทึก plannedEnd เป็นเวลาออก
-    if(lastRec&&lastRec.date!==today&&lastRec.clockIn&&!lastRec.clockOut){
-      const autoTime=lastRec.plannedEnd||'17:00';
-      callAPI({action:'clockOut',empId:currentUser.empId,date:lastRec.date,time:autoTime}).catch(()=>{});
-      toast('⚠ บันทึก Clock Out อัตโนมัติ ('+lastRec.date+') เวลา '+autoTime+' น. ตามตารางงาน');
-    }
-    const rec=lastRec?.date===today?lastRec:null;
+    const list=attRes.ok&&Array.isArray(attRes.data)?attRes.data:[];
+    // Auto clock-out: ปิดทุกวันในอดีตที่มี clockIn แต่ลืม clockOut → ใช้ plannedEnd ตามตารางงาน
+    const orphans=list.filter(r=>r.date!==today&&r.clockIn&&!r.clockOut);
+    orphans.forEach(r=>{
+      const autoTime=r.plannedEnd||'17:00';
+      callAPI({action:'clockOut',empId:currentUser.empId,date:r.date,time:autoTime}).catch(()=>{});
+    });
+    if(orphans.length)toast('⚠ บันทึก Clock Out อัตโนมัติ '+orphans.length+' วันที่ลืมออก ตามเวลาตารางงาน');
+    const rec=list.find(r=>r.date===today)||null;
     renderClockScreen(sched,rec);
   });
   renderClockHistory();
@@ -1965,6 +1977,7 @@ function renderClockScreen(sched,todayRec){
   // Restore today's clock-in/out state from attendance record
   const alreadyIn=!!(todayRec?.clockIn);
   const alreadyOut=!!(todayRec?.clockOut);
+  _clockedInToday=alreadyIn;
   if(alreadyIn){
     const ciEl=document.getElementById('ci-status-display');
     if(ciEl){ciEl.textContent=todayRec.clockIn+' น. ✓';ciEl.style.color='var(--green)';}
@@ -1984,12 +1997,6 @@ function renderClockScreen(sched,todayRec){
   const ciStart=sh*60+sm-120, ciEnd=sh*60+sm+120;
   const coStart=eh*60+em-120, coEnd=eh*60+em+120;
 
-  // Update window labels
-  const ciLbl=document.getElementById('ci-window-lbl');
-  const coLbl=document.getElementById('co-window-lbl');
-  if(ciLbl)ciLbl.textContent=fmtMin(ciStart)+' – '+fmtMin(ciEnd)+' น.';
-  if(coLbl)coLbl.textContent=fmtMin(coStart)+' – '+fmtMin(coEnd)+' น.';
-
   // Update planned times display
   const psEl=document.getElementById('planned-start-display');
   const peEl=document.getElementById('planned-end-display');
@@ -1998,8 +2005,6 @@ function renderClockScreen(sched,todayRec){
 
   // Current time
   const now=new Date(), nowMin=now.getHours()*60+now.getMinutes();
-  const inCi=nowMin>=ciStart&&nowMin<=ciEnd;
-  const inCo=nowMin>=coStart&&nowMin<=coEnd;
 
   // Late flag: show only if not yet clocked in and past 15 min grace
   const lateEl=document.getElementById('clock-late-flag');
@@ -2014,11 +2019,16 @@ function renderClockScreen(sched,todayRec){
   const coBtn=document.getElementById('co-btn');
   const coBtnMsg=document.getElementById('co-btn-msg');
   if(coBtn&&!coBtn.disabled){
-    if(nowMin<coStart){
+    if(!alreadyIn){
+      // ยังไม่ได้ Clock In — ห้าม Clock Out (กัน state ขัดแย้ง)
+      coBtn.disabled=true;coBtn.style.opacity='0.4';coBtn.textContent='Clock Out ตอนนี้';
+      coBtn.className='btn btn-danger btn-full';
+      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.style.color='var(--ink3)';coBtnMsg.textContent='ต้อง Clock In ก่อนจึงจะ Clock Out ได้';}
+    } else if(nowMin<coStart){
       coBtn.textContent='ขอ Clock Out ก่อนเวลา';
       coBtn.className='btn btn-outline btn-full';
       coBtn.onclick=()=>openEarlyClockOutModal(planEnd);
-      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.textContent='ยังไม่ถึงช่วง Clock Out ('+fmtMin(coStart)+'–'+fmtMin(coEnd)+')';}
+      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.style.color='var(--ink3)';coBtnMsg.textContent='ยังไม่ถึงช่วง Clock Out';}
     } else if(nowMin>coEnd){
       if(alreadyIn&&!alreadyOut){
         // Clock In แล้วแต่ยังไม่ Clock Out — อนุญาตเสมอแม้เลยหน้าต่างเวลา
@@ -2034,23 +2044,6 @@ function renderClockScreen(sched,todayRec){
       coBtn.className='btn btn-danger btn-full';coBtn.onclick=()=>openModal('m-clockout');
       if(coBtnMsg)coBtnMsg.style.display='none';
     }
-  }
-
-  // Status banner
-  const statusEl=document.getElementById('clock-window-status');
-  if(statusEl){
-    if(alreadyIn&&alreadyOut)
-      statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ Clock In และ Clock Out เรียบร้อยแล้ววันนี้</div>';
-    else if(inCo)
-      statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ อยู่ในช่วงเวลา Clock Out ได้แล้ว</div>';
-    else if(inCi)
-      statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ อยู่ในช่วงเวลา Clock In ได้แล้ว</div>';
-    else if(nowMin<ciStart)
-      statusEl.innerHTML='<div class="alert alert-info" style="font-size:12px;margin:0;padding:8px 12px;">⏳ ยังไม่ถึงเวลา — Clock In เปิดใช้ '+fmtMin(ciStart)+' น.</div>';
-    else if(nowMin>ciEnd&&nowMin<coStart)
-      statusEl.innerHTML='<div class="alert" style="font-size:12px;margin:0;padding:8px 12px;background:var(--amber-bg);color:var(--amber);">☕ กำลังทำงาน — Clock Out เปิดใช้ '+fmtMin(coStart)+' น.</div>';
-    else
-      statusEl.innerHTML='<div class="alert" style="font-size:12px;margin:0;padding:8px 12px;background:var(--red-bg);color:var(--red);">⚠ เลยเวลาที่กำหนด กรุณาติดต่อ Owner</div>';
   }
 }
 
@@ -2094,9 +2087,12 @@ async function doClockInWithGPS(){
     else toast('Clock In สำเร็จ · '+t+' น. ✓ GPS OK');
   } else toast('Clock In สำเร็จ · '+t+' น. ✓ GPS OK');
 
+  _clockedInToday=true;
   const ciEl=document.getElementById('ci-status-display');
   if(ciEl){ciEl.textContent=t+' น. ✓';ciEl.style.color='var(--green)';}
   if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='Clock In แล้ว · '+t+' น.';ciBtn.style.background='var(--ink3)';}
+  // เปิดปุ่ม Clock Out ให้พร้อมใช้งานตามช่วงเวลา (ก่อนหน้านี้ถูกล็อกเพราะยังไม่ได้ Clock In)
+  if(todaySchedule)renderClockScreen(todaySchedule,{clockIn:t,clockOut:''});
 
   if(currentUser){
     try{await callAPI({action:'clockIn',empId:currentUser.empId,date:todayISO(),time:t,
