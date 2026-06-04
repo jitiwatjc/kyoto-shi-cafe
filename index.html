@@ -244,6 +244,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .cal-cell.cal-holiday:not(.cal-work):not(.cal-past){background:var(--red-bg);color:var(--red);font-weight:700;}
 .cal-cell.cal-weekend.cal-work{box-shadow:inset 0 0 0 2.5px var(--amber);}
 .cal-cell.cal-holiday.cal-work{box-shadow:inset 0 0 0 2.5px var(--red);}
+.cal-cell.cal-sched-approved:not(.cal-work){background:var(--green);color:#fff;font-weight:700;}
+.cal-cell.cal-sched-pending:not(.cal-work){background:var(--amber);color:#fff;font-weight:700;}
 
 /* WORK DAY TIME ROW */
 .wday-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
@@ -736,6 +738,12 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
           <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--red);">
             <div style="width:13px;height:13px;border-radius:3px;background:var(--red-bg);flex-shrink:0;"></div>วันหยุดนักขัตฤกษ์
           </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--green);">
+            <div style="width:13px;height:13px;border-radius:3px;background:var(--green);flex-shrink:0;"></div>ตารางอนุมัติแล้ว (กดแก้ไข)
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--amber);">
+            <div style="width:13px;height:13px;border-radius:3px;background:var(--amber);flex-shrink:0;"></div>รออนุมัติ (กดแก้ไข)
+          </div>
         </div>
         <!-- วันหยุดนักขัตฤกษ์เดือนนี้ -->
         <div id="cal-holiday-panel" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);"></div>
@@ -788,7 +796,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
     </div>
 
     <!-- Clock Body (shown only when schedule approved) -->
-    <div id="clock-body">
+    <div id="clock-body" style="display:none">
       <!-- Late Flag -->
       <div id="clock-late-flag" class="alert alert-danger" style="font-size:12px;display:none;"></div>
 
@@ -1064,6 +1072,36 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
   </div>
 </div>
 
+<!-- MODAL: SCHEDULE EDIT -->
+<div class="modal" id="m-sched-edit">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <div style="font-size:18px;font-weight:700;">แก้ไขตารางงาน</div>
+      <span id="sched-edit-status-chip" class="chip chip-green" style="font-size:10px;">Approved</span>
+    </div>
+    <div id="sched-edit-date-lbl" style="font-size:15px;font-weight:600;color:var(--ink2);margin-bottom:10px;"></div>
+    <div class="alert alert-info" style="font-size:12px;margin-bottom:16px;">
+      เวลาเดิม: <strong id="sched-edit-orig-time">— – —</strong> น.<br>
+      <span style="color:var(--ink3);">การแก้ไขต้องรอ Owner อนุมัติใหม่ก่อนมีผล</span>
+    </div>
+    <div class="fg2">
+      <div>
+        <label class="t-label" style="font-size:11px;">เวลาเข้างานใหม่</label>
+        <select id="sched-edit-start" class="fi fi-sel" style="font-size:13px;padding:10px 28px 10px 10px;"></select>
+      </div>
+      <div>
+        <label class="t-label" style="font-size:11px;">เวลาออกงานใหม่</label>
+        <select id="sched-edit-end" class="fi fi-sel" style="font-size:13px;padding:10px 28px 10px 10px;"></select>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-full" onclick="closeModal('m-sched-edit')">ยกเลิก</button>
+      <button class="btn btn-navy btn-full" onclick="submitScheduleEdit()">ส่งขอแก้ไข →</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: EARLY CLOCK-OUT REQUEST -->
 <div class="modal" id="m-early-clockout">
   <div class="modal-sheet">
@@ -1103,7 +1141,7 @@ function go(id){
   const c=document.querySelector('.sc.on');if(c){c.classList.remove('on');hist.push(c.id);}
   document.getElementById(id).classList.add('on');window.scrollTo(0,0);
   if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
-  if(id==='s-emp-sched'){renderSchedDeadlineBanner();}
+  if(id==='s-emp-sched'){renderSchedDeadlineBanner();loadExistingSchedules();}
   if(id==='s-emp-ot'){renderOTRate();renderOTScreen();renderOTHistory();}
   if(id==='s-emp-leave'){renderLeaveScreen();}
   if(id==='s-emp-home'){renderEmpHome();}
@@ -1398,9 +1436,12 @@ async function renderApprovalTabs(){
         const datesObj=s.dates||{};
         const dateEntries=Object.entries(datesObj).slice(0,5);
         const total=Object.keys(datesObj).length;
+        const isEdit=!!(s.isEdit||s.type==='edit');
+        const editBadge=isEdit?`<span class="chip chip-amber" style="font-size:10px;margin-left:6px;">✏ แก้ไขตาราง</span>`:'';
+        const subLabel=isEdit?`✏ ขอแก้ไขตารางงาน ${s.month}/${s.year} · ${total} วัน`:`ขออนุมัติตาราง ${s.month}/${s.year} · ${total} วัน`;
         return`<div class="apv-card">
-          <div class="apv-name">${empName(s.empId,s.name)}</div>
-          <div class="apv-sub">ขออนุมัติตาราง ${s.month}/${s.year} · ${total} วัน</div>
+          <div class="apv-name" style="display:flex;align-items:center;flex-wrap:wrap;">${empName(s.empId,s.name)}${editBadge}</div>
+          <div class="apv-sub">${subLabel}</div>
           <div class="div"></div>
           <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
             ${dateEntries.map(([dt,v])=>{const s=(v&&v.start)||'',e=(v&&v.end)||'';const range=(s&&e)?`${s} – ${e}`:(s||'—');return `<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:var(--navy);font-weight:600;">${range} น.</span></div>`;}).join('')}
@@ -1890,11 +1931,25 @@ function fmtMin(m){
 }
 
 function initClockScreen(){
-  initTodaySchedule().then(sched=>renderClockScreen(sched));
+  const attProm=currentUser
+    ?callAPI({action:'getAttendance',empId:currentUser.empId,limit:1}).catch(()=>({ok:false}))
+    :Promise.resolve({ok:false});
+  Promise.all([initTodaySchedule(),attProm]).then(([sched,attRes])=>{
+    const today=todayISO();
+    const lastRec=attRes.ok&&Array.isArray(attRes.data)&&attRes.data[0]?attRes.data[0]:null;
+    // Auto clock-out: ถ้าวันก่อนมี clockIn แต่ไม่มี clockOut → บันทึก plannedEnd เป็นเวลาออก
+    if(lastRec&&lastRec.date!==today&&lastRec.clockIn&&!lastRec.clockOut){
+      const autoTime=lastRec.plannedEnd||'17:00';
+      callAPI({action:'clockOut',empId:currentUser.empId,date:lastRec.date,time:autoTime}).catch(()=>{});
+      toast('⚠ บันทึก Clock Out อัตโนมัติ ('+lastRec.date+') เวลา '+autoTime+' น. ตามตารางงาน');
+    }
+    const rec=lastRec?.date===today?lastRec:null;
+    renderClockScreen(sched,rec);
+  });
   renderClockHistory();
 }
 
-function renderClockScreen(sched){
+function renderClockScreen(sched,todayRec){
   const noSchedEl=document.getElementById('clock-no-sched');
   const clockBody=document.getElementById('clock-body');
 
@@ -1906,6 +1961,22 @@ function renderClockScreen(sched){
   }
   if(noSchedEl)noSchedEl.style.display='none';
   if(clockBody)clockBody.style.display='block';
+
+  // Restore today's clock-in/out state from attendance record
+  const alreadyIn=!!(todayRec?.clockIn);
+  const alreadyOut=!!(todayRec?.clockOut);
+  if(alreadyIn){
+    const ciEl=document.getElementById('ci-status-display');
+    if(ciEl){ciEl.textContent=todayRec.clockIn+' น. ✓';ciEl.style.color='var(--green)';}
+    const ciBtn=document.getElementById('ci-btn');
+    if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='Clock In แล้ว · '+todayRec.clockIn+' น.';ciBtn.style.background='var(--ink3)';}
+  }
+  if(alreadyOut){
+    const coEl=document.getElementById('co-display');
+    if(coEl){coEl.textContent=todayRec.clockOut+' น. ✓';coEl.style.color='var(--green)';}
+    const coBtnDone=document.getElementById('co-btn');
+    if(coBtnDone){coBtnDone.disabled=true;coBtnDone.textContent='Clock Out แล้ว · '+todayRec.clockOut+' น.';coBtnDone.style.background='var(--ink3)';}
+  }
 
   const planStart=sched.planStart||'08:30', planEnd=sched.planEnd||'17:00';
   const [sh,sm]=planStart.split(':').map(Number);
@@ -1930,28 +2001,34 @@ function renderClockScreen(sched){
   const inCi=nowMin>=ciStart&&nowMin<=ciEnd;
   const inCo=nowMin>=coStart&&nowMin<=coEnd;
 
-  // Late flag: if current time > planStart + 15min and not yet clocked in
+  // Late flag: show only if not yet clocked in and past 15 min grace
   const lateEl=document.getElementById('clock-late-flag');
   if(lateEl){
-    if(nowMin>sh*60+sm+15&&nowMin<coStart){
+    if(!alreadyIn&&nowMin>sh*60+sm+15&&nowMin<coStart){
       lateEl.style.display='block';
       lateEl.textContent='⚠ สายเกิน 15 นาที — ระบบบันทึกและแจ้ง Owner อัตโนมัติ';
     } else lateEl.style.display='none';
   }
 
-  // Clock Out button
+  // Clock Out button (skip if already clocked out — disabled above already)
   const coBtn=document.getElementById('co-btn');
   const coBtnMsg=document.getElementById('co-btn-msg');
   if(coBtn&&!coBtn.disabled){
-    // Early clock-out (before planned end - 120min window)
     if(nowMin<coStart){
       coBtn.textContent='ขอ Clock Out ก่อนเวลา';
       coBtn.className='btn btn-outline btn-full';
       coBtn.onclick=()=>openEarlyClockOutModal(planEnd);
       if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.textContent='ยังไม่ถึงช่วง Clock Out ('+fmtMin(coStart)+'–'+fmtMin(coEnd)+')';}
     } else if(nowMin>coEnd){
-      coBtn.disabled=true;coBtn.style.opacity='0.4';
-      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.textContent='เลยเวลา Clock Out แล้ว กรุณาติดต่อ Owner';}
+      if(alreadyIn&&!alreadyOut){
+        // Clock In แล้วแต่ยังไม่ Clock Out — อนุญาตเสมอแม้เลยหน้าต่างเวลา
+        coBtn.disabled=false;coBtn.style.opacity='1';coBtn.textContent='Clock Out ตอนนี้';
+        coBtn.className='btn btn-danger btn-full';coBtn.onclick=()=>openModal('m-clockout');
+        if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.style.color='var(--amber)';coBtnMsg.textContent='⚠ เลยช่วงเวลาปกติ — Clock Out ได้เนื่องจาก Clock In ไปแล้ว';}
+      } else {
+        coBtn.disabled=true;coBtn.style.opacity='0.4';
+        if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.textContent='เลยเวลา Clock Out แล้ว กรุณาติดต่อ Owner';}
+      }
     } else {
       coBtn.disabled=false;coBtn.style.opacity='1';coBtn.textContent='Clock Out ตอนนี้';
       coBtn.className='btn btn-danger btn-full';coBtn.onclick=()=>openModal('m-clockout');
@@ -1962,7 +2039,9 @@ function renderClockScreen(sched){
   // Status banner
   const statusEl=document.getElementById('clock-window-status');
   if(statusEl){
-    if(inCo)
+    if(alreadyIn&&alreadyOut)
+      statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ Clock In และ Clock Out เรียบร้อยแล้ววันนี้</div>';
+    else if(inCo)
       statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ อยู่ในช่วงเวลา Clock Out ได้แล้ว</div>';
     else if(inCi)
       statusEl.innerHTML='<div class="alert alert-success" style="font-size:12px;margin:0;padding:8px 12px;">✓ อยู่ในช่วงเวลา Clock In ได้แล้ว</div>';
@@ -2342,8 +2421,10 @@ async function renderOwnerHome(){
           const chip=r.clockIn
             ?(r.late?`<span class="chip chip-amber">สาย</span>`:`<span class="chip chip-green">${r.clockIn}</span>`)
             :`<span class="chip chip-red">ยังไม่เข้า</span>`;
+          const planTime=(r.plannedStart||r.planStart)&&(r.plannedEnd||r.planEnd)
+            ?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;">⏱ ${r.plannedStart||r.planStart} – ${r.plannedEnd||r.planEnd} น.</div>`:'';
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:${i===0?'0 0 12px':'12px 0'+(isLast?'':';border-bottom:1px solid var(--border)')};">
-            <div><span class="ltitle">${r.name||r.empId}</span> <span class="t-cap">${r.position||''}</span></div>${chip}</div>`;
+            <div><div><span class="ltitle">${r.name||r.empId}</span> <span class="t-cap">${r.position||''}</span></div>${planTime}</div>${chip}</div>`;
         }).join('');
       }
     } else {
@@ -2402,6 +2483,70 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 ════════════════════════════════════ */
 let calYear=2026, calMonth=4; // พฤษภาคม 2026
 let calSelected={}; // { "2026-05-18": { start:"08:30", end:"17:00" } }
+let calExistingSchedules=[]; // schedules fetched from API (approved + pending)
+let calEditTarget=null; // { scheduleId, key, start, end, month, year, status }
+
+function getExistingScheduleForDate(key){
+  for(const s of calExistingSchedules){
+    if(s.dates&&s.dates[key]){
+      return{scheduleId:s.id,status:(s.status||'').toLowerCase(),
+        start:s.dates[key].start||'08:30',end:s.dates[key].end||'17:00',
+        month:s.month,year:s.year,isEdit:!!(s.isEdit||s.type==='edit')};
+    }
+  }
+  return null;
+}
+
+async function loadExistingSchedules(){
+  if(!currentUser){calExistingSchedules=[];buildCalendar();return;}
+  try{
+    const r=await callAPI({action:'getSchedules',empId:currentUser.empId});
+    calExistingSchedules=(r.ok&&Array.isArray(r.data))?r.data:[];
+  }catch(e){calExistingSchedules=[];}
+  buildCalendar();
+}
+
+function openScheduleEditPanel(key,info){
+  calEditTarget={...info,key};
+  const[y,m,d]=key.split('-');
+  const dt=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+  const thaiDay=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][dt.getDay()];
+  const dateStr=thaiDay+' '+parseInt(d)+' '+THAI_MONTHS_SHORT[parseInt(m)-1]+' '+(parseInt(y)+543);
+  const lbl=document.getElementById('sched-edit-date-lbl');if(lbl)lbl.textContent=dateStr;
+  const origEl=document.getElementById('sched-edit-orig-time');if(origEl)origEl.textContent=info.start+' – '+info.end;
+  const chipEl=document.getElementById('sched-edit-status-chip');
+  if(chipEl){
+    if(info.status==='approved'){chipEl.textContent='Approved ✓';chipEl.className='chip chip-green';}
+    else if(info.status==='pending'){chipEl.textContent='รออนุมัติ';chipEl.className='chip chip-amber';}
+    else{chipEl.textContent=info.status;chipEl.className='chip';}
+  }
+  const startSel=document.getElementById('sched-edit-start');
+  const endSel=document.getElementById('sched-edit-end');
+  if(startSel)startSel.innerHTML=TIME_OPTIONS.map(t=>`<option value="${t}"${info.start===t?' selected':''}>${t} น.</option>`).join('');
+  if(endSel)endSel.innerHTML=END_TIME_OPTIONS.map(t=>`<option value="${t}"${info.end===t?' selected':''}>${t} น.</option>`).join('');
+  openModal('m-sched-edit');
+}
+
+async function submitScheduleEdit(){
+  if(!calEditTarget||!currentUser)return;
+  const{scheduleId,key,start:origStart,end:origEnd,month,year}=calEditTarget;
+  const newStart=document.getElementById('sched-edit-start')?.value;
+  const newEnd=document.getElementById('sched-edit-end')?.value;
+  if(!newStart||!newEnd)return;
+  if(newStart===origStart&&newEnd===origEnd){toast('ไม่มีการเปลี่ยนแปลงเวลา กรุณาแก้ไขก่อนส่ง');return;}
+  closeModal('m-sched-edit');
+  toast('กำลังส่งคำขอแก้ไข...');
+  try{
+    const dates={};dates[key]={start:newStart,end:newEnd};
+    const res=await callAPI({action:'editSchedule',empId:currentUser.empId,
+      originalScheduleId:scheduleId,date:key,month,year,dates:JSON.stringify(dates)});
+    if(res.ok){
+      toast('ส่งคำขอแก้ไขตารางงานแล้ว รอ Owner อนุมัติ ✓');
+      calEditTarget=null;
+      await loadExistingSchedules();
+    }else{toast('เกิดข้อผิดพลาด: '+(res.error||''));}
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+}
 
 const THAI_MONTHS_FULL=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const THAI_MONTHS_SHORT=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -2483,6 +2628,13 @@ function buildCalendar(){
     if(!isPast&&isHoliday) cell.classList.add('cal-holiday');
     else if(!isPast&&isWeekend) cell.classList.add('cal-weekend');
     if(calSelected[key]) cell.classList.add('cal-work');
+    else{
+      const exInfo=getExistingScheduleForDate(key);
+      if(exInfo){
+        if(exInfo.status==='approved')cell.classList.add('cal-sched-approved');
+        else if(exInfo.status==='pending')cell.classList.add('cal-sched-pending');
+      }
+    }
 
     if(!isPast){
       cell.addEventListener('click',()=>toggleCalDay(key));
@@ -2522,11 +2674,10 @@ function renderHolidayPanel(){
 }
 
 function toggleCalDay(key){
-  if(calSelected[key]){
-    delete calSelected[key];
-  } else {
-    calSelected[key]={start:'08:30',end:'17:00'};
-  }
+  const existing=getExistingScheduleForDate(key);
+  if(existing){openScheduleEditPanel(key,existing);return;}
+  if(calSelected[key]){delete calSelected[key];}
+  else{calSelected[key]={start:'08:30',end:'17:00'};}
   buildCalendar();
 }
 
