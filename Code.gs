@@ -37,14 +37,18 @@ function doGet(e) {
       // ── อ่านข้อมูล ──
       case 'login':           return res(login(p.user, p.pass));
       case 'getEmployees':    return res(getEmployees());
-      case 'getAttendance':   return res(getAttendance(p.empId, p.month, p.year));
+      case 'getAttendance':   return res(getAttendance(p.empId, p.month, p.year, p.limit));
       case 'getSchedules':    return res(getSchedules(p.empId));
       case 'getPending':           return res(getPendingApprovals());
       case 'getPendingApprovals':  return res(getPendingApprovals());
       case 'getTodayClock':        return res(getTodayClock(p.empId, p.date));
       case 'getTodayAttendance':   return res(getTodayAttendance(p.date));
       case 'getLeaveBalance':      return res(getLeaveBalance(p.empId, p.year));
+      case 'getLeaveHistory':      return res(getLeaveHistory(p.empId, p.year));
+      case 'getOT':                return res(getOT(p.empId));
+      case 'getOTHistory':         return res(getOTHistory(p.empId, p.month, p.year));
       case 'ping':            return res({ ok: true, message: 'Kyoto Shi API online' });
+      case 'migrateSchedules': return res(migrateSchedulesColumns());
 
       // ── บันทึกข้อมูล ──
       case 'clockIn':         return res(clockIn(p));
@@ -57,6 +61,14 @@ function doGet(e) {
                               }));
       case 'approveSchedule': return res(approveSchedule({ scheduleId: p.scheduleId, approvedBy: p.approvedBy }));
       case 'rejectSchedule':  return res(rejectSchedule({ scheduleId: p.scheduleId, approvedBy: p.approvedBy }));
+      case 'editSchedule':    return res(editSchedule({
+                                empId:              p.empId,
+                                originalScheduleId: p.originalScheduleId,
+                                date:               p.date,
+                                month:              parseInt(p.month),
+                                year:               parseInt(p.year),
+                                dates:              JSON.parse(decodeURIComponent(p.dates || '{}')),
+                              }));
       case 'submitOT':        return res(submitOT(p));
       case 'submitLeave':     return res(submitLeave(p));
       case 'approveLeave':    return res(approveLeave({ leaveId: p.leaveId, approve: p.approve === 'true', approvedBy: p.approvedBy }));
@@ -88,11 +100,17 @@ function login(username, password) {
   const ss   = openSS();
   const sh   = ss.getSheetByName(SH.EMPLOYEES);
   const data = sh.getDataRange().getValues();
+  const inputHash = hashPw(password);
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (String(row[2]) === String(username) &&
-        String(row[3]) === String(password) &&
-        String(row[10]).trim().toLowerCase() === 'active') {
+    if (String(row[2]) !== String(username)) continue;
+    if (String(row[10]).trim().toLowerCase() !== 'active') continue;
+    const stored        = String(row[3]);
+    const isHashMatch   = (stored === inputHash);
+    const isLegacyMatch = (stored === String(password)); // plaintext stored before hashing was added
+    if (isHashMatch || isLegacyMatch) {
+      // Auto-migrate legacy plaintext passwords to a hash on first successful login
+      if (isLegacyMatch && !isHashMatch) sh.getRange(i + 1, 4).setValue(inputHash);
       const isOwner = row[6] === 'Owner';
       return {
         ok:       true,
@@ -123,7 +141,7 @@ function getEmployees() {
       id:          row[0],
       name:        row[1],
       username:    row[2],
-      password:    row[3],
+      // password intentionally NOT returned to clients (security)
       nickname:    row[4] || row[1],
       position:    row[5],
       type:        row[6],
@@ -140,6 +158,7 @@ function getEmployees() {
       bankAccName: row[17] || '',
       note:        row[18] || '',
       otrate:      row[19] || '',
+      pdpaConsent: row[20] || '',
     });
   }
   return { ok: true, data: employees };
@@ -148,13 +167,23 @@ function getEmployees() {
 function registerEmployee(p) {
   const ss  = openSS();
   const sh  = ss.getSheetByName(SH.EMPLOYEES);
+  const data = sh.getDataRange().getValues();
+  // Prevent duplicate registrations — reject if this username already exists (any status)
+  const uname = String(p.username || '').trim().toLowerCase();
+  if (uname) {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][2] || '').trim().toLowerCase() === uname) {
+        return { ok: false, error: 'Username นี้ถูกใช้ไปแล้ว กรุณาเลือกชื่ออื่น' };
+      }
+    }
+  }
   const lastRow = sh.getLastRow();
   const newId   = 'EMP' + String(lastRow).padStart(3, '0');
   sh.appendRow([
     newId,
     p.name        || '',
     p.username    || '',
-    p.password    || '',
+    p.password ? hashPw(p.password) : '',   // store password hashed, never plaintext
     p.nickname    || p.name || '',
     p.position    || '',
     p.type        || 'Full-time',
@@ -171,6 +200,7 @@ function registerEmployee(p) {
     p.bankAccName || '',          // [17] account holder name
     p.note        || '',          // [18]
     p.otrate      || '',          // [19]
+    p.pdpaConsent ? (p.pdpaConsent + ' | ' + fmtDateTime(new Date())) : '',  // [20] PDPA consent version + timestamp
   ]);
   return { ok: true, empId: newId };
 }
@@ -262,10 +292,10 @@ function getTodayClock(empId, date) {
         ok: true,
         data: {
           id:           row[0],
-          clockIn:      row[3],
-          clockOut:     row[4],
-          plannedStart: row[5],
-          plannedEnd:   row[6],
+          clockIn:      fmtTime(row[3]),
+          clockOut:     fmtTime(row[4]),
+          plannedStart: fmtTime(row[5]),
+          plannedEnd:   fmtTime(row[6]),
           specialDay:   row[7],
         },
       };
@@ -278,8 +308,10 @@ function getTodayAttendance(date) {
   const ss      = openSS();
   const attSh   = ss.getSheetByName(SH.ATTENDANCE);
   const empSh   = ss.getSheetByName(SH.EMPLOYEES);
+  const schSh   = ss.getSheetByName(SH.SCHEDULES);
   const attData = attSh.getDataRange().getValues();
   const empData = empSh.getDataRange().getValues();
+  const schData = schSh.getDataRange().getValues();
 
   // Build empId → {name, position} map
   const empMap = {};
@@ -288,30 +320,68 @@ function getTodayAttendance(date) {
     empMap[id] = { name: empData[i][1], position: empData[i][6] };
   }
 
+  // Build empId → planStart/planEnd from APPROVED schedule that includes this date
+  const planMap = {};
+  for (let i = 1; i < schData.length; i++) {
+    const r = schData[i];
+    if (!r[0]) continue;
+    if (String(r[5]).toLowerCase() !== 'approved') continue;
+    const dates = r[4] ? JSON.parse(r[4]) : {};
+    if (!dates[date]) continue;
+    const empId = String(r[1]);
+    // ใช้ตารางที่ approve ล่าสุดถ้ามีหลายตัว (override)
+    planMap[empId] = {
+      start: dates[date].start || '',
+      end:   dates[date].end   || '',
+    };
+  }
+
   // Filter attendance rows for today
+  const seen = {};
   const rows = [];
   for (let i = 1; i < attData.length; i++) {
     const row     = attData[i];
     const rowDate = row[2] ? fmtDate(new Date(row[2])) : '';
     if (rowDate !== date) continue;
     const empId     = String(row[1]);
-    const clockIn   = row[3] ? String(row[3]) : '';
-    const planStart = row[5] ? String(row[5]) : '';
+    const clockIn   = fmtTime(row[3]);
+    // Fallback: ถ้า Attendance ไม่มี plannedStart/End ให้ใช้จาก Schedules
+    const plannedStart = fmtTime(row[5]) || (planMap[empId]?.start || '');
+    const plannedEnd   = fmtTime(row[6]) || (planMap[empId]?.end   || '');
     let late = false;
-    if (clockIn && planStart) {
-      const [ph, pm] = planStart.split(':').map(Number);
+    if (clockIn && plannedStart) {
+      const [ph, pm] = plannedStart.split(':').map(Number);
       const [ch, cm] = clockIn.split(':').map(Number);
       late = (ch * 60 + cm) > (ph * 60 + pm + 15);
     }
+    seen[empId] = true;
     rows.push({
       empId,
-      name:     empMap[empId]?.name     || empId,
-      position: empMap[empId]?.position || '',
+      name:         empMap[empId]?.name     || empId,
+      position:     empMap[empId]?.position || '',
       clockIn,
-      clockOut: row[4] ? String(row[4]) : '',
+      clockOut:     fmtTime(row[4]),
+      plannedStart,
+      plannedEnd,
       late,
     });
   }
+
+  // เพิ่มพนักงานที่มีตาราง approve วันนี้แต่ยังไม่ได้ Clock In (เพื่อ Owner เห็นทุกคน + plan time)
+  Object.keys(planMap).forEach(function(empId) {
+    if (seen[empId]) return;
+    rows.push({
+      empId,
+      name:         empMap[empId]?.name     || empId,
+      position:     empMap[empId]?.position || '',
+      clockIn:      '',
+      clockOut:     '',
+      plannedStart: planMap[empId].start,
+      plannedEnd:   planMap[empId].end,
+      late:         false,
+    });
+  });
+
   return { ok: true, data: rows };
 }
 
@@ -323,22 +393,20 @@ function clockIn(p) {
   for (let i = 1; i < data.length; i++) {
     const rowDate = data[i][2] ? fmtDate(new Date(data[i][2])) : '';
     if (String(data[i][1]) === String(p.empId) && rowDate === p.date) {
-      sh.getRange(i + 1, 4).setValue(p.time);
+      const c = sh.getRange(i + 1, 4);
+      c.setNumberFormat('@');            // store as TEXT so "08:25" isn't auto-converted to a time value
+      c.setValue(p.time);
       return { ok: true };
     }
   }
-  // Create new row
-  const newId = 'ATT' + Date.now();
-  sh.appendRow([
-    newId,
-    p.empId,
-    p.date,
-    p.time,
-    '',
-    p.plannedStart || '',
-    p.plannedEnd   || '',
-    p.specialDay   || false,
-  ]);
+  // Create new row — write the time columns as TEXT to avoid Sheets time auto-conversion
+  const newRow = sh.getLastRow() + 1;
+  const newId  = 'ATT' + Date.now();
+  sh.appendRow([ newId, p.empId, p.date, '', '', '', '', p.specialDay || false ]);
+  sh.getRange(newRow, 4, 1, 4).setNumberFormat('@');   // cols D-G: clockIn, clockOut, plannedStart, plannedEnd
+  sh.getRange(newRow, 4).setValue(p.time);
+  sh.getRange(newRow, 6).setValue(p.plannedStart || '');
+  sh.getRange(newRow, 7).setValue(p.plannedEnd   || '');
   return { ok: true, id: newId };
 }
 
@@ -349,7 +417,9 @@ function clockOut(p) {
   for (let i = 1; i < data.length; i++) {
     const rowDate = data[i][2] ? fmtDate(new Date(data[i][2])) : '';
     if (String(data[i][1]) === String(p.empId) && rowDate === p.date) {
-      sh.getRange(i + 1, 5).setValue(p.time);
+      const c = sh.getRange(i + 1, 5);
+      c.setNumberFormat('@');            // store clock-out as TEXT too
+      c.setValue(p.time);
       return { ok: true };
     }
   }
@@ -372,15 +442,17 @@ function getSchedules(empId) {
     if (!row[0]) continue;
     if (empId && String(row[1]) !== String(empId)) continue;
     result.push({
-      id:          row[0],
-      empId:       row[1],
-      month:       row[2],
-      year:        row[3],
-      dates:       row[4] ? JSON.parse(row[4]) : {},
-      status:      row[5],
-      submittedAt: row[6],
-      approvedAt:  row[7],
-      approvedBy:  row[8],
+      id:                 row[0],
+      empId:              row[1],
+      month:              row[2],
+      year:               row[3],
+      dates:              row[4] ? JSON.parse(row[4]) : {},
+      status:             row[5],
+      submittedAt:        row[6],
+      approvedAt:         row[7],
+      approvedBy:         row[8],
+      isEdit:             row[9] === 'TRUE' || row[9] === true,
+      originalScheduleId: row[10] || '',
     });
   }
   return { ok: true, data: result };
@@ -389,8 +461,24 @@ function getSchedules(empId) {
 function submitSchedule(p) {
   const ss    = openSS();
   const sh    = ss.getSheetByName(SH.SCHEDULES);
-  const newId = 'SCH' + Date.now();
   const now   = fmtDateTime(new Date());
+  const data  = sh.getDataRange().getValues();
+  // Upsert — one schedule per employee per month/year. Resubmitting UPDATES the
+  // existing row instead of creating a duplicate pending request.
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1]) === String(p.empId) &&
+        String(data[i][2]) === String(p.month) &&
+        String(data[i][3]) === String(p.year)) {
+      const r = i + 1;
+      sh.getRange(r, 5).setValue(JSON.stringify(p.dates)); // datesJSON
+      sh.getRange(r, 6).setValue('Pending');               // status
+      sh.getRange(r, 7).setValue(now);                     // submittedAt
+      sh.getRange(r, 8).setValue('');                      // approvedAt
+      sh.getRange(r, 9).setValue('');                      // approvedBy
+      return { ok: true, scheduleId: data[i][0], updated: true };
+    }
+  }
+  const newId = 'SCH' + Date.now();
   sh.appendRow([
     newId,
     p.empId,
@@ -406,11 +494,78 @@ function submitSchedule(p) {
 }
 
 function approveSchedule(p) {
+  const ss   = openSS();
+  const sh   = ss.getSheetByName(SH.SCHEDULES);
+  const data = sh.getDataRange().getValues();
+
+  // Find the row being approved
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) !== String(p.scheduleId)) continue;
+    const isEdit = data[i][9] === 'TRUE' || data[i][9] === true;
+    const origId = String(data[i][10] || '');
+
+    if (isEdit && origId) {
+      // Edit request — merge the edited date(s) into the original approved schedule
+      const editDates = data[i][4] ? JSON.parse(data[i][4]) : {};
+      for (let j = 1; j < data.length; j++) {
+        if (String(data[j][0]) !== origId) continue;
+        const origDates = data[j][4] ? JSON.parse(data[j][4]) : {};
+        Object.keys(editDates).forEach(function(dt) { origDates[dt] = editDates[dt]; });
+        sh.getRange(j + 1, 5).setValue(JSON.stringify(origDates));
+        break;
+      }
+    }
+    break;
+  }
+
   return setScheduleStatus(p.scheduleId, 'Approved', p.approvedBy);
 }
 
 function rejectSchedule(p) {
   return setScheduleStatus(p.scheduleId, 'Rejected', p.approvedBy);
+}
+
+function editSchedule(p) {
+  if (!p.empId || !p.originalScheduleId || !p.date || !p.dates)
+    return { ok: false, error: 'ข้อมูลไม่ครบถ้วน' };
+
+  const ss   = openSS();
+  const sh   = ss.getSheetByName(SH.SCHEDULES);
+  const data = sh.getDataRange().getValues();
+  const now  = fmtDateTime(new Date());
+
+  // ถ้ามี pending edit request สำหรับวันนี้อยู่แล้ว — อัปเดต row เดิมแทน
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;
+    if (String(row[1]) !== String(p.empId)) continue;
+    if (String(row[5]) !== 'Pending') continue;
+    if (row[9] !== 'TRUE' && row[9] !== true) continue;
+    if (String(row[10]) !== String(p.originalScheduleId)) continue;
+    const existingDates = row[4] ? JSON.parse(row[4]) : {};
+    if (existingDates[p.date]) {
+      sh.getRange(i + 1, 5).setValue(JSON.stringify(p.dates));
+      sh.getRange(i + 1, 7).setValue(now);
+      return { ok: true, scheduleId: row[0], updated: true };
+    }
+  }
+
+  // สร้าง pending edit request ใหม่
+  const newId = 'SCH' + Date.now();
+  sh.appendRow([
+    newId,
+    p.empId,
+    p.month,
+    p.year,
+    JSON.stringify(p.dates),
+    'Pending',
+    now,
+    '',
+    '',
+    'TRUE',                  // [9]  isEdit flag
+    p.originalScheduleId,    // [10] originalScheduleId
+  ]);
+  return { ok: true, scheduleId: newId };
 }
 
 function setScheduleStatus(scheduleId, status, approvedBy) {
@@ -450,8 +605,55 @@ function submitOT(p) {
     now,
     '',
     '',
+    p.startTime || '',   // [9]  start HH:MM
+    p.endTime   || '',   // [10] end   HH:MM
   ]);
   return { ok: true, otId: newId };
+}
+
+// Return all OT requests for a specific employee (all statuses), newest first.
+function getOT(empId) {
+  const ss   = openSS();
+  const sh   = ss.getSheetByName(SH.OT_REQUESTS);
+  const data = sh.getDataRange().getValues();
+  const records = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;
+    if (empId && String(row[1]) !== String(empId)) continue;
+    records.push({
+      id:             row[0],
+      empId:          row[1],
+      date:           row[2] ? fmtDate(new Date(row[2])) : '',
+      requestedHours: row[3],
+      reason:         row[4],
+      status:         String(row[5] || '').toLowerCase(),
+      submittedAt:    row[6],
+      approvedAt:     row[7],
+      approvedBy:     row[8],
+      startTime:      fmtTime(row[9]),
+      endTime:        fmtTime(row[10]),
+    });
+  }
+  records.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+  return { ok: true, data: records };
+}
+
+// ประวัติ OT ของพนักงาน กรองตามเดือน/ปี (ใช้กับหน้าสถิติ OT ของพนักงาน)
+function getOTHistory(empId, month, year) {
+  const all = getOT(empId);
+  if (!all.ok) return all;
+  const mo = month ? parseInt(month) : null;
+  const yr = year  ? parseInt(year)  : null;
+  const filtered = all.data.filter(function(r) {
+    if (!r.date) return false;
+    const d = new Date(r.date);
+    if (isNaN(d)) return false;
+    if (mo && (d.getMonth() + 1) !== mo) return false;
+    if (yr && d.getFullYear() !== yr) return false;
+    return true;
+  });
+  return { ok: true, data: filtered };
 }
 
 function approveOT(p) {
@@ -477,10 +679,47 @@ function setOTStatus(otId, status, approvedBy) {
 // ════════════════════════════════════════════════════════════
 // ATTENDANCE — ดึงบันทึกเวลา (สำหรับ Export)
 // ════════════════════════════════════════════════════════════
-function getAttendance(empId, month, year) {
+function getAttendance(empId, month, year, limit) {
   const ss   = openSS();
   const sh   = ss.getSheetByName(SH.ATTENDANCE);
   const data = sh.getDataRange().getValues();
+
+  // ── Plan + specialDay map จาก APPROVED schedules: key "empId|date" -> {start,end,special} ──
+  const planMap = {};
+  const schData = ss.getSheetByName(SH.SCHEDULES).getDataRange().getValues();
+  for (let i = 1; i < schData.length; i++) {
+    const r = schData[i];
+    if (!r[0]) continue;
+    if (String(r[5]).toLowerCase() !== 'approved') continue;
+    const eId = String(r[1]);
+    const dates = r[4] ? JSON.parse(r[4]) : {};
+    Object.keys(dates).forEach(function(dt) {
+      planMap[eId + '|' + dt] = {
+        start:   dates[dt].start || '',
+        end:     dates[dt].end   || '',
+        special: dates[dt].specialDay === true,
+      };
+    });
+  }
+
+  // ── Approved OT map: key "empId|date" -> [{hours,start,end}] (เก็บเวลาเพื่อจำแนกก่อน/หลัง plan) ──
+  const otMap = {};
+  const otData = ss.getSheetByName(SH.OT_REQUESTS).getDataRange().getValues();
+  for (let i = 1; i < otData.length; i++) {
+    const r = otData[i];
+    if (!r[0]) continue;
+    if (String(r[5]).toLowerCase() !== 'approved') continue;
+    const dt = r[2] ? fmtDate(new Date(r[2])) : '';
+    if (!dt) continue;
+    const hrs = parseFloat(r[3]) || 0;
+    if (hrs <= 0) continue;                       // ข้ามคำขอ 0 ชม. (เช่น ขอออกก่อนเวลา)
+    const k = String(r[1]) + '|' + dt;
+    if (!otMap[k]) otMap[k] = [];
+    otMap[k].push({ hours: hrs, start: fmtTime(r[9]), end: fmtTime(r[10]) });
+  }
+
+  const toMin = function(t) { const a = t.split(':').map(Number); return a[0] * 60 + a[1]; };
+
   const records = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
@@ -490,15 +729,109 @@ function getAttendance(empId, month, year) {
     if (!d) continue;
     if (month && (d.getMonth() + 1) !== parseInt(month)) continue;
     if (year  && d.getFullYear()   !== parseInt(year))  continue;
+
+    const eId     = String(row[1]);
+    const dateStr = fmtDate(d);
+    const key     = eId + '|' + dateStr;
+    const plan    = planMap[key] || {};
+
+    const clockIn      = fmtTime(row[3]);
+    const clockOut     = fmtTime(row[4]);
+    const plannedStart = fmtTime(row[5]) || plan.start || '';
+    const plannedEnd   = fmtTime(row[6]) || plan.end   || '';
+
+    const dow       = d.getDay();
+    const isSpecial = (plan.special === true) || dow === 0 || dow === 6;
+
+    // สาย: clock in เกินแผน 15 นาที
+    let isLate = false;
+    if (clockIn && plannedStart) {
+      isLate = toMin(clockIn) > toMin(plannedStart) + 15;
+    }
+
+    // ── คำนวณ OT (แยกตามแรง 1 / 1.5 / 2) ──
+    // มาตรฐาน 9 ชม./วัน (ทำงาน 8 + พัก 1). OT×1 คิดจาก plan ที่ยาวเกิน 9 ชม. (ถึง plan end)
+    const completed  = !!(clockIn && clockOut);
+    let   planHours  = 0;
+    if (plannedStart && plannedEnd) planHours = (toMin(plannedEnd) - toMin(plannedStart)) / 60;
+    const planExcess = Math.max(0, planHours - 9);   // ชม. plan ที่เกินมาตรฐาน
+    const otReqs     = otMap[key] || [];             // คำขอ OT ที่อนุมัติของวันนั้น
+
+    let ot1 = 0, ot15 = 0, ot2 = 0;
+    if (isSpecial) {
+      // วันหยุด/วันพิเศษ — ทุกอย่างเป็น 2 แรง
+      if (completed) ot2 += planExcess;
+      if (clockIn) otReqs.forEach(function(o) { ot2 += o.hours; });
+    } else {
+      // วันธรรมดา
+      if (completed) ot1 += planExcess;            // ส่วนเกิน plan = 1 แรง
+      if (clockIn) otReqs.forEach(function(o) {
+        // จำแนกคำขอ OT: ก่อน plan เริ่ม = 1.5 แรง · หลัง plan ออก (หรือในแผน) = 1 แรง
+        let before = false;
+        if (o.start && o.end && plannedStart && plannedEnd) {
+          if (toMin(o.end) <= toMin(plannedStart))      before = true;   // ทั้งช่วงก่อน plan เริ่ม
+          else if (toMin(o.start) >= toMin(plannedEnd)) before = false;  // ทั้งช่วงหลัง plan ออก
+          else before = ((toMin(o.start) + toMin(o.end)) / 2) < toMin(plannedStart); // คาบเกี่ยว → ดูจุดกึ่งกลาง
+        }
+        if (before) ot15 += o.hours; else ot1 += o.hours;
+      });
+    }
+    const r2 = function(x) { return Math.round(x * 100) / 100; };
+    ot1 = r2(ot1); ot15 = r2(ot15); ot2 = r2(ot2);
+    const otHours    = r2(ot1 + ot15 + ot2);                  // ชม. OT รวม
+    const otWeighted = r2(ot1 * 1 + ot15 * 1.5 + ot2 * 2);    // แรงรวม (สำหรับคิดเงิน)
+
     records.push({
-      date:         fmtDate(d),
-      clockIn:      row[3] || '',
-      clockOut:     row[4] || '',
-      plannedStart: row[5] || '',
-      plannedEnd:   row[6] || '',
-      specialDay:   row[7] || false,
+      date:         dateStr,
+      clockIn:      clockIn,
+      clockOut:     clockOut,
+      plannedStart: plannedStart,
+      plannedEnd:   plannedEnd,
+      specialDay:   isSpecial ? 'พิเศษ' : 'ปกติ',
+      isLate:       isLate,
+      ot1:          ot1,
+      ot15:         ot15,
+      ot2:          ot2,
+      otHours:      otHours,
+      otWeighted:   otWeighted,
     });
   }
+  // แทรกวันลาที่อนุมัติแล้วเป็นแถว "ลา" (รายงานรายเดือน) — ใช้รายการวันลาที่เก็บไว้
+  // (ไม่อิงตารางงาน เพราะวันลาถูกลบออกจากตารางตอน approve แล้ว)
+  if (month && year && empId) {
+    const lvData = ss.getSheetByName(SH.LEAVE).getDataRange().getValues();
+    const LEAVE_LBL = { v: 'ลาพักร้อน', s: 'ลาป่วย', p: 'ลากิจ' };
+    const seen = {};
+    records.forEach(function(r) { seen[r.date] = true; });
+    for (let i = 1; i < lvData.length; i++) {
+      const r = lvData[i];
+      if (!r[0]) continue;
+      if (String(r[1]) !== String(empId)) continue;
+      if (String(r[7]).toLowerCase() !== 'approved') continue;
+      let dts = [];
+      try { dts = r[12] ? JSON.parse(r[12]) : []; } catch (e) { dts = []; }
+      if (!dts.length && r[3] && r[4]) {   // fallback เรคคอร์ดเก่า
+        const s = new Date(r[3]), e = new Date(r[4]), c = new Date(s);
+        while (c <= e) { dts.push(fmtDate(c)); c.setDate(c.getDate() + 1); }
+      }
+      const label = LEAVE_LBL[String(r[2])] || 'ลา';
+      dts.forEach(function(ds) {
+        const d = new Date(ds);
+        if (isNaN(d)) return;
+        if ((d.getMonth() + 1) !== parseInt(month) || d.getFullYear() !== parseInt(year)) return;
+        if (seen[ds]) return;
+        records.push({
+          date: ds, clockIn: '', clockOut: '', plannedStart: '', plannedEnd: '',
+          specialDay: label, isLate: false, ot1: 0, ot15: 0, ot2: 0, otHours: 0, otWeighted: 0, isLeave: true,
+        });
+        seen[ds] = true;
+      });
+    }
+  }
+
+  // Newest first — ensures data[0] is the most recent record
+  records.sort(function(a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+  if (limit && parseInt(limit) > 0) records.splice(parseInt(limit));
   return { ok: true, data: records };
 }
 
@@ -506,7 +839,7 @@ function getAttendance(empId, month, year) {
 // LEAVE REQUESTS — คำขอวันลา
 // ════════════════════════════════════════════════════════════
 // Columns: [0]id [1]empId [2]type [3]startDate [4]endDate
-//          [5]days [6]reason [7]status [8]submittedAt [9]approvedAt [10]approvedBy
+//          [5]days [6]reason [7]status [8]submittedAt [9]approvedAt [10]approvedBy [11]medCertUrl [12]leaveDatesJSON
 
 // Leave entitlements per year (calendar year, no carry-over)
 const LEAVE_ENTITLEMENT = { v: 6, s: 30, p: 3 }; // vacation, sick, personal
@@ -515,23 +848,42 @@ function submitLeave(p) {
   if (!p.empId || !p.type || !p.startDate || !p.endDate)
     return { ok: false, error: 'ข้อมูลไม่ครบถ้วน' };
 
+  const start = new Date(p.startDate);
+  const end   = new Date(p.endDate);
+  if (end < start) return { ok: false, error: 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม' };
+
   // Validate 3-day advance for vacation and personal leave
-  const start  = new Date(p.startDate);
-  const now    = new Date();
+  const now = new Date();
   now.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((start - now) / 86400000);
   if (p.type !== 's' && diffDays < 3)
     return { ok: false, error: 'ลาพักร้อน/ลากิจ ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน' };
 
-  // Count requested days (weekdays only, exclude Thai holidays — simplified)
-  const end = new Date(p.endDate);
-  let days = 0;
+  const ss = openSS();
+
+  // นับวันลา = เฉพาะวันที่อยู่ในตารางงานที่ "อนุมัติแล้ว" (วันทำงานจริง) เท่านั้น
+  // วันที่พนักงานไม่ได้ลงตาราง = วันหยุดของเขาอยู่แล้ว ไม่ต้องหักวันลา
+  const schData = ss.getSheetByName(SH.SCHEDULES).getDataRange().getValues();
+  const workDates = {};
+  for (let i = 1; i < schData.length; i++) {
+    const r = schData[i];
+    if (!r[0]) continue;
+    if (String(r[1]) !== String(p.empId)) continue;
+    if (String(r[5]).toLowerCase() !== 'approved') continue;
+    const dts = r[4] ? JSON.parse(r[4]) : {};
+    Object.keys(dts).forEach(function(d) { workDates[d] = true; });
+  }
+  // เก็บ "รายการวันลาจริง" = วันในช่วงที่อยู่ในตารางงาน (วันเหล่านี้จะถูกลบออกจากตารางตอน approve)
+  const leaveDateList = [];
   const cursor = new Date(start);
   while (cursor <= end) {
-    const dow = cursor.getDay();
-    if (dow !== 0 && dow !== 6) days++;
+    const ds = fmtDate(cursor);
+    if (workDates[ds]) leaveDateList.push(ds);
     cursor.setDate(cursor.getDate() + 1);
   }
+  const days = leaveDateList.length;
+  if (days === 0)
+    return { ok: false, error: 'ช่วงวันที่เลือกไม่มีวันทำงานในตารางที่อนุมัติ — กรุณาสร้าง/รออนุมัติตารางงานของวันนั้นก่อน' };
 
   // Check remaining balance
   const year = start.getFullYear();
@@ -542,7 +894,20 @@ function submitLeave(p) {
       return { ok: false, error: 'วันลาคงเหลือไม่เพียงพอ (เหลือ ' + remaining + ' วัน, ขอ ' + days + ' วัน)' };
   }
 
-  const ss    = openSS();
+  // อัปโหลดใบรับรองแพทย์ขึ้น Google Drive (ถ้าแนบมา) แล้วเก็บลิงก์
+  let medCertUrl = '';
+  if (p.medCertData) {
+    try {
+      const folder = getOrCreateFolder_('Kyoto Shi - ใบรับรองแพทย์');
+      const bytes  = Utilities.base64Decode(p.medCertData);
+      const fname  = (p.empId || 'emp') + '_' + fmtDate(start) + '_' + Date.now() + '_' + (p.medCertName || 'medcert');
+      const blob   = Utilities.newBlob(bytes, p.medCertType || 'application/octet-stream', fname);
+      const file   = folder.createFile(blob);
+      try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+      medCertUrl = file.getUrl();
+    } catch (e) { medCertUrl = ''; }
+  }
+
   const sh    = ss.getSheetByName(SH.LEAVE);
   const newId = 'LV' + Date.now();
   const now2  = fmtDateTime(new Date());
@@ -558,12 +923,51 @@ function submitLeave(p) {
     now2,
     '',
     '',
+    medCertUrl,                      // [11] ลิงก์ใบรับรองแพทย์ใน Google Drive
+    JSON.stringify(leaveDateList),   // [12] รายการวันลาจริง (yyyy-MM-dd)
   ]);
-  return { ok: true, leaveId: newId, days };
+  return { ok: true, leaveId: newId, days, medCertUrl: medCertUrl };
 }
 
 function approveLeave(p) {
+  // เมื่ออนุมัติ → ยกเลิก (ลบ) วันลาออกจากตารางงานที่อนุมัติไว้
+  if (p.approve) {
+    const ss = openSS();
+    const data = ss.getSheetByName(SH.LEAVE).getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === p.leaveId) {
+        let dates = [];
+        try { dates = data[i][12] ? JSON.parse(data[i][12]) : []; } catch (e) { dates = []; }
+        // เรคคอร์ดเก่าที่ไม่มี leaveDatesJSON → ใช้ช่วง start..end
+        if (!dates.length && data[i][3] && data[i][4]) {
+          const s = new Date(data[i][3]), e = new Date(data[i][4]), c = new Date(s);
+          while (c <= e) { dates.push(fmtDate(c)); c.setDate(c.getDate() + 1); }
+        }
+        if (dates.length) removeDatesFromSchedule_(data[i][1], dates);
+        break;
+      }
+    }
+  }
   return setLeaveStatus(p.leaveId, p.approve ? 'Approved' : 'Rejected', p.approvedBy);
+}
+
+// ลบวันที่ระบุออกจากตารางงานที่ "อนุมัติแล้ว" ของพนักงาน (ใช้ตอนอนุมัติการลา)
+function removeDatesFromSchedule_(empId, dates) {
+  const ss = openSS();
+  const sh = ss.getSheetByName(SH.SCHEDULES);
+  const data = sh.getDataRange().getValues();
+  const dateSet = {};
+  dates.forEach(function(d) { dateSet[d] = true; });
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    if (String(data[i][1]) !== String(empId)) continue;
+    if (String(data[i][5]).toLowerCase() !== 'approved') continue;
+    let obj = {};
+    try { obj = data[i][4] ? JSON.parse(data[i][4]) : {}; } catch (e) { obj = {}; }
+    let changed = false;
+    Object.keys(dateSet).forEach(function(d) { if (obj[d]) { delete obj[d]; changed = true; } });
+    if (changed) sh.getRange(i + 1, 5).setValue(JSON.stringify(obj));
+  }
 }
 
 function setLeaveStatus(leaveId, status, approvedBy) {
@@ -607,6 +1011,41 @@ function getLeaveBalance(empId, year) {
   return { ok: true, data: balance, used, entitlement: LEAVE_ENTITLEMENT };
 }
 
+// ประวัติการลาของพนักงาน (ทุกสถานะ) เรียงใหม่สุดก่อน — กรองตามปีได้
+function getLeaveHistory(empId, year) {
+  const ss   = openSS();
+  const sh   = ss.getSheetByName(SH.LEAVE);
+  const data = sh.getDataRange().getValues();
+  const yr   = year ? parseInt(year) : null;
+  const records = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;
+    if (empId && String(row[1]) !== String(empId)) continue;
+    const startStr = fmtMaybe(row[3]);
+    if (yr) {
+      const d = row[3] ? new Date(row[3]) : null;
+      if (!d || d.getFullYear() !== yr) continue;
+    }
+    records.push({
+      id:        row[0],
+      empId:     row[1],
+      type:      row[2],
+      startDate: startStr,
+      endDate:   fmtMaybe(row[4]),
+      days:      row[5],
+      reason:    row[6],
+      status:    String(row[7] || '').toLowerCase(),  // approved/rejected/pending
+      submittedAt: row[8],
+      approvedAt:  row[9],
+      approvedBy:  row[10],
+      medCertUrl:  row[11] || '',
+    });
+  }
+  records.sort(function(a, b) { return a.startDate < b.startDate ? 1 : a.startDate > b.startDate ? -1 : 0; });
+  return { ok: true, data: records };
+}
+
 // ── Update getPendingApprovals to include Leave ──
 function getPendingApprovals() {
   const ss      = openSS();
@@ -625,11 +1064,15 @@ function getPendingApprovals() {
   for (let i = 1; i < schData.length; i++) {
     if (schData[i][5] === 'Pending') {
       pendSch.push({
-        id: schData[i][0], empId: schData[i][1],
-        name: empMap[schData[i][1]] || schData[i][1],
-        month: schData[i][2], year: schData[i][3],
-        dates: schData[i][4] ? JSON.parse(schData[i][4]) : {},
-        submittedAt: schData[i][6],
+        id:                 schData[i][0],
+        empId:              schData[i][1],
+        name:               empMap[schData[i][1]] || schData[i][1],
+        month:              schData[i][2],
+        year:               schData[i][3],
+        dates:              schData[i][4] ? JSON.parse(schData[i][4]) : {},
+        submittedAt:        schData[i][6],
+        isEdit:             schData[i][9] === 'TRUE' || schData[i][9] === true,
+        originalScheduleId: schData[i][10] || '',
       });
     }
   }
@@ -663,6 +1106,7 @@ function getPendingApprovals() {
         endDate:   lvData[i][4] ? fmtDate(new Date(lvData[i][4])) : '',
         days: lvData[i][5], reason: lvData[i][6],
         submittedAt: lvData[i][8],
+        medCertUrl: lvData[i][11] || '',
       });
     }
   }
@@ -697,6 +1141,49 @@ function getPendingApprovals() {
 }
 
 // ════════════════════════════════════════════════════════════
+// MIGRATE — อัปเดต Schedules Sheet ให้รองรับ Edit Schedule
+// รันครั้งเดียวจาก Apps Script Editor: เลือก migrateSchedulesSheet แล้วกด ▶ Run
+// ════════════════════════════════════════════════════════════
+// เรียกผ่าน URL: ?action=migrateSchedules
+// หรือรันตรงจาก editor ก็ได้: migrateSchedulesSheet()
+function migrateSchedulesColumns() {
+  const ss  = openSS();
+  const sh  = ss.getSheetByName('Schedules');
+  if (!sh) return { ok: false, error: 'ไม่พบ Sheet Schedules' };
+
+  const lastCol = sh.getLastColumn();
+  const headers = lastCol > 0 ? sh.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  const style   = function(cell) { cell.setFontWeight('bold').setBackground('#1A3560').setFontColor('#ffffff'); };
+  const added   = [];
+
+  if (headers[9] !== 'isEdit') {
+    const c = sh.getRange(1, 10); c.setValue('isEdit'); style(c); sh.setColumnWidth(10, 70);
+    added.push('K: isEdit');
+  }
+  if (headers[10] !== 'originalScheduleId') {
+    const c = sh.getRange(1, 11); c.setValue('originalScheduleId'); style(c); sh.setColumnWidth(11, 160);
+    added.push('L: originalScheduleId');
+  }
+
+  // Leave_Requests — เพิ่ม header approvedBy (K) และ medCertUrl (L)
+  const lv = ss.getSheetByName('Leave_Requests');
+  if (lv) {
+    const lvLast = lv.getLastColumn();
+    const lvH = lvLast > 0 ? lv.getRange(1, 1, 1, lvLast).getValues()[0] : [];
+    if (lvH[10] !== 'approvedBy') { const c = lv.getRange(1, 11); c.setValue('approvedBy'); style(c); sh.setColumnWidth(11, 120); added.push('Leave K: approvedBy'); }
+    if (lvH[11] !== 'medCertUrl') { const c = lv.getRange(1, 12); c.setValue('medCertUrl'); style(c); lv.setColumnWidth(12, 220); added.push('Leave L: medCertUrl'); }
+    if (lvH[12] !== 'leaveDates') { const c = lv.getRange(1, 13); c.setValue('leaveDates'); style(c); lv.setColumnWidth(13, 200); added.push('Leave M: leaveDates'); }
+  }
+
+  return { ok: true, added: added, message: added.length ? 'เพิ่ม column: ' + added.join(', ') : 'Column ครบแล้ว' };
+}
+
+function migrateSchedulesSheet() { // alias สำหรับรันจาก editor
+  const r = migrateSchedulesColumns();
+  SpreadsheetApp.getUi().alert(r.ok ? '✅ ' + r.message : '❌ ' + r.error);
+}
+
+// ════════════════════════════════════════════════════════════
 // SETUP — สร้าง Sheets อัตโนมัติ (รันครั้งเดียวตอนเริ่มต้น)
 // ════════════════════════════════════════════════════════════
 function setupSheets() {
@@ -705,7 +1192,7 @@ function setupSheets() {
   const defs = [
     {
       name:    'Employees',
-      headers: ['id','name','username','password','nickname','position','type','salary','bank','startDate','status','probationEnd','phone','idcard','address','dob','bankAcc','bankAccName','note','otrate'],
+      headers: ['id','name','username','password','nickname','position','type','salary','bank','startDate','status','probationEnd','phone','idcard','address','dob','bankAcc','bankAccName','note','otrate','pdpaConsent'],
     },
     {
       name:    'Attendance',
@@ -713,15 +1200,15 @@ function setupSheets() {
     },
     {
       name:    'Schedules',
-      headers: ['id','empId','month','year','datesJSON','status','submittedAt','approvedAt','approvedBy'],
+      headers: ['id','empId','month','year','datesJSON','status','submittedAt','approvedAt','approvedBy','isEdit','originalScheduleId'],
     },
     {
       name:    'OT_Requests',
-      headers: ['id','empId','date','requestedHours','reason','status','submittedAt','approvedAt','approvedBy'],
+      headers: ['id','empId','date','requestedHours','reason','status','submittedAt','approvedAt','approvedBy','startTime','endTime'],
     },
     {
       name:    'Leave_Requests',
-      headers: ['id','empId','type','startDate','endDate','days','reason','status','submittedAt','approvedAt'],
+      headers: ['id','empId','type','startDate','endDate','days','reason','status','submittedAt','approvedAt','approvedBy','medCertUrl','leaveDates'],
     },
   ];
 
@@ -751,6 +1238,12 @@ function setupSheets() {
 // ════════════════════════════════════════════════════════════
 // UTILITIES
 // ════════════════════════════════════════════════════════════
+// หา/สร้างโฟลเดอร์ใน Google Drive ตามชื่อ (สำหรับเก็บใบรับรองแพทย์)
+function getOrCreateFolder_(name) {
+  const it = DriveApp.getFoldersByName(name);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
+}
+
 function fmtDate(d) {
   return Utilities.formatDate(d, 'Asia/Bangkok', 'yyyy-MM-dd');
 }
@@ -763,4 +1256,17 @@ function fmtDateTime(d) {
 function fmtMaybe(v) {
   if (!v) return '';
   return (v instanceof Date) ? fmtDate(v) : String(v);
+}
+
+// Format a clock-time cell back to "HH:mm". If Sheets auto-converted "08:25" into a
+// time value, getValues() returns a Date — convert it back; otherwise return the text.
+function fmtTime(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  return (v instanceof Date) ? Utilities.formatDate(v, 'Asia/Bangkok', 'HH:mm') : String(v);
+}
+
+// One-way SHA-256 hash (hex) for storing passwords. Never store/return plaintext.
+function hashPw(s) {
+  const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(s), Utilities.Charset.UTF_8);
+  return raw.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
 }

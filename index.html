@@ -1167,6 +1167,13 @@ async function callAPI(params){
   const r=await fetch(url.toString());
   return r.json();
 }
+// POST (form-urlencoded) — ใช้ส่งข้อมูลก้อนใหญ่ เช่น ไฟล์ base64 ที่ส่งผ่าน GET ไม่ได้
+async function callAPIPost(params){
+  const body=new URLSearchParams();
+  Object.keys(params).forEach(k=>body.set(k,params[k]==null?'':params[k]));
+  const r=await fetch(SCRIPT_URL,{method:'POST',body});
+  return r.json();
+}
 
 /* ── SESSION ── */
 let currentUser=null; // { ok, role, empId, name, nickname, position }
@@ -1457,6 +1464,7 @@ async function renderApprovalTabs(){
           <div class="irow"><span class="ilabel">วันที่</span><span class="ival">${l.startDate}${l.endDate&&l.endDate!==l.startDate?' – '+l.endDate:''} (${l.days} วัน)</span></div>
           <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">${l.reason||'—'}</span></div>
           <div class="irow"><span class="ilabel">ยื่นเมื่อ</span><span class="ival">${l.submittedAt||'—'}</span></div>
+          ${l.medCertUrl?`<div class="irow"><span class="ilabel">ใบรับรองแพทย์</span><span class="ival"><a href="${l.medCertUrl}" target="_blank" style="color:var(--navy);font-weight:700;">📄 เปิดดูไฟล์</a></span></div>`:(l.type==='s'?`<div class="irow"><span class="ilabel">ใบรับรองแพทย์</span><span class="ival" style="color:var(--ink3);">— ไม่ได้แนบ</span></div>`:'')}
           <div class="div"></div>
           <div class="btn-row">
             <button class="btn btn-danger btn-full" onclick="approveLeaveAction('${l.id}','reject')">ปฏิเสธ</button>
@@ -2191,6 +2199,7 @@ async function submitOTRequest(){
     const endSel=document.getElementById('ot-end-sel');
     const [eh,em]=(endSel?.value||'18:00').split(':').map(Number);
     const hrs=((eh*60+em)-(sh*60+sm))/60;
+    if(hrs<=0){toast('⚠ เวลาสิ้นสุดต้องหลังเวลาเริ่ม OT');return;}
     const res=await callAPI({action:'submitOT',empId:currentUser.empId,date:otDate,requestedHours:hrs,reason:reasonEl.value,startTime:startSel.value,endTime:endSel?.value||''});
     if(res.ok){toast('ส่งคำขอ OT สำเร็จ ✓ รอ Owner อนุมัติ');renderOTHistory();}
     else toast('เกิดข้อผิดพลาด: '+res.error);
@@ -2228,8 +2237,18 @@ function validateLeaveSubmit(){
 
 async function submitLeaveRequest(type,startDate,endDate,reason){
   try{
-    const res=await callAPI({action:'submitLeave',empId:currentUser.empId,type,startDate,endDate,reason});
-    if(res.ok)toast('ส่งคำขอวันลาสำเร็จ ✓ รอ Owner อนุมัติ');
+    const params={action:'submitLeave',empId:currentUser.empId,type,startDate,endDate,reason};
+    // แนบใบรับรองแพทย์ (เฉพาะลาป่วย) → อ่านเป็น base64 ส่งไปเก็บที่ Google Drive
+    const fileEl=document.getElementById('medcert-file');
+    if(type==='s'&&fileEl&&fileEl.files&&fileEl.files.length){
+      const f=fileEl.files[0];
+      if(f.size>8*1024*1024){toast('⚠ ไฟล์ใหญ่เกิน 8MB กรุณาย่อขนาดก่อน');return;}
+      const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(f);});
+      params.medCertData=String(dataUrl).split(',')[1]||'';
+      params.medCertName=f.name; params.medCertType=f.type||'application/octet-stream';
+    }
+    const res=await callAPIPost(params);
+    if(res.ok){toast('ส่งคำขอวันลาสำเร็จ ✓ รอ Owner อนุมัติ');renderLeaveScreen();}
     else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
 }
