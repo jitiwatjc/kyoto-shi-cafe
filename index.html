@@ -761,7 +761,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       </div>
 
       <button class="btn btn-navy btn-full" style="padding:14px;" onclick="submitSchedule()">ส่งตารางขออนุมัติ</button>
-      <div style="text-align:center;font-size:10px;color:var(--ink3);margin-top:10px;">เวอร์ชัน v7 · 7 มิ.ย. 2026</div>
+      <div style="text-align:center;font-size:10px;color:var(--ink3);margin-top:10px;">เวอร์ชัน v8 · 7 มิ.ย. 2026</div>
     </div>
 
     <div id="sc-hist" style="display:none;">
@@ -2014,6 +2014,18 @@ function renderClockScreen(sched,todayRec){
     } else lateEl.style.display='none';
   }
 
+  // Clock In button — ล็อกจนกว่าจะถึง 2 ชม. ก่อนเวลาตาราง (เปิดได้ตั้งแต่ ciStart)
+  const ciBtn=document.getElementById('ci-btn');
+  if(ciBtn&&!alreadyIn){
+    if(nowMin<ciStart){
+      ciBtn.disabled=true;ciBtn.style.opacity='0.45';ciBtn.style.background='var(--ink3)';
+      ciBtn.textContent='🔒 Clock In เปิด '+fmtMin(ciStart)+' น.';
+    } else {
+      ciBtn.disabled=false;ciBtn.style.opacity='1';ciBtn.style.background='';
+      ciBtn.textContent='Clock In ตอนนี้';
+    }
+  }
+
   // Clock Out button (skip if already clocked out — disabled above already)
   const coBtn=document.getElementById('co-btn');
   const coBtnMsg=document.getElementById('co-btn-msg');
@@ -2065,6 +2077,13 @@ async function requestEarlyClockOut(){
 
 /* ── CLOCK IN WITH GPS ── */
 async function doClockInWithGPS(){
+  // กันกด Clock In ก่อนถึงเวลา (เปิดได้ 2 ชม. ก่อนตาราง)
+  if(todaySchedule&&todaySchedule.planStart){
+    const [ph,pm]=todaySchedule.planStart.split(':').map(Number);
+    const now=new Date(),nm=now.getHours()*60+now.getMinutes();
+    const ciOpen=ph*60+pm-120;
+    if(nm<ciOpen){toast('🔒 ยังไม่ถึงเวลา Clock In — เปิด '+fmtMin(ciOpen)+' น.');return;}
+  }
   const ciBtn=document.getElementById('ci-btn');
   if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='กำลังตรวจสอบ GPS...';}
   const gps=await checkGPS();
