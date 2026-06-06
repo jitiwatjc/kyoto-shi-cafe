@@ -244,8 +244,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .cal-cell.cal-holiday:not(.cal-work):not(.cal-past){background:var(--red-bg);color:var(--red);font-weight:700;}
 .cal-cell.cal-weekend.cal-work{box-shadow:inset 0 0 0 2.5px var(--amber);}
 .cal-cell.cal-holiday.cal-work{box-shadow:inset 0 0 0 2.5px var(--red);}
-.cal-cell.cal-sched-approved:not(.cal-work){background:var(--green);color:#fff;font-weight:700;}
-.cal-cell.cal-sched-pending:not(.cal-work){background:var(--amber);color:#fff;font-weight:700;}
+.cal-cell.cal-sched-approved:not(.cal-work):not(.cal-past){background:var(--green)!important;color:#fff!important;font-weight:700;}
+.cal-cell.cal-sched-pending:not(.cal-work):not(.cal-past){background:var(--amber)!important;color:#fff!important;font-weight:700;}
 
 /* WORK DAY TIME ROW */
 .wday-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
@@ -764,19 +764,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
     </div>
 
     <div id="sc-hist" style="display:none;">
-      <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
-        <div class="lrow" style="cursor:default;">
-          <div class="lcol"><div class="ltitle">พ.ค. 2026 (1–14)</div><div class="lsub">ทำงาน 10 วัน</div></div>
-          <span class="chip chip-green">Approved</span>
-        </div>
-        <div class="lrow" style="cursor:default;">
-          <div class="lcol"><div class="ltitle">เม.ย. 2026</div><div class="lsub">ทำงาน 22 วัน</div></div>
-          <span class="chip chip-green">Approved</span>
-        </div>
-        <div class="lrow" style="cursor:default;">
-          <div class="lcol"><div class="ltitle">มี.ค. 2026</div><div class="lsub">ทำงาน 21 วัน</div></div>
-          <span class="chip chip-green">Approved</span>
-        </div>
+      <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;" id="sched-hist-list">
+        <div style="color:var(--ink3);font-size:13px;padding:14px 0;text-align:center;">กำลังโหลด...</div>
       </div></div>
     </div>
   </div>
@@ -1285,6 +1274,7 @@ function swTab(el,tid){
   const pre=tid.split('-').slice(0,-1).join('-');
   document.querySelectorAll('[id^="'+pre+'"]').forEach(d=>d.style.display='none');
   document.getElementById(tid).style.display='block';
+  if(tid==='sc-hist')renderSchedHistory();
 }
 
 /* ── OWNER APPROVE TABS ── */
@@ -2531,6 +2521,24 @@ async function loadExistingSchedules(){
     calExistingSchedules=(r.ok&&Array.isArray(r.data))?r.data:[];
   }catch(e){calExistingSchedules=[];}
   buildCalendar();
+  renderSchedHistory();
+}
+
+// แท็บ "ที่ผ่านมา" — แสดงตารางจริงที่ส่งไปแล้ว (จาก getSchedules)
+function renderSchedHistory(){
+  const el=document.getElementById('sched-hist-list');
+  if(!el)return;
+  const rows=(calExistingSchedules||[]).filter(s=>!s.isEdit&&Object.keys(s.dates||{}).length);
+  if(!rows.length){el.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:14px 0;text-align:center;">ยังไม่มีตารางที่ส่ง</div>';return;}
+  rows.sort((a,b)=>((b.year||0)-(a.year||0))||((b.month||0)-(a.month||0)));
+  const STC={approved:'chip-green',rejected:'chip-red',pending:'chip-amber'};
+  const STL={approved:'Approved',rejected:'Rejected',pending:'รออนุมัติ'};
+  el.innerHTML=rows.map(s=>{
+    const st=(s.status||'').toLowerCase();
+    const days=Object.keys(s.dates||{}).length;
+    const ml=(THAI_MONTHS_SHORT[(parseInt(s.month)||1)-1]||'')+' '+(s.year||'');
+    return `<div class="lrow" style="cursor:default;"><div class="lcol"><div class="ltitle">${ml}</div><div class="lsub">ทำงาน ${days} วัน</div></div><span class="chip ${STC[st]||'chip-amber'}">${STL[st]||s.status||''}</span></div>`;
+  }).join('');
 }
 
 function openScheduleEditPanel(key,info){
