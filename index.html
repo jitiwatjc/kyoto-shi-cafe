@@ -761,7 +761,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       </div>
 
       <button class="btn btn-navy btn-full" style="padding:14px;" onclick="submitSchedule()">ส่งตารางขออนุมัติ</button>
-      <div style="text-align:center;font-size:10px;color:var(--ink3);margin-top:10px;">เวอร์ชัน v8 · 7 มิ.ย. 2026</div>
+      <div style="text-align:center;font-size:10px;color:var(--ink3);margin-top:10px;">เวอร์ชัน v9 · 7 มิ.ย. 2026</div>
     </div>
 
     <div id="sc-hist" style="display:none;">
@@ -846,7 +846,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
           <div id="medcert-ok" class="upbox-ok" style="display:none;"></div>
         </div>
       </div>
-      <button class="btn btn-navy btn-full" onclick="validateLeaveSubmit()">ส่งคำขอ</button>
+      <button class="btn btn-navy btn-full" id="leave-submit-btn" onclick="validateLeaveSubmit()">ส่งคำขอ</button>
     </div>
     <div class="card" style="padding:0;"><div style="padding:14px 18px 14px;">
       <div class="card-title" style="margin-bottom:12px;">ประวัติปี <span id="leave-hist-year"></span></div>
@@ -878,6 +878,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
         <div class="fg">
           <label class="t-label">เวลาเริ่ม OT *</label>
           <select class="fi fi-sel" id="ot-start-sel" onchange="calcOTHours()">
+            <option value="" selected>— เลือกเวลา —</option>
             <option value="17:00">17:00 น.</option><option value="17:30">17:30 น.</option>
             <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
             <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
@@ -887,9 +888,10 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
         <div class="fg">
           <label class="t-label">เวลาสิ้นสุด OT *</label>
           <select class="fi fi-sel" id="ot-end-sel" onchange="calcOTHours()">
+            <option value="" selected>— เลือกเวลา —</option>
             <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
             <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
-            <option value="20:00" selected>20:00 น.</option><option value="20:30">20:30 น.</option>
+            <option value="20:00">20:00 น.</option><option value="20:30">20:30 น.</option>
             <option value="21:00">21:00 น.</option>
           </select>
         </div>
@@ -897,7 +899,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       <div style="background:var(--blue-lt);border-radius:var(--rsm);padding:12px;margin-bottom:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:13px;color:var(--ink2);">รวม OT ที่ขอ</span>
-          <span id="ot-hours-display" style="font-size:18px;font-weight:700;color:var(--navy);">2.5 ชั่วโมง</span>
+          <span id="ot-hours-display" style="font-size:18px;font-weight:700;color:var(--navy);">—</span>
         </div>
         <div id="ot-pay-display" style="font-size:11px;color:var(--ink3);text-align:right;margin-top:4px;"></div>
       </div>
@@ -906,7 +908,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
         <label class="t-label">เหตุผล / งานที่ต้องทำ *</label>
         <textarea class="fi" id="ot-reason-input" rows="3" placeholder="ระบุงานที่ต้องทำล่วงเวลา..." style="resize:none;line-height:1.6;"></textarea>
       </div>
-      <button class="btn btn-navy btn-full" onclick="submitOTRequest()">ส่งคำขอ OT</button>
+      <button class="btn btn-navy btn-full" id="ot-submit-btn" onclick="submitOTRequest()">ส่งคำขอ OT</button>
     </div>
 
     <!-- OT History (dynamic — fetched from API) -->
@@ -2144,6 +2146,7 @@ function calcOTHours(){
   const endSel=document.getElementById('ot-end-sel');
   const dispEl=document.getElementById('ot-hours-display');
   if(!startSel||!endSel||!dispEl)return;
+  if(!startSel.value||!endSel.value){dispEl.textContent='—';const pe=document.getElementById('ot-pay-display');if(pe)pe.textContent='';return;}
   const [sh,sm]=startSel.value.split(':').map(Number);
   const [eh,em]=endSel.value.split(':').map(Number);
   const hrs=((eh*60+em)-(sh*60+sm))/60;
@@ -2187,33 +2190,46 @@ async function renderOTHistory(){
   }catch(e){el.innerHTML='<div class="t-cap" style="text-align:center;padding:10px 0;color:var(--red);">ไม่สามารถเชื่อมต่อได้</div>';}
 }
 
+let _otSubmitting=false;
 async function submitOTRequest(){
+  if(_otSubmitting)return;   // กันกดซ้ำระหว่างกำลังส่ง
   const dateSel=document.getElementById('ot-date-input');
   const startSel=document.getElementById('ot-start-sel');
+  const endSel=document.getElementById('ot-end-sel');
   const reasonEl=document.getElementById('ot-reason-input');
   const partEl=document.getElementById('ot-parttime-warn');
   if(partEl&&partEl.style.display!=='none'&&!confirm('คุณเป็นพนักงาน Part-time — OT ต้องได้รับ Approve พิเศษจาก Owner ต้องการส่งคำขอต่อไปหรือไม่?'))return;
-  if(!dateSel||!startSel||!reasonEl){toast('กรุณากรอกข้อมูลให้ครบ');return;}
+  if(!dateSel||!startSel||!endSel||!reasonEl){toast('กรุณากรอกข้อมูลให้ครบ');return;}
   const otDate=dateSel.value;
   if(!otDate){toast('กรุณาเลือกวันที่');return;}
   if(otDate<todayISO()){toast('⚠ ไม่สามารถขอ OT ย้อนหลังได้');return;}
-  // Validate: OT must be submitted ≥6 hours before start time
+  if(!startSel.value||!endSel.value){toast('กรุณาเลือกเวลาเริ่มและเวลาสิ้นสุด OT');return;}
   const [sh,sm]=startSel.value.split(':').map(Number);
-  const otStartMs=new Date(otDate+'T'+startSel.value).getTime();
-  const nowMs=Date.now();
-  const diffHrs=(otStartMs-nowMs)/3600000;
+  const [eh,em]=endSel.value.split(':').map(Number);
+  const hrs=((eh*60+em)-(sh*60+sm))/60;
+  if(hrs<=0){toast('⚠ เวลาสิ้นสุดต้องหลังเวลาเริ่ม OT');return;}
+  // Validate: OT must be submitted ≥6 hours before start time
+  const diffHrs=(new Date(otDate+'T'+startSel.value).getTime()-Date.now())/3600000;
   if(diffHrs<6){toast('⚠ ต้องยื่นขอ OT ล่วงหน้าอย่างน้อย 6 ชั่วโมง (เหลือ '+Math.round(diffHrs*10)/10+' ชม.)');return;}
   if(!reasonEl.value.trim()){toast('กรุณาระบุเหตุผล');return;}
   if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
+  // lock ปุ่ม
+  _otSubmitting=true;
+  const btn=document.getElementById('ot-submit-btn');
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังส่ง...';}
   try{
-    const endSel=document.getElementById('ot-end-sel');
-    const [eh,em]=(endSel?.value||'18:00').split(':').map(Number);
-    const hrs=((eh*60+em)-(sh*60+sm))/60;
-    if(hrs<=0){toast('⚠ เวลาสิ้นสุดต้องหลังเวลาเริ่ม OT');return;}
-    const res=await callAPI({action:'submitOT',empId:currentUser.empId,date:otDate,requestedHours:hrs,reason:reasonEl.value,startTime:startSel.value,endTime:endSel?.value||''});
-    if(res.ok){toast('ส่งคำขอ OT สำเร็จ ✓ รอ Owner อนุมัติ');renderOTHistory();}
-    else toast('เกิดข้อผิดพลาด: '+res.error);
+    const res=await callAPI({action:'submitOT',empId:currentUser.empId,date:otDate,requestedHours:hrs,reason:reasonEl.value,startTime:startSel.value,endTime:endSel.value});
+    if(res.ok){
+      toast('ส่งคำขอ OT สำเร็จ ✓ รอ Owner อนุมัติ');
+      // ล้างฟอร์ม + refresh
+      startSel.value='';endSel.value='';reasonEl.value='';calcOTHours();
+      renderOTHistory();renderOTScreen();
+    }else toast('เกิดข้อผิดพลาด: '+(res.error||''));
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+  finally{
+    _otSubmitting=false;
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ส่งคำขอ OT';}
+  }
 }
 
 /* ── LEAVE VALIDATION ── */
@@ -2245,7 +2261,12 @@ function validateLeaveSubmit(){
   submitLeaveRequest(type,startEl.value,endEl.value,reasonEl.value);
 }
 
+let _leaveSubmitting=false;
 async function submitLeaveRequest(type,startDate,endDate,reason){
+  if(_leaveSubmitting)return;   // กันกดซ้ำ
+  _leaveSubmitting=true;
+  const btn=document.getElementById('leave-submit-btn');
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังส่ง...';}
   try{
     const params={action:'submitLeave',empId:currentUser.empId,type,startDate,endDate,reason};
     // แนบใบรับรองแพทย์ (เฉพาะลาป่วย) → อ่านเป็น base64 ส่งไปเก็บที่ Google Drive
@@ -2259,8 +2280,12 @@ async function submitLeaveRequest(type,startDate,endDate,reason){
     }
     const res=await callAPIPost(params);
     if(res.ok){toast('ส่งคำขอวันลาสำเร็จ ✓ รอ Owner อนุมัติ');renderLeaveScreen();}
-    else toast('เกิดข้อผิดพลาด: '+res.error);
+    else toast('เกิดข้อผิดพลาด: '+(res.error||''));
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+  finally{
+    _leaveSubmitting=false;
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ส่งคำขอ';}
+  }
 }
 
 /* ── EMPLOYEE LIST (OWNER) ── */
