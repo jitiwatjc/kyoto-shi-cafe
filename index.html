@@ -2512,6 +2512,18 @@ function getExistingScheduleForDate(key){
   return null;
 }
 
+// รวมวันทำงานเดิมของเดือนที่กำลังดู (จากตารางที่ส่งไปแล้ว ยกเว้น rejected/edit-request)
+// เพื่อกันการ "ส่งทับ" ทำให้วันเดิมหาย
+function existingMonthDates(){
+  const m2=String(calMonth+1).padStart(2,'0'), prefix=`${calYear}-${m2}-`, out={};
+  for(const s of calExistingSchedules){
+    if(!s.dates||s.isEdit) continue;
+    if((s.status||'').toLowerCase()==='rejected') continue;
+    Object.keys(s.dates).forEach(k=>{ if(k.startsWith(prefix)&&!calSelected[k]) out[k]=s.dates[k]; });
+  }
+  return out;
+}
+
 async function loadExistingSchedules(){
   if(!currentUser){calExistingSchedules=[];buildCalendar();return;}
   try{
@@ -2788,9 +2800,11 @@ function filterCalendar(){
 }
 
 async function submitSchedule(){
-  const keys=Object.keys(calSelected);
-  if(!keys.length){toast('กรุณาเลือกวันทำงานก่อน');return;}
+  if(!Object.keys(calSelected).length){toast('กรุณาเลือกวันทำงานก่อน');return;}
   if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
+  // รวมวันเดิมของเดือนนี้ + วันที่เพิ่งเลือก → ส่งครบทั้งชุด (กันวันเดิมหาย)
+  const merged={...existingMonthDates(),...calSelected};
+  const keys=Object.keys(merged);
   toast('กำลังส่งตาราง...');
   try{
     const res=await callAPI({
@@ -2798,11 +2812,12 @@ async function submitSchedule(){
       empId:currentUser.empId,
       month:calMonth+1,
       year:calYear,
-      dates:JSON.stringify(calSelected),
+      dates:JSON.stringify(merged),
     });
     if(res.ok){
       toast('ส่งตาราง '+keys.length+' วัน สำเร็จ รอ Owner อนุมัติ ✓');
-      calSelected={};buildCalendar();
+      calSelected={};
+      await loadExistingSchedules();   // refresh → ปฏิทิน highlight วันที่ส่งแล้วทันที
     }else{toast('เกิดข้อผิดพลาด: '+res.error);}
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
 }
