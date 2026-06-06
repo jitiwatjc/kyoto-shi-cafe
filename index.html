@@ -761,7 +761,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
       </div>
 
       <button class="btn btn-navy btn-full" style="padding:14px;" onclick="submitSchedule()">ส่งตารางขออนุมัติ</button>
-      <div style="text-align:center;font-size:10px;color:var(--ink3);margin-top:10px;">เวอร์ชัน v10 · 7 มิ.ย. 2026</div>
+      <div style="text-align:center;font-size:10px;color:var(--ink3);margin-top:10px;">เวอร์ชัน v11 · 7 มิ.ย. 2026</div>
     </div>
 
     <div id="sc-hist" style="display:none;">
@@ -1120,7 +1120,7 @@ function go(id){
   const c=document.querySelector('.sc.on');if(c){c.classList.remove('on');hist.push(c.id);}
   document.getElementById(id).classList.add('on');window.scrollTo(0,0);
   if(id==='s-emp-clockin'){initClockScreen();startGPSBanner();}
-  if(id==='s-emp-sched'){renderSchedDeadlineBanner();loadExistingSchedules();}
+  if(id==='s-emp-sched'){const _n=new Date();calYear=_n.getFullYear();calMonth=_n.getMonth();renderSchedDeadlineBanner();loadExistingSchedules();}
   if(id==='s-emp-ot'){renderOTRate();renderOTScreen();renderOTHistory();}
   if(id==='s-emp-leave'){renderLeaveScreen();}
   if(id==='s-emp-home'){renderEmpHome();}
@@ -2529,7 +2529,8 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 /* ════════════════════════════════════
    CALENDAR SCHEDULE
 ════════════════════════════════════ */
-let calYear=2026, calMonth=4; // พฤษภาคม 2026
+const _calInitNow=new Date();
+let calYear=_calInitNow.getFullYear(), calMonth=_calInitNow.getMonth(); // เริ่มที่เดือนปัจจุบัน
 let calSelected={}; // { "2026-05-18": { start:"08:30", end:"17:00" } }
 let calExistingSchedules=[]; // schedules fetched from API (approved + pending)
 let calEditTarget=null; // { scheduleId, key, start, end, month, year, status }
