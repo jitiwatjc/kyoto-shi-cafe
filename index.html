@@ -1466,7 +1466,43 @@ async function rvSaveEdit(id){
   const p={id:id,date:raw_('e_d_'+id),staff:orig.staff||'',cash:n('e_c'),transfer1:n('e_t1'),transfer2:n('e_t2'),grab:n('e_g'),posCash:n('e_pc'),posTransfer:n('e_ptr'),posBar:n('e_pb'),posBakery:n('e_pk'),posKitchen:n('e_pf'),note:raw_('e_note_'+id)};
   try{const r=await revSubmit('updateRevenue',p);if(r&&r.ok){toast('✅ แก้ไขยอดวันที่ '+p.date+' แล้ว');renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
-async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button><button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div id="bkc_${x.id}" style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;" onclick="brkEditCard('${x.id}')">✏️ แก้ไข</button><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button><button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+/* ── แก้ไขรายละเอียดออเดอร์เบรค (ฟอร์ม + บันทึก + ตรวจซ้ำกับ backend กัน false success) ── */
+function brkEditCard(id){
+  const x=(brkList||[]).find(o=>String(o.id)===String(id)); if(!x)return;
+  const el=document.getElementById('bkc_'+id); if(!el)return;
+  const types=(storeCfg&&storeCfg.brkTypes&&storeCfg.brkTypes.length)?storeCfg.brkTypes:[x.type||''];
+  const typeOpts=types.map(t=>`<option${t===x.type?' selected':''}>${esc_(t)}</option>`).join('');
+  el.innerHTML=
+    `<div style="font-weight:600;color:var(--amber);margin-bottom:8px;">✏️ แก้ไขออเดอร์เบรค</div>`+
+    `<label class="t-label">ชื่อลูกค้า/บริษัท</label><input type="text" class="fi" id="be_cust_${id}" value="${esc_(x.customer||'')}">`+
+    `<label class="t-label" style="margin-top:8px;">รายละเอียด</label><input type="text" class="fi" id="be_detail_${id}" value="${esc_(x.detail||'')}">`+
+    `<div class="fg2" style="margin-top:8px;"><div><label class="t-label">ยอดเงิน (฿)</label><input type="number" inputmode="decimal" class="fi" id="be_amt_${id}" value="${x.amount!=null?x.amount:''}"></div><div><label class="t-label">วันที่จอง</label><input type="date" class="fi" id="be_book_${id}" value="${esc_(x.bookDate||'')}"></div></div>`+
+    `<label class="t-label" style="margin-top:8px;">ประเภท</label><select class="fi fi-sel" id="be_type_${id}">${typeOpts}</select>`+
+    `<label class="t-label" style="margin-top:8px;">วันเวลานัดรับ</label><input type="datetime-local" class="fi" id="be_pickup_${id}" value="${esc_(x.pickup||'')}">`+
+    `<div class="btn-row" style="margin-top:10px;gap:6px;display:flex;"><button class="btn btn-sm btn-success" style="flex:1;" onclick="brkSaveEdit('${id}')">💾 บันทึก</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="renderBreakList()">ยกเลิก</button></div>`;
+}
+async function brkSaveEdit(id){
+  const g=fid=>raw_(fid+'_'+id);
+  const amount=Number(g('be_amt'))||0;
+  const p={id:id,edit:true,customer:(g('be_cust')||'').trim(),detail:g('be_detail'),amount:amount,type:g('be_type'),bookDate:g('be_book'),pickup:g('be_pickup')};
+  if(!p.customer)return toast('กรุณาใส่ชื่อลูกค้า');
+  try{
+    const r=await revSubmit('updateBreak',p);
+    if(!(r&&r.ok))return toast('❌ '+((r&&r.error)||'แก้ไขไม่สำเร็จ — backend อาจยังไม่รองรับ'));
+    // ตรวจซ้ำกับ backend: อ่านกลับมาเทียบ กัน false success
+    let warned=false;
+    try{
+      const chk=await revGet('listOpenBreaks');
+      const rec=((chk&&chk.data)||[]).find(o=>String(o.id)===String(id));
+      if(rec&&(String(rec.customer||'').trim()!==p.customer||Math.abs((Number(rec.amount)||0)-amount)>0.01)){
+        warned=true; toast('⚠ บันทึกแล้ว แต่ค่าบางส่วนไม่เปลี่ยน — backend (REVENUE_URL) ยังไม่รองรับแก้ฟิลด์นี้');
+      }
+    }catch(e){}
+    if(!warned)toast('✅ แก้ไขเบรคแล้ว');
+    renderBreakList();
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+}
 async function renderPnl(){const el=document.getElementById('pnl-body');if(!el)return;el.innerHTML='<div class="t-cap">กำลังโหลด...</div>';try{const r=await revGet('getSummary');if(!r||!r.ok){el.innerHTML='<div class="alert alert-danger">'+((r&&r.error)||'เข้าถึงไม่ได้ (เฉพาะเจ้าของ)')+'</div>';return;}const d=r.data;el.innerHTML='<div class="stat-grid"><div class="stat-box"><div class="stat-val" style="color:var(--green)">'+rnd_(d.sales)+'</div><div class="stat-lbl">ยอดขาย</div></div><div class="stat-box"><div class="stat-val" style="color:var(--red)">'+rnd_(d.opex)+'</div><div class="stat-lbl">opex</div></div><div class="stat-box"><div class="stat-val">'+rnd_(d.profit)+'</div><div class="stat-lbl">กำไร</div></div></div><div class="card"><div class="card-title">P&L แยกครัว</div>'+(((d.kitchens)||[]).map(k=>'<div class="irow"><span class="ilabel">'+k.name+'</span><span class="ival">ขาย ฿'+rnd_(k.sales)+' · ทุน ฿'+rnd_(k.cost)+'</span></div>').join(''))+'</div><div class="card"><div class="card-title">เบรค (เดือนนี้)</div><div class="irow"><span class="ilabel">ส่งแล้ว</span><span class="ival">฿'+rnd_(d.breakDelivered)+'</span></div><div class="irow"><span class="ilabel">ค้างส่ง</span><span class="ival">฿'+rnd_(d.breakPending)+'</span></div></div>';}catch(e){el.innerHTML='<div class="alert alert-danger">โหลดไม่ได้</div>';}}
 
 /* ── API CONFIG ── */
