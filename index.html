@@ -87,7 +87,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .fi{width:100%;max-width:100%;min-width:0;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rsm);font-size:14px;color:var(--ink);background:var(--surface);outline:none;font-family:inherit;transition:border-color .2s;}
 .fi:focus{border-color:var(--navy);}
 /* iOS: date/time inputs ignore width:100% (native control) → force fit, กันล้นขอบจอ */
-input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:none;box-sizing:border-box;}
+input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-webkit-appearance:none;appearance:none;box-sizing:border-box;min-width:0;}
 .fi-sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7FA0' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
 .fhint{font-size:11px;color:var(--ink3);margin-top:5px;}
 .fsect{font-size:13px;font-weight:600;color:var(--navy);margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
@@ -254,6 +254,16 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
 .wday-row:last-child{border-bottom:none;}
 .wday-date{font-size:13px;font-weight:600;color:var(--ink);min-width:76px;}
 .wday-remove{width:28px;height:28px;border-radius:50%;border:none;background:var(--red-bg);color:var(--red);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* ── รายได้ (กระทบยอด ให้เหมือนต้นแบบ Made and Crafted) ── */
+.rv-total{background:var(--surface);border:2px dashed var(--amber);border-radius:var(--rsm);padding:11px;margin-top:14px;text-align:center;font-size:13px;color:var(--ink2);}
+.rv-total b{font-size:22px;color:var(--green);}
+.rv-brkbox{background:#FFFBF0;border:1px solid #F0E2B8;border-radius:var(--rsm);padding:10px 12px;margin-top:10px;}
+.rv-brkbox-h{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px;color:var(--amber);}
+.rv-brkbox-h span{color:var(--green);}
+.rv-brkli{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:5px 0;border-top:1px dashed #eadfbf;}
+.rv-brkli span:last-child{font-weight:600;color:var(--green);flex-shrink:0;}
+.rv-brkempty{color:var(--ink3);font-size:12px;text-align:center;padding:6px;}
+.rv-brknote{font-size:10.5px;color:var(--ink3);margin-top:6px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -524,6 +534,8 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
     <button class="bn" onclick="go('s-owner-home')"><span class="bn-icon"><svg class="ic"><use href="#ic-home"/></svg></span>Home</button>
     <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn on"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ<span class="bn-dot"></span></button>
+    <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
   </div>
 </div>
 
@@ -585,6 +597,8 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
     <button class="bn" onclick="go('s-owner-home')"><span class="bn-icon"><svg class="ic"><use href="#ic-home"/></svg></span>Home</button>
     <button class="bn on"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn" onclick="goApprove(0)"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ<span class="bn-dot"></span></button>
+    <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
   </div>
 </div>
 
@@ -1130,17 +1144,32 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
 
     <div id="st-pane-rev">
       <div class="card">
-        <label class="t-label">วันที่</label><input type="date" class="fi" id="rv-date">
+        <label class="t-label">วันที่</label><input type="date" class="fi" id="rv-date" onchange="renderRevList()">
         <div class="fhint" id="rv-by">ผู้กรอก: —</div>
-        <div class="fsect">💵 เงินจริง</div>
-        <div class="fg2"><div><label class="t-label">เงินสดนับ</label><input type="number" inputmode="decimal" class="fi" id="rv-cash" placeholder="0"></div><div><label class="t-label">โอนบริษัท</label><input type="number" class="fi" id="rv-t1" placeholder="0"></div></div>
-        <div class="fg2" style="margin-top:10px;"><div><label class="t-label">โอนบัญชี2</label><input type="number" class="fi" id="rv-t2" placeholder="0"></div><div><label class="t-label">Grab สุทธิ</label><input type="number" class="fi" id="rv-grab" placeholder="0"></div></div>
-        <div class="fsect">🧾 POS แยกครัว</div>
-        <div class="fg2"><div><label class="t-label">POS เงินสด</label><input type="number" class="fi" id="rv-poscash" placeholder="0"></div><div><label class="t-label">POS เงินโอน</label><input type="number" class="fi" id="rv-postr" placeholder="0"></div></div>
-        <div class="fg2" style="margin-top:10px;grid-template-columns:1fr 1fr 1fr;"><div><label class="t-label">บาร์น้ำ</label><input type="number" class="fi" id="rv-bar" placeholder="0"></div><div><label class="t-label">เบเกอรี่</label><input type="number" class="fi" id="rv-bake" placeholder="0"></div><div><label class="t-label">ครัว</label><input type="number" class="fi" id="rv-kit" placeholder="0"></div></div>
-        <button class="btn btn-success btn-full" style="margin-top:18px;" onclick="saveRevenue()">บันทึกรายได้</button>
+        <div class="fsect">💵 เงินจริง (กระแสเงิน)</div>
+        <div class="fg2"><div><label class="t-label">เงินสด (นับจริงในลิ้นชัก)</label><input type="number" inputmode="decimal" class="fi" id="rv-cash" placeholder="0" oninput="rvCalc()"></div><div><label class="t-label">เงินโอนเข้า — บริษัท</label><input type="number" inputmode="decimal" class="fi" id="rv-t1" placeholder="0" oninput="rvCalc()"></div></div>
+        <div class="fg2" style="margin-top:10px;"><div><label class="t-label">เงินโอนเข้า — บัญชี 2</label><input type="number" inputmode="decimal" class="fi" id="rv-t2" placeholder="0"></div><div><label class="t-label">Grab Delivery (สุทธิ)</label><input type="number" inputmode="decimal" class="fi" id="rv-grab" placeholder="0" oninput="rvCalc()"></div></div>
+        <div class="fsect">🧾 ยอดขาย POS (แยกครัว)</div>
+        <div class="fg2" style="grid-template-columns:1fr 1fr 1fr;"><div><label class="t-label">บาร์น้ำ</label><input type="number" inputmode="decimal" class="fi" id="rv-bar" placeholder="0"></div><div><label class="t-label">เบเกอรี่</label><input type="number" inputmode="decimal" class="fi" id="rv-bake" placeholder="0"></div><div><label class="t-label">ครัวอาหาร</label><input type="number" inputmode="decimal" class="fi" id="rv-kit" placeholder="0"></div></div>
+        <div class="fsect">💳 ยอดรวม POS (จากระบบ ไว้เช็กยอด)</div>
+        <div class="fg2"><div><label class="t-label">POS — เงินสด</label><input type="number" inputmode="decimal" class="fi" id="rv-poscash" placeholder="0" oninput="rvCalc()"></div><div><label class="t-label">POS — เงินโอน</label><input type="number" inputmode="decimal" class="fi" id="rv-postr" placeholder="0" oninput="rvCalc()"></div></div>
+        <div class="rv-total">ยอดขายวันนี้<br><b id="rv-salesview">0</b> บาท</div>
+        <div class="card" style="padding:8px 12px;margin:10px 0 0;box-shadow:none;">
+          <div class="irow" style="padding:8px 0;"><span class="ilabel">ผลต่างเงินสด (นับ − POS)</span><span class="ival" id="rv-diffcash">—</span></div>
+          <div class="irow" style="padding:8px 0;border-bottom:none;"><span class="ilabel">ผลต่างโอนบริษัท (โอน − POS)</span><span class="ival" id="rv-difftr">—</span></div>
+        </div>
+        <div class="rv-brkbox">
+          <div class="rv-brkbox-h">🎂 เบรคที่ส่งวันนี้ <span id="rv-brktotal">0 บาท</span></div>
+          <div id="rv-brklist"><div class="rv-brkempty">—</div></div>
+          <div class="rv-brknote">* แสดงไว้กระทบยอด — นับรวมใน POS แล้ว ไม่บวกซ้ำกับยอดขาย</div>
+        </div>
+        <label class="t-label" style="margin-top:14px;">📝 หมายเหตุ</label><input type="text" class="fi" id="rv-note" placeholder="เพิ่มเติม (ถ้ามี)">
+        <button class="btn btn-success btn-full" style="margin-top:14px;" onclick="saveRevenue()">บันทึกรายได้</button>
       </div>
-      <div class="card"><div class="card-title">รายได้ (ล่าสุด)</div><div id="rv-list" style="margin-top:12px;"><div class="t-cap">—</div></div></div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">📋 รายได้ของวันที่เลือก (กดแก้ยอดได้)<span class="t-cap" style="cursor:pointer;color:var(--info);flex-shrink:0;" onclick="renderRevList()">🔄 รีเฟรช</span></div>
+        <div id="rv-list" style="margin-top:12px;"><div class="t-cap">—</div></div>
+      </div>
     </div>
 
     <div id="st-pane-brk" style="display:none;">
@@ -1157,7 +1186,8 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
         <div class="fsect">③ การเงิน &amp; รับสินค้า</div>
         <div class="fg2"><div><label class="t-label">ยอดรวม (รวม VAT)</label><input type="number" class="fi" id="bk-amt" placeholder="0" oninput="brkVat()"></div><div id="bk-depwrap" style="display:none;"><label class="t-label">มัดจำ</label><input type="number" class="fi" id="bk-deposit" placeholder="0"></div></div>
         <div class="fhint" id="bk-vat">มูลค่าก่อน VAT — · VAT 7% —</div>
-        <div class="fg2" style="margin-top:10px;"><div><label class="t-label">วันเวลานัดรับ</label><input type="datetime-local" class="fi" id="bk-pickup"></div><div><label class="t-label">วิธีรับ</label><select class="fi fi-sel" id="bk-pickupm" onchange="brkPickupChanged()"><option>รับที่ร้าน</option><option>จัดส่ง</option></select></div></div>
+        <label class="t-label" style="margin-top:10px;">วันเวลานัดรับ</label><input type="datetime-local" class="fi" id="bk-pickup">
+        <label class="t-label" style="margin-top:10px;">วิธีรับ</label><select class="fi fi-sel" id="bk-pickupm" onchange="brkPickupChanged()"><option>รับที่ร้าน</option><option>จัดส่ง</option></select>
         <div id="bk-addrwrap" style="display:none;margin-top:10px;"><label class="t-label">ที่อยู่จัดส่ง</label><input type="text" class="fi" id="bk-addr" placeholder="ที่อยู่"></div>
 
         <div class="fsect">④ เอกสาร</div>
@@ -1183,7 +1213,7 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
 
     <div id="st-pane-exp" style="display:none;">
       <div class="card">
-        <div class="fg2"><div><label class="t-label">วันที่</label><input type="date" class="fi" id="ex-date"></div><div><label class="t-label">ร้าน/แหล่ง</label><select class="fi fi-sel" id="ex-vendor" onchange="exVendorChanged()"></select></div></div>
+        <div class="fg2"><div><label class="t-label">วันที่</label><input type="date" class="fi" id="ex-date" onchange="renderExpenseList()"></div><div><label class="t-label">ร้าน/แหล่ง</label><select class="fi fi-sel" id="ex-vendor" onchange="exVendorChanged()"></select></div></div>
         <div class="fg2" style="margin-top:12px;"><div><label class="t-label">หมวดหมู่</label><select class="fi fi-sel" id="ex-cat"></select></div><div><label class="t-label">ยอดรวมบิล</label><input type="number" class="fi" id="ex-total" placeholder="0" oninput="exRecalc()"></div></div>
         <label class="t-label" style="margin-top:12px;">รายละเอียด</label><input type="text" class="fi" id="ex-detail" placeholder="">
         <div class="fg2" style="margin-top:12px;"><div><label class="t-label">วิธีชำระ</label><select class="fi fi-sel" id="ex-pay"></select></div><div><label class="t-label">ชำระโดย</label><select class="fi fi-sel" id="ex-by"></select></div></div>
@@ -1192,6 +1222,7 @@ input[type="date"].fi,input[type="time"].fi{-webkit-appearance:none;appearance:n
         <div class="t-cap" id="ex-splitsum" style="text-align:right;">รวม 0%</div>
         <button class="btn btn-danger btn-full" style="margin-top:18px;" onclick="saveExpense()">บันทึกรายจ่าย</button>
       </div>
+      <div class="card"><div class="card-title">📋 รายจ่ายวันนี้ <span id="ex-daytotal" style="float:right;color:var(--red);font-weight:700;"></span></div><div id="ex-list" style="margin-top:12px;"><div class="t-cap">—</div></div></div>
     </div>
   </div>
 </div>
@@ -1246,13 +1277,13 @@ async function openStore(){
   ['rv-date','bk-date','ex-date'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=todayISO();});
   const by=document.getElementById('rv-by');if(by)by.textContent='ผู้กรอก: '+(currentUser?.name||currentUser?.empId||'—');
   if(!storeReady){ try{const r=await revGet('getConfig');if(r&&r.ok){storeCfg=r.config;fillStoreSelects();storeReady=true;}}catch(e){} }
-  go('s-store'); swStoreTab('rev'); brkInit(); renderRevList(); renderBreakList();
+  go('s-store'); swStoreTab('rev'); brkInit(); renderRevList(); renderBreakList(); renderExpenseList(); rvCalc();
 }
 function fillStoreSelects(){
   const opt=a=>(a||[]).map(v=>'<option>'+v+'</option>').join('');
   const set=(id,h)=>{const el=document.getElementById(id);if(el)el.innerHTML=h;};
   set('bk-type',opt(storeCfg.brkTypes)); set('ex-vendor',opt(storeCfg.vendors));
-  set('ex-cat',opt(storeCfg.categories)); set('ex-pay',opt(storeCfg.payMethods)); set('ex-by',opt(storeCfg.paidBys));
+  set('ex-cat',opt((currentUser&&currentUser.role==='owner')?storeCfg.categories:storeCfg.categories.filter(c=>c!=='Labor Cost'))); set('ex-pay',opt(storeCfg.payMethods)); set('ex-by',opt(storeCfg.paidBys));
   const ks=storeCfg.saleKitchens||['บาร์น้ำ','เบเกอรี่','ครัวอาหาร'];
   set('ex-splits',ks.map((k,i)=>'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div style="flex:1;font-size:13px;">'+k+'</div><input type="number" class="fi ex-split" data-k="'+k+'" value="'+(i===0?34:33)+'" style="width:84px;" oninput="exRecalc()"><span style="color:var(--ink3);">%</span></div>').join(''));
   exRecalc();
@@ -1262,11 +1293,11 @@ function exRecalc(){const tot=parseFloat(raw_('ex-total'))||0;let s=0;document.q
 function exVendorChanged(){if(!storeCfg||!storeCfg.vendorDefaults)return;const d=storeCfg.vendorDefaults[raw_('ex-vendor')];if(d&&d.cat){const c=document.getElementById('ex-cat');if(c)c.value=d.cat;}}
 async function saveRevenue(){
   if(!raw_('rv-date'))return toast('กรุณาเลือกวันที่');
-  const f={date:raw_('rv-date'),cash:raw_('rv-cash'),transfer1:raw_('rv-t1'),transfer2:raw_('rv-t2'),grab:raw_('rv-grab'),posCash:raw_('rv-poscash'),posTransfer:raw_('rv-postr'),posBar:raw_('rv-bar'),posBakery:raw_('rv-bake'),posKitchen:raw_('rv-kit'),staff:currentUser?.empId||'',note:''};
-  try{const r=await revSubmit('submitRevenue',f);if(r&&r.ok){toast('✅ บันทึกรายได้ · ขาย ฿'+rnd_(r.sales));renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  const f={date:raw_('rv-date'),cash:raw_('rv-cash'),transfer1:raw_('rv-t1'),transfer2:raw_('rv-t2'),grab:raw_('rv-grab'),posCash:raw_('rv-poscash'),posTransfer:raw_('rv-postr'),posBar:raw_('rv-bar'),posBakery:raw_('rv-bake'),posKitchen:raw_('rv-kit'),staff:(currentUser&&(currentUser.name||currentUser.empId))||'',note:raw_('rv-note')};
+  try{const r=await revSubmit('submitRevenue',f);if(r&&r.ok){const w=(Number(r.diffCash)&&r.diffCash!=null)?(' · ⚠ เงินสดต่าง '+rnd_(r.diffCash)):' · เงินสดตรง ✓';toast('✅ บันทึกรายได้ · ขาย ฿'+rnd_(r.sales)+w);['rv-cash','rv-t1','rv-t2','rv-grab','rv-poscash','rv-postr','rv-bar','rv-bake','rv-kit','rv-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});rvCalc();renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
 /* ── เบรค A⁺: รายการ / QA-QC / ฟอร์ม / ใบ PDF ── */
-let brkItems=[], brkQc=[];
+let brkItems=[], brkQc=[], brkList=[];
 function esc_(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 function brkInit(){
   if(!brkItems.length) brkItems=[{name:'',qty:'',unit:'ชิ้น',price:''}];
@@ -1304,23 +1335,54 @@ async function brkAction(id,act){
   const f={id:id}; if(act==='deliver')f.markDelivered=true; if(act==='cancel')f.cancel=true;
   try{const r=await revSubmit('updateBreak',f);if(r&&r.ok){toast('✅ '+(r.status||'อัปเดต'));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
+async function brkPay(id){
+  const dt=prompt('วันที่ลูกค้าชำระ (YYYY-MM-DD)',todayISO());
+  if(!dt)return;
+  try{const r=await revSubmit('updateBreak',{id:id,confirmPay:true,moneyInDate:dt});if(r&&r.ok){toast('✅ บันทึกชำระ — '+(r.status||''));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+}
+// ปุ่มชำระตามชนิด: มัดจำ → รับมัดจำ(งวด1) → เก็บคงเหลือ(งวด2) · เต็ม/เครดิต → ยืนยันชำระ
+function brkPayBtn(x){
+  if(x.paid) return '';
+  const isDep=String(x.type||'').indexOf('มัดจำ')>=0, m=(x.ext&&x.ext.money)||{};
+  if(isDep){
+    if(!m.depositDate) return `<button class="btn btn-sm" style="background:var(--blue);color:#fff;" onclick="brkDeposit('${x.id}')">💰 รับมัดจำ</button>`;
+    return `<button class="btn btn-sm" style="background:var(--blue);color:#fff;" onclick="brkSettle('${x.id}')">💳 เก็บคงเหลือ</button>`;
+  }
+  return `<button class="btn btn-sm" style="background:var(--blue);color:#fff;" onclick="brkPay('${x.id}')">💳 ยืนยันชำระ</button>`;
+}
+function brkDepInfo(x){
+  const m=(x.ext&&x.ext.money)||{};
+  if(String(x.type||'').indexOf('มัดจำ')>=0 && m.depositDate) return ` · มัดจำ ฿${rnd_(m.deposit)} ค้าง ฿${rnd_(m.balance)}`+(m.balanceDue?(' (ครบ '+m.balanceDue+')'):'');
+  return '';
+}
+async function brkDeposit(id){
+  const x=(brkList||[]).find(o=>String(o.id)===String(id)), m=(x&&x.ext&&x.ext.money)||{};
+  const amt=prompt('ยอดมัดจำ (บาท)', m.deposit||''); if(amt==null)return;
+  const dt=prompt('วันที่รับมัดจำ (YYYY-MM-DD)', todayISO()); if(!dt)return;
+  const due=prompt('กำหนดชำระยอดคงเหลือ (YYYY-MM-DD) — เว้นว่างได้', m.balanceDue||'');
+  try{const r=await revSubmit('updateBreak',{id:id,recordDeposit:true,depositAmount:amt,depositDate:dt,balanceDue:due||''});if(r&&r.ok){toast('✅ รับมัดจำแล้ว · ค้าง ฿'+rnd_(r.balance));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+}
+async function brkSettle(id){
+  const dt=prompt('วันที่รับยอดคงเหลือ (YYYY-MM-DD)', todayISO()); if(!dt)return;
+  try{const r=await revSubmit('updateBreak',{id:id,settleBalance:true,moneyInDate:dt});if(r&&r.ok){toast('✅ เก็บครบแล้ว — '+(r.status||''));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+}
 async function genBreakPdf(id){
-  if(!window.html2canvas||!window.jspdf){toast('lib ยังโหลดไม่เสร็จ ลองใหม่');return;}
+  if(!window.html2canvas||!window.jspdf){toast('กำลังโหลดตัวสร้างใบ... กดอีกครั้ง');return;}
+  const x=(brkList||[]).find(o=>String(o.id)===String(id));
+  if(!x){toast('❌ ไม่พบรายการ');return;}
   toast('กำลังสร้างใบ...');
-  let d; try{const r=await revGet('getBreak',{id});if(!r||!r.ok){toast('❌ '+((r&&r.error)||''));return;}d=r.data;}catch(e){toast('❌ โหลดไม่ได้');return;}
-  let host=document.getElementById('pdf-host'); if(!host){host=document.createElement('div');host.id='pdf-host';host.style.cssText='position:fixed;left:-9999px;top:0;';document.body.appendChild(host);}
+  const d={customer:x.customer,amount:x.amount,pickup:x.pickupShow||'',moneyIn:x.moneyIn,status:x.status,ext:x.ext||{}};
+  let host=document.getElementById('pdf-host'); if(!host){host=document.createElement('div');host.id='pdf-host';host.style.cssText='position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;';document.body.appendChild(host);}
   host.innerHTML=breakWorkOrderHtml(d);
   try{
     const canvas=await html2canvas(host.querySelector('.wo-sheet'),{scale:2,backgroundColor:'#fff'});
     const img=canvas.toDataURL('image/jpeg',0.92), {jsPDF}=window.jspdf, pdf=new jsPDF('p','pt','a4');
-    const pw=pdf.internal.pageSize.getWidth(), ih=canvas.height*pw/canvas.width, ph=pdf.internal.pageSize.getHeight();
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight(), ih=canvas.height*pw/canvas.width;
     pdf.addImage(img,'JPEG',0,0,pw,ih>ph?ph:ih);
-    const b64=pdf.output('datauristring');
-    const a=document.createElement('a');a.href=b64;a.download='เบรค_'+(d.customer||'')+'.pdf';a.click();
-    const up=await revSubmit('saveBreakPdf',{id:id,base64:b64,rev:((d.ext&&d.ext.rev)||1)});
-    if(up&&up.ok){await revSubmit('markBreakConfirmed',{id:id,by:currentUser?.name||''});toast('✅ ออกใบ + เก็บ Drive แล้ว');renderBreakList();}
-    else toast('✅ ดาวน์โหลดใบแล้ว (เก็บ Drive ไม่ได้)');
-  }catch(e){toast('❌ สร้างใบไม่ได้');}
+    pdf.save('เบรค_'+(x.customer||'order')+'.pdf');   // ส่งไฟล์ให้ลูกค้าตรง ๆ (ไม่เก็บ Drive)
+    host.innerHTML='';
+    toast('✅ ออกใบแล้ว — ส่งไฟล์ให้ลูกค้าได้เลย');
+  }catch(e){toast('❌ สร้างใบไม่ได้: '+((e&&e.message)||''));}
 }
 function breakWorkOrderHtml(d){
   const e=d.ext||{},m=e.money||{},co=e.company||{},ct=e.contact||{},items=e.items||[],NV='#16315C',GR='#1F5A37',AM='#C18F33';
@@ -1343,10 +1405,68 @@ async function saveExpense(){
   if(!raw_('ex-total'))return toast('กรุณาใส่ยอดรวมบิล');
   const splits=[];document.querySelectorAll('.ex-split').forEach(i=>splits.push({kitchen:i.dataset.k,pct:parseFloat(i.value)||0}));
   const f={date:raw_('ex-date'),vendor:raw_('ex-vendor'),category:raw_('ex-cat'),total:raw_('ex-total'),detail:raw_('ex-detail'),payMethod:raw_('ex-pay'),paidBy:raw_('ex-by'),staff:currentUser?.empId||'',splits:splits};
-  try{const r=await revSubmit('submitExpense',f);if(r&&r.ok){toast('✅ บันทึกรายจ่าย ฿'+rnd_(r.total));const t=document.getElementById('ex-total');if(t)t.value='';const dd=document.getElementById('ex-detail');if(dd)dd.value='';exRecalc();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  try{const r=await revSubmit('submitExpense',f);if(r&&r.ok){toast('✅ บันทึกรายจ่าย ฿'+rnd_(r.total));const t=document.getElementById('ex-total');if(t)t.value='';const dd=document.getElementById('ex-detail');if(dd)dd.value='';exRecalc();renderExpenseList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
-async function renderRevList(){const el=document.getElementById('rv-list');if(!el)return;try{const r=await revGet('listRecentRevenue',{date:raw_('rv-date')});const a=(r&&r.data)||[];el.innerHTML=a.length?a.map(x=>'<div class="irow"><span class="ilabel">'+x.date+' · '+(x.staff||'')+'</span><span class="ival">฿'+rnd_(x.sales)+'</span></div>').join(''):'<div class="t-cap">— ยังไม่มีรายการ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
-async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];el.innerHTML=a.length?a.map(x=>`<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;"><b>${x.customer||''}</b><span class="chip chip-amber">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}</div><div class="btn-row" style="margin-top:8px;"><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button><button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button><button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+async function renderExpenseList(){const el=document.getElementById('ex-list');if(!el)return;try{const r=await revGet('listExpenseByDate',{date:raw_('ex-date')});const a=(r&&r.data)||[];let tot=0;a.forEach(x=>tot+=(Number(x.total)||0));const t=document.getElementById('ex-daytotal');if(t)t.textContent=a.length?('รวม ฿'+rnd_(tot)):'';el.innerHTML=a.length?a.map(x=>`<div class="irow"><span class="ilabel">${x.vendor||''} · ${x.category||''}${x.detail?(' · '+x.detail):''}<br><span style="font-size:11px;color:var(--ink3);">โดย ${x.by||''}</span></span><span class="ival" style="color:var(--red);">฿${rnd_(x.total)}</span></div>`).join(''):'<div class="t-cap">— ยังไม่มีรายจ่ายวันนี้ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+/* ── รายได้: คำนวณสด + กระทบยอด + ลิสต์แยกครัว + แก้ไขยอด (ให้เหมือนต้นแบบ) ── */
+let rvRecent=[];
+function rvNum(id){const v=Number(raw_(id));return isNaN(v)?0:v;}
+function rvSetDiff(id,diff,empty){const e=document.getElementById(id);if(!e)return;
+  if(empty){e.textContent='—';e.style.color='var(--ink3)';return;}
+  diff=Math.round((Number(diff)||0)*100)/100;
+  if(diff===0){e.textContent='0 ฿ ✓';e.style.color='var(--green)';return;}
+  e.textContent=(diff>0?'+':'')+rnd_(diff)+' ฿ ⚠'+(diff>0?' เงินเกิน':' เงินขาด');e.style.color='var(--red)';}
+function rvCalc(){
+  const posCash=rvNum('rv-poscash'),posTr=rvNum('rv-postr'),grab=rvNum('rv-grab'),cash=rvNum('rv-cash'),t1=rvNum('rv-t1');
+  const sv=document.getElementById('rv-salesview');if(sv)sv.textContent=rnd_(posCash+posTr+grab);
+  rvSetDiff('rv-diffcash',cash-posCash,raw_('rv-poscash')==='');
+  rvSetDiff('rv-difftr',t1-posTr,raw_('rv-postr')==='');
+}
+async function rvLoadBreaks(d){
+  const tEl=document.getElementById('rv-brktotal'),lEl=document.getElementById('rv-brklist');
+  try{const r=await revGet('listRevenueBreaks',{date:d||raw_('rv-date')});const res=(r&&r.data)||{items:[],total:0};
+    if(tEl)tEl.textContent=rnd_(res.total)+' บาท';
+    if(lEl)lEl.innerHTML=(res.items&&res.items.length)?res.items.map(b=>`<div class="rv-brkli"><span>${esc_(b.customer)}${b.detail?(' · '+esc_(b.detail)):''}</span><span>${rnd_(b.amount)} ฿</span></div>`).join(''):'<div class="rv-brkempty">— ไม่มีเบรคส่งวันนี้ —</div>';
+  }catch(e){if(lEl)lEl.innerHTML='<div class="rv-brkempty">โหลดไม่ได้</div>';}
+}
+async function renderRevList(){
+  const el=document.getElementById('rv-list');if(!el)return;
+  const d=raw_('rv-date')||'';
+  rvLoadBreaks(d);
+  el.innerHTML='<div class="t-cap">กำลังโหลด...</div>';
+  try{const r=await revGet('listRecentRevenue',{date:d});rvRecent=(r&&r.data)||[];
+    el.innerHTML=rvRecent.length?rvRecent.map(rvCardHtml).join(''):('<div class="t-cap">'+(d?('ยังไม่มีรายได้ของวันที่ '+d):'ยังไม่มีรายการ')+'</div>');
+  }catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}
+}
+function rvCardHtml(r){
+  const cashFlag=Number(r.diffCash)===0?'<span style="color:var(--green);font-weight:600;">ตรง ✓</span>':`<span style="color:var(--red);font-weight:600;">⚠ ต่าง ${rnd_(r.diffCash)}</span>`;
+  const brk=(r.brkPickup?`เบรครับวันนี้ ${rnd_(r.brkPickup)}฿ · `:'')+(r.brkIn?`มัดจำเข้า ${rnd_(r.brkIn)}฿`:'');
+  const totalSales=(Number(r.posCash)||0)+(Number(r.posTransfer)||0)+(Number(r.grab)||0);
+  return `<div class="card" id="rvc_${r.id}" style="margin:8px 0;padding:10px 12px;">`+
+    `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b style="color:var(--navy);">${esc_(r.date)}</b><b style="color:var(--green);flex-shrink:0;">${rnd_(totalSales)} ฿</b></div>`+
+    `<div class="t-cap" style="line-height:1.7;margin-top:4px;">บาร์ ${rnd_(r.posBar)} · เบเกอรี่ ${rnd_(r.posBakery)} · ครัว ${rnd_(r.posKitchen)} · Grab ${rnd_(r.grab)}<br>POS สด ${rnd_(r.posCash)} / โอน ${rnd_(r.posTransfer)} · ผลต่างเงินสด ${cashFlag}${brk?('<br>'+brk):''} · โดย ${esc_(r.staff)}${r.note?('<br>📝 '+esc_(r.note)):''}</div>`+
+    `<button class="btn btn-sm btn-navy" style="width:100%;margin-top:8px;" onclick="rvEditCard('${r.id}')">✏️ แก้ไขยอดวันนี้</button></div>`;
+}
+function rvEditCard(id){
+  const r=rvRecent.filter(x=>String(x.id)===String(id))[0];if(!r)return;
+  const f=(lbl,fid,v)=>`<div><label class="t-label">${lbl}</label><input type="number" inputmode="decimal" class="fi" id="${fid}_${id}" value="${(v==null||v==='')?'':v}"></div>`;
+  document.getElementById('rvc_'+id).innerHTML=
+    `<div style="font-weight:600;color:var(--amber);margin-bottom:8px;">✏️ แก้ไขยอดวันที่ ${esc_(r.date)}</div>`+
+    `<label class="t-label">วันที่</label><input type="date" class="fi" id="e_d_${id}" value="${esc_(r.date)}">`+
+    `<div class="fg2" style="margin-top:8px;">${f('เงินสดนับ','e_c',r.cash)}${f('โอนบริษัท','e_t1',r.t1)}</div>`+
+    `<div class="fg2" style="margin-top:8px;">${f('บัญชี2','e_t2',r.t2)}${f('Grab','e_g',r.grab)}</div>`+
+    `<div class="fg2" style="margin-top:8px;">${f('POS-เงินสด','e_pc',r.posCash)}${f('POS-เงินโอน','e_ptr',r.posTransfer)}</div>`+
+    `<div class="fg2" style="margin-top:8px;grid-template-columns:1fr 1fr 1fr;">${f('บาร์น้ำ','e_pb',r.posBar)}${f('เบเกอรี่','e_pk',r.posBakery)}${f('ครัว','e_pf',r.posKitchen)}</div>`+
+    `<label class="t-label" style="margin-top:8px;">📝 หมายเหตุ</label><input type="text" class="fi" id="e_note_${id}" value="${esc_(r.note||'')}">`+
+    `<div class="btn-row" style="margin-top:10px;gap:6px;display:flex;"><button class="btn btn-sm btn-success" style="flex:1;" onclick="rvSaveEdit('${id}')">💾 บันทึกการแก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="renderRevList()">ยกเลิก</button></div>`;
+}
+async function rvSaveEdit(id){
+  const n=fid=>{const v=Number(raw_(fid+'_'+id));return isNaN(v)?0:v;};
+  const orig=rvRecent.filter(x=>String(x.id)===String(id))[0]||{};
+  const p={id:id,date:raw_('e_d_'+id),staff:orig.staff||'',cash:n('e_c'),transfer1:n('e_t1'),transfer2:n('e_t2'),grab:n('e_g'),posCash:n('e_pc'),posTransfer:n('e_ptr'),posBar:n('e_pb'),posBakery:n('e_pk'),posKitchen:n('e_pf'),note:raw_('e_note_'+id)};
+  try{const r=await revSubmit('updateRevenue',p);if(r&&r.ok){toast('✅ แก้ไขยอดวันที่ '+p.date+' แล้ว');renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+}
+async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button><button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
 async function renderPnl(){const el=document.getElementById('pnl-body');if(!el)return;el.innerHTML='<div class="t-cap">กำลังโหลด...</div>';try{const r=await revGet('getSummary');if(!r||!r.ok){el.innerHTML='<div class="alert alert-danger">'+((r&&r.error)||'เข้าถึงไม่ได้ (เฉพาะเจ้าของ)')+'</div>';return;}const d=r.data;el.innerHTML='<div class="stat-grid"><div class="stat-box"><div class="stat-val" style="color:var(--green)">'+rnd_(d.sales)+'</div><div class="stat-lbl">ยอดขาย</div></div><div class="stat-box"><div class="stat-val" style="color:var(--red)">'+rnd_(d.opex)+'</div><div class="stat-lbl">opex</div></div><div class="stat-box"><div class="stat-val">'+rnd_(d.profit)+'</div><div class="stat-lbl">กำไร</div></div></div><div class="card"><div class="card-title">P&L แยกครัว</div>'+(((d.kitchens)||[]).map(k=>'<div class="irow"><span class="ilabel">'+k.name+'</span><span class="ival">ขาย ฿'+rnd_(k.sales)+' · ทุน ฿'+rnd_(k.cost)+'</span></div>').join(''))+'</div><div class="card"><div class="card-title">เบรค (เดือนนี้)</div><div class="irow"><span class="ilabel">ส่งแล้ว</span><span class="ival">฿'+rnd_(d.breakDelivered)+'</span></div><div class="irow"><span class="ilabel">ค้างส่ง</span><span class="ival">฿'+rnd_(d.breakPending)+'</span></div></div>';}catch(e){el.innerHTML='<div class="alert alert-danger">โหลดไม่ได้</div>';}}
 
 /* ── API CONFIG ── */
@@ -2692,12 +2812,13 @@ async function renderOwnerHome(){
         listEl.innerHTML=rows.map((r,i)=>{
           const isLast=i===rows.length-1;
           const chip=r.clockIn
-            ?(r.late?`<span class="chip chip-amber">สาย</span>`:`<span class="chip chip-green">${r.clockIn}</span>`)
+            ?(r.late?`<span class="chip chip-amber">สาย</span>`:`<span class="chip chip-green">ตรงเวลา</span>`)
             :`<span class="chip chip-red">ยังไม่เข้า</span>`;
           const planTime=(r.plannedStart||r.planStart)&&(r.plannedEnd||r.planEnd)
-            ?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;">⏱ ${r.plannedStart||r.planStart} – ${r.plannedEnd||r.planEnd} น.</div>`:'';
+            ?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;">⏱ กะ ${r.plannedStart||r.planStart} – ${r.plannedEnd||r.planEnd} น.</div>`:'';
+          const actual=r.clockIn?`<div style="font-size:11px;color:var(--ink2);margin-top:2px;font-weight:600;">🕐 เข้า ${r.clockIn}${r.clockOut?(' · ออก '+r.clockOut):' · ยังไม่ออก'}</div>`:'';
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:${i===0?'0 0 12px':'12px 0'+(isLast?'':';border-bottom:1px solid var(--border)')};">
-            <div><div><span class="ltitle">${r.name||r.empId}</span> <span class="t-cap">${r.position||''}</span></div>${planTime}</div>${chip}</div>`;
+            <div><div><span class="ltitle">${r.name||r.empId}</span> <span class="t-cap">${r.position||''}</span></div>${planTime}${actual}</div>${chip}</div>`;
         }).join('');
       }
     } else {
