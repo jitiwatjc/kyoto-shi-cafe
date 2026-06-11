@@ -1158,6 +1158,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">📋 รายได้ของวันที่เลือก (กดแก้ยอดได้)<span class="t-cap" style="cursor:pointer;color:var(--info);flex-shrink:0;" onclick="renderRevList()">🔄 รีเฟรช</span></div>
         <div id="rv-list" style="margin-top:12px;"><div class="t-cap">—</div></div>
       </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">📝 ประวัติการแก้ไขรายได้ (ใครแก้อะไร)<span class="t-cap" style="cursor:pointer;color:var(--info);flex-shrink:0;" onclick="renderRevLog()">🔄</span></div>
+        <div id="rv-log" style="margin-top:10px;"><div class="t-cap">—</div></div>
+      </div>
     </div>
 
     <div id="st-pane-brk" style="display:none;">
@@ -1417,10 +1421,16 @@ async function rvLoadBreaks(d){
     if(lEl)lEl.innerHTML=(res.items&&res.items.length)?res.items.map(b=>`<div class="rv-brkli"><span>${esc_(b.customer)}${b.detail?(' · '+esc_(b.detail)):''}</span><span>${rnd_(b.amount)} ฿</span></div>`).join(''):'<div class="rv-brkempty">— ไม่มีเบรคส่งวันนี้ —</div>';
   }catch(e){if(lEl)lEl.innerHTML='<div class="rv-brkempty">โหลดไม่ได้</div>';}
 }
+async function renderRevLog(){
+  const el=document.getElementById('rv-log'); if(!el)return;
+  try{ const r=await revGet('listRevenueLog'); const a=(r&&r.data)||[];
+    el.innerHTML=a.length?a.map(x=>`<div style="border-bottom:1px solid var(--border);padding:8px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b style="font-size:12.5px;color:var(--navy);">${esc_(x.editor)}</b><span class="t-cap" style="flex-shrink:0;">${esc_(x.time)}</span></div><div class="t-cap" style="line-height:1.6;">วันที่ ${esc_(x.date)} · ${esc_(x.changes)}</div></div>`).join(''):'<div class="t-cap">— ยังไม่มีการแก้ไข —</div>';
+  }catch(e){ el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>'; }
+}
 async function renderRevList(){
   const el=document.getElementById('rv-list');if(!el)return;
   const d=raw_('rv-date')||'';
-  rvLoadBreaks(d);
+  rvLoadBreaks(d); renderRevLog();
   el.innerHTML='<div class="t-cap">กำลังโหลด...</div>';
   try{const r=await revGet('listRecentRevenue',{date:d});rvRecent=(r&&r.data)||[];
     el.innerHTML=rvRecent.length?rvRecent.map(rvCardHtml).join(''):('<div class="t-cap">'+(d?('ยังไม่มีรายได้ของวันที่ '+d):'ยังไม่มีรายการ')+'</div>');
@@ -1451,7 +1461,7 @@ function rvEditCard(id){
 async function rvSaveEdit(id){
   const n=fid=>{const v=Number(raw_(fid+'_'+id));return isNaN(v)?0:v;};
   const orig=rvRecent.filter(x=>String(x.id)===String(id))[0]||{};
-  const p={id:id,date:raw_('e_d_'+id),staff:orig.staff||'',cash:n('e_c'),transfer1:n('e_t1'),transfer2:n('e_t2'),grab:n('e_g'),posCash:n('e_pc'),posTransfer:n('e_ptr'),posBar:n('e_pb'),posBakery:n('e_pk'),posKitchen:n('e_pf'),note:raw_('e_note_'+id)};
+  const p={id:id,date:raw_('e_d_'+id),staff:orig.staff||'',cash:n('e_c'),transfer1:n('e_t1'),transfer2:n('e_t2'),grab:n('e_g'),posCash:n('e_pc'),posTransfer:n('e_ptr'),posBar:n('e_pb'),posBakery:n('e_pk'),posKitchen:n('e_pf'),note:raw_('e_note_'+id),editor:(currentUser&&(currentUser.name||currentUser.empId))||''};
   try{const r=await revSubmit('updateRevenue',p);if(r&&r.ok){toast('✅ แก้ไขยอดวันที่ '+p.date+' แล้ว');renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
 async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div id="bkc_${x.id}" style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;" onclick="brkEditCard('${x.id}')">✏️ แก้ไข</button><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button><button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
