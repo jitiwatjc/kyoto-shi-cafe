@@ -891,28 +891,16 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       <div class="fg">
         <label class="t-label">วันที่ขอทำ OT *</label>
         <input class="fi" type="date" id="ot-date-input">
-        <div class="fhint">ต้องยื่นล่วงหน้าอย่างน้อย 6 ชั่วโมงก่อนเวลาเริ่ม OT</div>
+        <div class="fhint">ต้องยื่นล่วงหน้าอย่างน้อย 3 ชั่วโมงก่อนเวลาเริ่ม OT</div>
       </div>
       <div class="fg2">
         <div class="fg">
           <label class="t-label">เวลาเริ่ม OT *</label>
-          <select class="fi fi-sel" id="ot-start-sel" onchange="calcOTHours()">
-            <option value="" selected>— เลือกเวลา —</option>
-            <option value="17:00">17:00 น.</option><option value="17:30">17:30 น.</option>
-            <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
-            <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
-            <option value="20:00">20:00 น.</option>
-          </select>
+          <input class="fi" type="time" id="ot-start-sel" onchange="calcOTHours()">
         </div>
         <div class="fg">
           <label class="t-label">เวลาสิ้นสุด OT *</label>
-          <select class="fi fi-sel" id="ot-end-sel" onchange="calcOTHours()">
-            <option value="" selected>— เลือกเวลา —</option>
-            <option value="18:00">18:00 น.</option><option value="18:30">18:30 น.</option>
-            <option value="19:00">19:00 น.</option><option value="19:30">19:30 น.</option>
-            <option value="20:00">20:00 น.</option><option value="20:30">20:30 น.</option>
-            <option value="21:00">21:00 น.</option>
-          </select>
+          <input class="fi" type="time" id="ot-end-sel" onchange="calcOTHours()">
         </div>
       </div>
       <div style="background:var(--blue-lt);border-radius:var(--rsm);padding:12px;margin-bottom:8px;">
@@ -2589,7 +2577,7 @@ async function submitOTRequest(){
   if(hrs<=0){toast('⚠ เวลาสิ้นสุดต้องหลังเวลาเริ่ม OT');return;}
   // Validate: OT must be submitted ≥6 hours before start time
   const diffHrs=(new Date(otDate+'T'+startSel.value).getTime()-Date.now())/3600000;
-  if(diffHrs<6){toast('⚠ ต้องยื่นขอ OT ล่วงหน้าอย่างน้อย 6 ชั่วโมง (เหลือ '+Math.round(diffHrs*10)/10+' ชม.)');return;}
+  if(diffHrs<3){toast('⚠ ต้องยื่นขอ OT ล่วงหน้าอย่างน้อย 3 ชั่วโมง (เหลือ '+Math.round(diffHrs*10)/10+' ชม.)');return;}
   if(!reasonEl.value.trim()){toast('กรุณาระบุเหตุผล');return;}
   if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
   // lock ปุ่ม
