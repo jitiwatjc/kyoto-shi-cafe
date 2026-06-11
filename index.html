@@ -264,6 +264,9 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 .rv-brkli span:last-child{font-weight:600;color:var(--green);flex-shrink:0;}
 .rv-brkempty{color:var(--ink3);font-size:12px;text-align:center;padding:6px;}
 .rv-brknote{font-size:10.5px;color:var(--ink3);margin-top:6px;}
+.bk-pay-inline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%;background:#FFFBF0;border:1px solid #F0E2B8;border-radius:var(--rsm);padding:7px 9px;margin:2px 0;}
+.bk-pay-inline .bk-pl{font-size:12px;font-weight:600;color:var(--amber);width:100%;}
+.fi-sm{padding:7px 8px;font-size:13px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1183,7 +1186,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="t-cap" id="bk-itemsum" style="margin-top:6px;">รวม 0 ชิ้น</div>
 
         <div class="fsect">③ การเงิน &amp; รับสินค้า</div>
-        <div class="fg2"><div><label class="t-label">ยอดรวม (รวม VAT)</label><input type="number" class="fi" id="bk-amt" placeholder="0" oninput="brkVat()"></div><div id="bk-depwrap" style="display:none;"><label class="t-label">มัดจำ</label><input type="number" class="fi" id="bk-deposit" placeholder="0"></div></div>
+        <div class="fg2"><div><label class="t-label">ยอดรวม (รวม VAT · auto)</label><input type="number" class="fi" id="bk-amt" placeholder="0" readonly style="background:var(--surface2);color:var(--ink);font-weight:600;"></div><div id="bk-depwrap" style="display:none;"><label class="t-label">มัดจำ</label><input type="number" class="fi" id="bk-deposit" placeholder="0"></div></div>
         <div class="fhint" id="bk-vat">มูลค่าก่อน VAT — · VAT 7% —</div>
         <label class="t-label" style="margin-top:10px;">วันเวลานัดรับ</label><input type="datetime-local" class="fi" id="bk-pickup">
         <label class="t-label" style="margin-top:10px;">วิธีรับ</label><select class="fi fi-sel" id="bk-pickupm" onchange="brkPickupChanged()"><option>รับที่ร้าน</option><option>จัดส่ง</option></select>
@@ -1307,7 +1310,7 @@ function renderBrkItems(){const el=document.getElementById('bk-items');if(!el)re
   el.innerHTML=brkItems.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 52px 46px 60px 20px;gap:5px;align-items:center;margin-bottom:6px;"><input class="fi" placeholder="ชื่อ" value="${esc_(it.name)}" oninput="brkItemSet(${i},'name',this.value)"><input class="fi" type="number" placeholder="จำนวน" value="${esc_(it.qty)}" oninput="brkItemSet(${i},'qty',this.value)"><input class="fi" placeholder="หน่วย" value="${esc_(it.unit)}" oninput="brkItemSet(${i},'unit',this.value)"><input class="fi" type="number" placeholder="ราคา" value="${esc_(it.price)}" oninput="brkItemSet(${i},'price',this.value)"><span onclick="delBrkItem(${i})" style="cursor:pointer;color:var(--red);text-align:center;">✕</span></div>`).join('');
   brkSum();}
 function brkItemSet(i,k,v){brkItems[i][k]=v;brkSum();}
-function brkSum(){const tq=brkItems.reduce((s,it)=>s+(Number(it.qty)||0),0),ts=brkItems.reduce((s,it)=>s+((Number(it.qty)||0)*(Number(it.price)||0)),0);const el=document.getElementById('bk-itemsum');if(el)el.textContent='รวม '+tq+' ชิ้น'+(ts?' · ฿'+rnd_(ts):'');const a=document.getElementById('bk-amt');if(a&&!a.value&&ts){a.value=ts;brkVat();}}
+function brkSum(){const tq=brkItems.reduce((s,it)=>s+(Number(it.qty)||0),0),ts=brkItems.reduce((s,it)=>s+((Number(it.qty)||0)*(Number(it.price)||0)),0);const el=document.getElementById('bk-itemsum');if(el)el.textContent='รวม '+tq+' ชิ้น'+(ts?' · ฿'+rnd_(ts):'');const a=document.getElementById('bk-amt');if(a){a.value=ts||'';brkVat();}}
 function addBrkItem(){brkItems.push({name:'',qty:'',unit:'ชิ้น',price:''});renderBrkItems();}
 function delBrkItem(i){brkItems.splice(i,1);if(!brkItems.length)brkItems=[{name:'',qty:'',unit:'ชิ้น',price:''}];renderBrkItems();}
 function renderBrkQc(){const el=document.getElementById('bk-qc');if(!el)return;el.innerHTML=brkQc.map((q,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;"><input class="fi" value="${esc_(q)}" oninput="brkQc[${i}]=this.value"><span onclick="delBrkQc(${i})" style="cursor:pointer;color:var(--red);">✕</span></div>`).join('');}
@@ -1335,19 +1338,18 @@ async function brkAction(id,act){
   try{const r=await revSubmit('updateBreak',f);if(r&&r.ok){toast('✅ '+(r.status||'อัปเดต'));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
 async function brkPay(id){
-  const dt=prompt('วันที่ลูกค้าชำระ (YYYY-MM-DD)',todayISO());
-  if(!dt)return;
+  const dt=raw_('pay_dt_'+id); if(!dt)return toast('เลือกวันที่ลูกค้าจ่าย');
   try{const r=await revSubmit('updateBreak',{id:id,confirmPay:true,moneyInDate:dt});if(r&&r.ok){toast('✅ บันทึกชำระ — '+(r.status||''));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
 // ปุ่มชำระตามชนิด: มัดจำ → รับมัดจำ(งวด1) → เก็บคงเหลือ(งวด2) · เต็ม/เครดิต → ยืนยันชำระ
 function brkPayBtn(x){
-  if(x.paid) return '';
-  const isDep=String(x.type||'').indexOf('มัดจำ')>=0, m=(x.ext&&x.ext.money)||{};
+  if(x.paid) return '<div class="bk-pay-inline" style="background:#EEF7EF;border-color:#cfe6d0;"><span class="bk-pl" style="color:var(--green);">✓ ชำระครบแล้ว</span></div>';
+  const isDep=String(x.type||'').indexOf('มัดจำ')>=0, m=(x.ext&&x.ext.money)||{}, t=todayISO();
   if(isDep){
-    if(!m.depositDate) return `<button class="btn btn-sm" style="background:var(--blue);color:#fff;" onclick="brkDeposit('${x.id}')">💰 รับมัดจำ</button>`;
-    return `<button class="btn btn-sm" style="background:var(--blue);color:#fff;" onclick="brkSettle('${x.id}')">💳 เก็บคงเหลือ</button>`;
+    if(!m.depositDate) return `<div class="bk-pay-inline"><span class="bk-pl">💰 รับมัดจำ (งวด 1) — ระบุยอด + วันที่ แล้วยืนยัน</span><input type="number" class="fi fi-sm" style="flex:1;min-width:90px;" id="dep_amt_${x.id}" placeholder="ยอดมัดจำ" value="${m.deposit||''}"><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="dep_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkDeposit('${x.id}')">ยืนยันรับมัดจำ</button></div>`;
+    return `<div class="bk-pay-inline"><span class="bk-pl">💳 เก็บยอดคงเหลือ ฿${rnd_(m.balance)} — ระบุวันที่ แล้วยืนยัน</span><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="set_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkSettle('${x.id}')">ยืนยันเก็บครบ</button></div>`;
   }
-  return `<button class="btn btn-sm" style="background:var(--blue);color:#fff;" onclick="brkPay('${x.id}')">💳 ยืนยันชำระ</button>`;
+  return `<div class="bk-pay-inline"><span class="bk-pl">💳 ยืนยันชำระ — ระบุวันที่ลูกค้าจ่าย</span><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="pay_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkPay('${x.id}')">ยืนยันชำระ</button></div>`;
 }
 function brkDepInfo(x){
   const m=(x.ext&&x.ext.money)||{};
@@ -1355,14 +1357,12 @@ function brkDepInfo(x){
   return '';
 }
 async function brkDeposit(id){
-  const x=(brkList||[]).find(o=>String(o.id)===String(id)), m=(x&&x.ext&&x.ext.money)||{};
-  const amt=prompt('ยอดมัดจำ (บาท)', m.deposit||''); if(amt==null)return;
-  const dt=prompt('วันที่รับมัดจำ (YYYY-MM-DD)', todayISO()); if(!dt)return;
-  const due=prompt('กำหนดชำระยอดคงเหลือ (YYYY-MM-DD) — เว้นว่างได้', m.balanceDue||'');
-  try{const r=await revSubmit('updateBreak',{id:id,recordDeposit:true,depositAmount:amt,depositDate:dt,balanceDue:due||''});if(r&&r.ok){toast('✅ รับมัดจำแล้ว · ค้าง ฿'+rnd_(r.balance));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  const amt=raw_('dep_amt_'+id), dt=raw_('dep_dt_'+id);
+  if(!amt||Number(amt)<=0)return toast('ใส่ยอดมัดจำ'); if(!dt)return toast('เลือกวันที่รับมัดจำ');
+  try{const r=await revSubmit('updateBreak',{id:id,recordDeposit:true,depositAmount:amt,depositDate:dt,balanceDue:''});if(r&&r.ok){toast('✅ รับมัดจำแล้ว · ค้าง ฿'+rnd_(r.balance));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
 async function brkSettle(id){
-  const dt=prompt('วันที่รับยอดคงเหลือ (YYYY-MM-DD)', todayISO()); if(!dt)return;
+  const dt=raw_('set_dt_'+id); if(!dt)return toast('เลือกวันที่รับยอดคงเหลือ');
   try{const r=await revSubmit('updateBreak',{id:id,settleBalance:true,moneyInDate:dt});if(r&&r.ok){toast('✅ เก็บครบแล้ว — '+(r.status||''));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
 async function genBreakPdf(id){
@@ -1514,7 +1514,7 @@ async function rvSaveEdit(id){
   const p={id:id,date:raw_('e_d_'+id),staff:orig.staff||'',cash:n('e_c'),transfer1:n('e_t1'),transfer2:n('e_t2'),grab:n('e_g'),posCash:n('e_pc'),posTransfer:n('e_ptr'),posBar:n('e_pb'),posBakery:n('e_pk'),posKitchen:n('e_pf'),note:raw_('e_note_'+id),editor:(currentUser&&(currentUser.name||currentUser.empId))||''};
   try{const r=await revSubmit('updateRevenue',p);if(r&&r.ok){toast('✅ แก้ไขยอดวันที่ '+p.date+' แล้ว');renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
-async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div id="bkc_${x.id}" style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;" onclick="brkEditCard('${x.id}')">✏️ แก้ไข</button><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button><button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div id="bkc_${x.id}" style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;" onclick="brkEditCard('${x.id}')">✏️ แก้ไข</button><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}${(x.isPre&&!x.paid)?`<button class="btn btn-sm" style="opacity:.5;" onclick="toast('🔒 ต้องยืนยันรับเงินให้ครบก่อน จึงจะกดส่งได้')">🔒 ส่งแล้ว</button>`:`<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button>`}<button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
 /* ── แก้ไขรายละเอียดออเดอร์เบรค (ฟอร์ม + บันทึก + ตรวจซ้ำกับ backend กัน false success) ── */
 function brkEditCard(id){
   const x=(brkList||[]).find(o=>String(o.id)===String(id)); if(!x)return;
