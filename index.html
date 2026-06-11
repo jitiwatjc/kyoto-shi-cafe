@@ -1187,7 +1187,8 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="t-cap" id="bk-itemsum" style="margin-top:6px;">รวม 0 ชิ้น</div>
 
         <div class="fsect">③ การเงิน &amp; รับสินค้า</div>
-        <div class="fg2"><div><label class="t-label">ยอดรวม (รวม VAT · auto)</label><input type="number" class="fi" id="bk-amt" placeholder="0" readonly style="background:var(--surface2);color:var(--ink);font-weight:600;"></div><div id="bk-depwrap" style="display:none;"><label class="t-label">มัดจำ</label><input type="number" class="fi" id="bk-deposit" placeholder="0"></div></div>
+        <label class="t-label">ยอดรวม (รวม VAT · auto จากรายการ)</label><input type="number" class="fi" id="bk-amt" placeholder="0" readonly style="background:var(--surface2);color:var(--ink);font-weight:600;">
+        <div class="fhint" id="bk-dephint" style="display:none;color:var(--amber);">💰 มัดจำ — ไปกรอกยอด + ยืนยันวันชำระ ที่การ์ด "เบรคที่ค้าง" หลังบันทึก</div>
         <div class="fhint" id="bk-vat">มูลค่าก่อน VAT — · VAT 7% —</div>
         <label class="t-label" style="margin-top:10px;">วันเวลานัดรับ</label><input type="datetime-local" class="fi" id="bk-pickup">
         <label class="t-label" style="margin-top:10px;">วิธีรับ</label><select class="fi fi-sel" id="bk-pickupm" onchange="brkPickupChanged()"><option>รับที่ร้าน</option><option>จัดส่ง</option></select>
@@ -1317,7 +1318,7 @@ function delBrkItem(i){brkItems.splice(i,1);if(!brkItems.length)brkItems=[{name:
 function renderBrkQc(){const el=document.getElementById('bk-qc');if(!el)return;el.innerHTML=brkQc.map((q,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;"><input class="fi" value="${esc_(q)}" oninput="brkQc[${i}]=this.value"><span onclick="delBrkQc(${i})" style="cursor:pointer;color:var(--red);">✕</span></div>`).join('');}
 function addBrkQc(){brkQc.push('');renderBrkQc();}
 function delBrkQc(i){brkQc.splice(i,1);renderBrkQc();}
-function brkPayChanged(){const w=document.getElementById('bk-depwrap');if(w)w.style.display=(raw_('bk-pay')==='deposit')?'block':'none';}
+function brkPayChanged(){const w=document.getElementById('bk-dephint');if(w)w.style.display=(raw_('bk-pay')==='deposit')?'block':'none';}
 function brkPickupChanged(){const w=document.getElementById('bk-addrwrap');if(w)w.style.display=(raw_('bk-pickupm')==='จัดส่ง')?'block':'none';}
 function brkDocChanged(){const w=document.getElementById('bk-taxwrap');if(w)w.style.display=(raw_('bk-doc')==='ไม่รับเอกสาร')?'none':'block';}
 function brkVat(){const g=parseFloat(raw_('bk-amt'))||0,sub=Math.round(g/1.07*100)/100,vat=Math.round((g-sub)*100)/100;const el=document.getElementById('bk-vat');if(el)el.textContent=g?('มูลค่าก่อน VAT '+rnd_(sub)+' · VAT 7% '+rnd_(vat)):'มูลค่าก่อน VAT — · VAT 7% —';}
@@ -1328,7 +1329,7 @@ async function saveBreak(){
   if(!items.length)return toast('กรุณาใส่รายการสินค้าอย่างน้อย 1 รายการ');
   const pay=raw_('bk-pay'), typeMap={full:'จ่ายล่วงหน้า (เต็มจำนวน)',deposit:'จ่ายล่วงหน้า (มัดจำ)',credit14:'เครดิต 14 วัน'};
   const f={bookDate:raw_('bk-date')||todayISO(),customer:raw_('bk-cust'),staff:currentUser?.empId||'',type:typeMap[pay]||'จ่ายล่วงหน้า',payType:pay,
-    items:items,amount:raw_('bk-amt'),deposit:raw_('bk-deposit'),pickup:raw_('bk-pickup'),pickupMethod:raw_('bk-pickupm'),address:raw_('bk-addr'),
+    items:items,amount:raw_('bk-amt'),deposit:'',pickup:raw_('bk-pickup'),pickupMethod:raw_('bk-pickupm'),address:raw_('bk-addr'),
     docType:raw_('bk-doc'),company:{name:raw_('bk-coname'),address:raw_('bk-coaddr'),taxId:raw_('bk-cotax'),branch:raw_('bk-cobranch'),phone:raw_('bk-cophone')},
     contact:{name:raw_('bk-ctname'),phone:raw_('bk-ctphone')},qcChecklist:brkQc.filter(q=>q).map(q=>({text:q,done:false})),noteCustomer:raw_('bk-note')};
   try{const r=await revSubmit('submitBreak',f);if(r&&r.ok){toast('✅ บันทึกเบรค ฿'+rnd_(r.amount));brkItems=[];brkQc=[];['bk-cust','bk-amt','bk-deposit','bk-note','bk-coname','bk-coaddr','bk-cotax','bk-cophone','bk-ctname','bk-ctphone'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});brkInit();renderBreakList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
