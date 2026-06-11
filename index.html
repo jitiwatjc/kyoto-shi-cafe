@@ -1132,24 +1132,31 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 
     <div id="st-pane-rev">
       <div class="card">
-        <label class="t-label">วันที่</label><input type="date" class="fi" id="rv-date" onchange="renderRevList()">
+        <label class="t-label">วันที่</label><input type="date" class="fi" id="rv-date" onchange="rvLoadCtx();renderRevList()">
         <div class="fhint" id="rv-by">ผู้กรอก: —</div>
         <div class="fsect">💵 เงินจริง (กระแสเงิน)</div>
         <div class="fg2"><div><label class="t-label">เงินสด (นับจริงในลิ้นชัก)</label><input type="number" inputmode="decimal" class="fi" id="rv-cash" placeholder="0" oninput="rvCalc()"></div><div><label class="t-label">เงินโอนเข้า — บริษัท</label><input type="number" inputmode="decimal" class="fi" id="rv-t1" placeholder="0" oninput="rvCalc()"></div></div>
-        <div class="fg2" style="margin-top:10px;"><div><label class="t-label">เงินโอนเข้า — บัญชี 2</label><input type="number" inputmode="decimal" class="fi" id="rv-t2" placeholder="0"></div><div><label class="t-label">Grab Delivery (สุทธิ)</label><input type="number" inputmode="decimal" class="fi" id="rv-grab" placeholder="0" oninput="rvCalc()"></div></div>
+        <div class="fg2" style="margin-top:10px;"><div><label class="t-label">เงินโอนเข้า — บัญชี 2</label><input type="number" inputmode="decimal" class="fi" id="rv-t2" placeholder="0" oninput="rvCalc()"></div><div><label class="t-label">Grab Delivery (สุทธิ)</label><input type="number" inputmode="decimal" class="fi" id="rv-grab" placeholder="0" oninput="rvCalc()"></div></div>
         <div class="fsect">🧾 ยอดขาย POS (แยกครัว)</div>
         <div class="fg2" style="grid-template-columns:1fr 1fr 1fr;"><div><label class="t-label">บาร์น้ำ</label><input type="number" inputmode="decimal" class="fi" id="rv-bar" placeholder="0"></div><div><label class="t-label">เบเกอรี่</label><input type="number" inputmode="decimal" class="fi" id="rv-bake" placeholder="0"></div><div><label class="t-label">ครัวอาหาร</label><input type="number" inputmode="decimal" class="fi" id="rv-kit" placeholder="0"></div></div>
         <div class="fsect">💳 ยอดรวม POS (จากระบบ ไว้เช็กยอด)</div>
         <div class="fg2"><div><label class="t-label">POS — เงินสด</label><input type="number" inputmode="decimal" class="fi" id="rv-poscash" placeholder="0" oninput="rvCalc()"></div><div><label class="t-label">POS — เงินโอน</label><input type="number" inputmode="decimal" class="fi" id="rv-postr" placeholder="0" oninput="rvCalc()"></div></div>
-        <div class="rv-total">ยอดขายวันนี้<br><b id="rv-salesview">0</b> บาท</div>
-        <div class="card" style="padding:8px 12px;margin:10px 0 0;box-shadow:none;">
-          <div class="irow" style="padding:8px 0;"><span class="ilabel">ผลต่างเงินสด (นับ − POS)</span><span class="ival" id="rv-diffcash">—</span></div>
-          <div class="irow" style="padding:8px 0;border-bottom:none;"><span class="ilabel">ผลต่างโอนบริษัท (โอน − POS)</span><span class="ival" id="rv-difftr">—</span></div>
+        <div class="card" style="padding:10px 12px;margin:14px 0 0;box-shadow:none;border:1px solid var(--border);">
+          <div style="font-weight:600;font-size:13px;color:var(--navy);margin-bottom:4px;">🏪 ยอดขายหน้าร้าน</div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">เงินสดขายจริง <span id="rv-cashnote" class="t-cap"></span></span><span class="ival" id="rv-cashreal">0</span></div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">โอนรวม − เบรค <span id="rv-trnote" class="t-cap"></span></span><span class="ival" id="rv-trnet">0</span></div>
+          <div class="irow" style="padding:6px 0;"><span class="ilabel">Grab</span><span class="ival" id="rv-grabview">0</span></div>
+          <div class="irow" style="padding:6px 0;border-bottom:none;"><span class="ilabel" style="font-weight:600;">รวมหน้าร้าน</span><span class="ival" id="rv-shopfront" style="font-weight:700;color:var(--green);">0</span></div>
         </div>
         <div class="rv-brkbox">
-          <div class="rv-brkbox-h">🎂 เบรคที่ส่งวันนี้ <span id="rv-brktotal">0 บาท</span></div>
+          <div class="rv-brkbox-h">🎂 + เบรคที่ส่งวันนี้ <span id="rv-brktotal">0 บาท</span></div>
           <div id="rv-brklist"><div class="rv-brkempty">—</div></div>
-          <div class="rv-brknote">* แสดงไว้กระทบยอด — นับรวมใน POS แล้ว ไม่บวกซ้ำกับยอดขาย</div>
+          <div class="rv-brknote">* เบรคนับเป็นยอดขาย "วันจัดส่ง" — เงินที่ลูกค้าจ่ายมาก่อน (มัดจำ/จ่ายล่วงหน้า) ถูกกันออกจากยอดหน้าร้านแล้ว</div>
+        </div>
+        <div class="rv-total">ยอดขายวันนี้ <span style="font-size:11px;font-weight:normal;color:var(--ink3);">(หน้าร้าน + เบรค)</span><br><b id="rv-salesview">0</b> บาท</div>
+        <div class="card" style="padding:8px 12px;margin:10px 0 0;box-shadow:none;">
+          <div class="irow" style="padding:8px 0;"><span class="ilabel">ผลต่างเงินสด (นับ+จ่าย − POS)</span><span class="ival" id="rv-diffcash">—</span></div>
+          <div class="irow" style="padding:8px 0;border-bottom:none;"><span class="ilabel">เช็กยอด POS รวม (POS − เงินจริง)</span><span class="ival" id="rv-poschk">—</span></div>
         </div>
         <label class="t-label" style="margin-top:14px;">📝 หมายเหตุ</label><input type="text" class="fi" id="rv-note" placeholder="เพิ่มเติม (ถ้ามี)">
         <button class="btn btn-success btn-full" style="margin-top:14px;" onclick="saveRevenue()">บันทึกรายได้</button>
@@ -1269,7 +1276,7 @@ async function openStore(){
   ['rv-date','bk-date','ex-date'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=todayISO();});
   const by=document.getElementById('rv-by');if(by)by.textContent='ผู้กรอก: '+(currentUser?.name||currentUser?.empId||'—');
   if(!storeReady){ try{const r=await revGet('getConfig');if(r&&r.ok){storeCfg=r.config;fillStoreSelects();storeReady=true;}}catch(e){} }
-  go('s-store'); swStoreTab('rev'); brkInit(); renderRevList(); renderBreakList(); renderExpenseList(); rvCalc();
+  go('s-store'); swStoreTab('rev'); brkInit(); renderRevList(); renderBreakList(); renderExpenseList(); rvLoadCtx();
 }
 function fillStoreSelects(){
   const opt=a=>(a||[]).map(v=>'<option>'+v+'</option>').join('');
@@ -1433,11 +1440,29 @@ function rvSetDiff(id,diff,empty){const e=document.getElementById(id);if(!e)retu
   diff=Math.round((Number(diff)||0)*100)/100;
   if(diff===0){e.textContent='0 ฿ ✓';e.style.color='var(--green)';return;}
   e.textContent=(diff>0?'+':'')+rnd_(diff)+' ฿ ⚠'+(diff>0?' เงินเกิน':' เงินขาด');e.style.color='var(--red)';}
+let rvCtx={cashExp:0,brkInTotal:0,brkDelivered:0,date:''};
+function rvSetTxt_(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+async function rvLoadCtx(){
+  const d=raw_('rv-date')||'';
+  try{const r=await revGet('getDayContext',{date:d});rvCtx=(r&&r.ok&&r.data)?r.data:{cashExp:0,brkInTotal:0,brkDelivered:0,date:d};}
+  catch(e){rvCtx={cashExp:0,brkInTotal:0,brkDelivered:0,date:d};}
+  rvCalc();
+}
+// สูตรใหม่: เงินสดขายจริง = นับ + รายจ่ายเงินสด · ยอดหน้าร้าน = เงินสดขายจริง + (โอนรวม − เบรคเข้า) + Grab · ยอดรวม = หน้าร้าน + เบรคส่ง
 function rvCalc(){
-  const posCash=rvNum('rv-poscash'),posTr=rvNum('rv-postr'),grab=rvNum('rv-grab'),cash=rvNum('rv-cash'),t1=rvNum('rv-t1');
-  const sv=document.getElementById('rv-salesview');if(sv)sv.textContent=rnd_(posCash+posTr+grab);
-  rvSetDiff('rv-diffcash',cash-posCash,raw_('rv-poscash')==='');
-  rvSetDiff('rv-difftr',t1-posTr,raw_('rv-postr')==='');
+  const cash=rvNum('rv-cash'),t1=rvNum('rv-t1'),t2=rvNum('rv-t2'),grab=rvNum('rv-grab');
+  const posCash=rvNum('rv-poscash'),posTr=rvNum('rv-postr');
+  const cashExp=Number(rvCtx.cashExp)||0,brkIn=Number(rvCtx.brkInTotal)||0,brkDel=Number(rvCtx.brkDelivered)||0;
+  const cashReal=cash+cashExp, trNet=t1+t2-brkIn, shopFront=cashReal+trNet+grab, total=shopFront+brkDel;
+  rvSetTxt_('rv-cashreal',rnd_(cashReal));
+  rvSetTxt_('rv-cashnote',cashExp?('= นับ '+rnd_(cash)+' + จ่ายสด '+rnd_(cashExp)):'');
+  rvSetTxt_('rv-trnet',rnd_(trNet));
+  rvSetTxt_('rv-trnote',brkIn?('= โอน '+rnd_(t1+t2)+' − เบรค '+rnd_(brkIn)):'');
+  rvSetTxt_('rv-grabview',rnd_(grab));
+  rvSetTxt_('rv-shopfront',rnd_(shopFront));
+  rvSetTxt_('rv-salesview',rnd_(total));
+  rvSetDiff('rv-diffcash',cashReal-posCash,raw_('rv-poscash')==='');
+  rvSetDiff('rv-poschk',(posCash+posTr)-(cashReal+trNet+brkDel),raw_('rv-poscash')===''&&raw_('rv-postr')==='');
 }
 async function rvLoadBreaks(d){
   const tEl=document.getElementById('rv-brktotal'),lEl=document.getElementById('rv-brklist');
