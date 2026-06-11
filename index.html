@@ -1212,7 +1212,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="fsect">🍳 แบ่งครัว % (รวม 100)</div>
         <div id="ex-splits"></div>
         <div class="t-cap" id="ex-splitsum" style="text-align:right;">รวม 0%</div>
-        <button class="btn btn-danger btn-full" style="margin-top:18px;" onclick="saveExpense()">บันทึกรายจ่าย</button>
+        <button class="btn btn-danger btn-full" id="ex-save-btn" style="margin-top:18px;" onclick="saveExpense()">บันทึกรายจ่าย</button>
       </div>
       <div class="card"><div class="card-title">📋 รายจ่ายวันนี้ <span id="ex-daytotal" style="float:right;color:var(--red);font-weight:700;"></span></div><div id="ex-list" style="margin-top:12px;"><div class="t-cap">—</div></div></div>
     </div>
@@ -1393,13 +1393,38 @@ function breakWorkOrderHtml(d){
     <div style="background:${GR};color:#fff;text-align:center;font-weight:800;font-size:16px;padding:11px;border-radius:9px;margin-top:12px;">✓ ตรวจเช็กจำนวนสินค้าให้ครบก่อนส่งมอบ</div>
   </div>`;
 }
+let exEditingBill=null, exBills=[];
 async function saveExpense(){
   if(!raw_('ex-total'))return toast('กรุณาใส่ยอดรวมบิล');
   const splits=[];document.querySelectorAll('.ex-split').forEach(i=>splits.push({kitchen:i.dataset.k,pct:parseFloat(i.value)||0}));
   const f={date:raw_('ex-date'),vendor:raw_('ex-vendor'),category:raw_('ex-cat'),total:raw_('ex-total'),detail:raw_('ex-detail'),payMethod:raw_('ex-pay'),paidBy:raw_('ex-by'),staff:currentUser?.empId||'',splits:splits};
-  try{const r=await revSubmit('submitExpense',f);if(r&&r.ok){toast('✅ บันทึกรายจ่าย ฿'+rnd_(r.total));const t=document.getElementById('ex-total');if(t)t.value='';const dd=document.getElementById('ex-detail');if(dd)dd.value='';exRecalc();renderExpenseList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  const editing=exEditingBill; if(editing) f.billId=editing;
+  try{const r=await revSubmit(editing?'updateExpense':'submitExpense',f);if(r&&r.ok){toast((editing?'✅ อัปเดตรายจ่าย ฿':'✅ บันทึกรายจ่าย ฿')+rnd_(r.total));exCancelEdit();renderExpenseList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
 }
-async function renderExpenseList(){const el=document.getElementById('ex-list');if(!el)return;try{const r=await revGet('listExpenseByDate',{date:raw_('ex-date')});const a=(r&&r.data)||[];let tot=0;a.forEach(x=>tot+=(Number(x.total)||0));const t=document.getElementById('ex-daytotal');if(t)t.textContent=a.length?('รวม ฿'+rnd_(tot)):'';el.innerHTML=a.length?a.map(x=>`<div class="irow"><span class="ilabel">${x.vendor||''} · ${x.category||''}${x.detail?(' · '+x.detail):''}<br><span style="font-size:11px;color:var(--ink3);">โดย ${x.by||''}</span></span><span class="ival" style="color:var(--red);">฿${rnd_(x.total)}</span></div>`).join(''):'<div class="t-cap">— ยังไม่มีรายจ่ายวันนี้ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+function exCancelEdit(){
+  exEditingBill=null;
+  const t=document.getElementById('ex-total');if(t)t.value='';
+  const dd=document.getElementById('ex-detail');if(dd)dd.value='';
+  const btn=document.getElementById('ex-save-btn');if(btn)btn.textContent='บันทึกรายจ่าย';
+  exRecalc();
+}
+function exEditBill(id){
+  const x=(exBills||[]).find(b=>String(b.billId)===String(id)); if(!x)return;
+  exEditingBill=id;
+  const set=(eid,val)=>{const e=document.getElementById(eid);if(e)e.value=(val==null?'':val);};
+  set('ex-date',x.date); set('ex-vendor',x.vendor); set('ex-cat',x.category); set('ex-total',x.total); set('ex-detail',x.detail); set('ex-pay',x.payMethod); set('ex-by',x.paidBy);
+  const byK={}; (x.splits||[]).forEach(s=>byK[s.kitchen]=s.pct);
+  document.querySelectorAll('.ex-split').forEach(i=>{ i.value=(byK[i.dataset.k]!=null?byK[i.dataset.k]:0); });
+  exRecalc();
+  const btn=document.getElementById('ex-save-btn'); if(btn)btn.textContent='💾 อัปเดตรายจ่าย';
+  const pane=document.getElementById('st-pane-exp'); if(pane&&pane.scrollIntoView)pane.scrollIntoView({block:'start'});
+  toast('แก้ไขบิล — แก้แล้วกด "อัปเดตรายจ่าย"');
+}
+async function exDeleteBill(id){
+  if(!confirm('ลบรายจ่ายบิลนี้? (ลบถาวร)'))return;
+  try{const r=await revSubmit('deleteExpense',{billId:id});if(r&&r.ok){toast('🗑 ลบรายจ่ายแล้ว');if(String(exEditingBill)===String(id))exCancelEdit();renderExpenseList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+}
+async function renderExpenseList(){const el=document.getElementById('ex-list');if(!el)return;try{const r=await revGet('listExpenseByDate',{date:raw_('ex-date')});const a=(r&&r.data)||[];exBills=a;let tot=0;a.forEach(x=>tot+=(Number(x.total)||0));const t=document.getElementById('ex-daytotal');if(t)t.textContent=a.length?('รวม ฿'+rnd_(tot)):'';el.innerHTML=a.length?a.map(x=>{const sp=(x.splits||[]).map(s=>esc_(s.kitchen)+' '+s.pct+'%').join(' · ');return `<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b>${esc_(x.vendor||'')}</b><b style="color:var(--red);flex-shrink:0;">฿${rnd_(x.total)}</b></div><div class="t-cap" style="line-height:1.6;">${esc_(x.category||'')}${x.detail?(' · '+esc_(x.detail)):''}<br>${sp}${x.by?(' · โดย '+esc_(x.by)):''}</div><div class="btn-row" style="margin-top:8px;gap:6px;display:flex;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;flex:1;" onclick="exEditBill('${x.billId}')">✏️ แก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="exDeleteBill('${x.billId}')">🗑 ลบ</button></div></div>`;}).join(''):'<div class="t-cap">— ยังไม่มีรายจ่ายวันนี้ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
 /* ── รายได้: คำนวณสด + กระทบยอด + ลิสต์แยกครัว + แก้ไขยอด (ให้เหมือนต้นแบบ) ── */
 let rvRecent=[];
 function rvNum(id){const v=Number(raw_(id));return isNaN(v)?0:v;}
