@@ -1298,7 +1298,10 @@ function exVendorChanged(){if(!storeCfg||!storeCfg.vendorDefaults)return;const d
 async function saveRevenue(){
   if(!raw_('rv-date'))return toast('กรุณาเลือกวันที่');
   const f={date:raw_('rv-date'),cash:raw_('rv-cash'),transfer1:raw_('rv-t1'),transfer2:raw_('rv-t2'),grab:raw_('rv-grab'),posCash:raw_('rv-poscash'),posTransfer:raw_('rv-postr'),posBar:raw_('rv-bar'),posBakery:raw_('rv-bake'),posKitchen:raw_('rv-kit'),staff:(currentUser&&(currentUser.name||currentUser.empId))||'',note:raw_('rv-note')};
+  const rvBtn=document.querySelector('#st-pane-rev .btn-success');
+  if(rvBtn){rvBtn.disabled=true;rvBtn.style.opacity='0.6';rvBtn.textContent='กำลังบันทึก...';}
   try{const r=await revSubmit('submitRevenue',f);if(r&&r.ok){const w=(Number(r.diffCash)&&r.diffCash!=null)?(' · ⚠ เงินสดต่าง '+rnd_(r.diffCash)):' · เงินสดตรง ✓';toast('✅ บันทึกรายได้ · ขาย ฿'+rnd_(r.sales)+w);['rv-cash','rv-t1','rv-t2','rv-grab','rv-poscash','rv-postr','rv-bar','rv-bake','rv-kit','rv-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});rvCalc();renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  finally{if(rvBtn){rvBtn.disabled=false;rvBtn.style.opacity='1';rvBtn.textContent='บันทึกรายได้';}}
 }
 /* ── เบรค A⁺: รายการ / QA-QC / ฟอร์ม / ใบ PDF ── */
 let brkItems=[], brkQc=[], brkList=[];
@@ -1332,40 +1335,66 @@ async function saveBreak(){
     items:items,amount:raw_('bk-amt'),deposit:'',pickup:raw_('bk-pickup'),pickupMethod:raw_('bk-pickupm'),address:raw_('bk-addr'),
     docType:raw_('bk-doc'),company:{name:raw_('bk-coname'),address:raw_('bk-coaddr'),taxId:raw_('bk-cotax'),branch:raw_('bk-cobranch'),phone:raw_('bk-cophone')},
     contact:{name:raw_('bk-ctname'),phone:raw_('bk-ctphone')},qcChecklist:brkQc.filter(q=>q).map(q=>({text:q,done:false})),noteCustomer:raw_('bk-note')};
+  const brkBtn=document.querySelector('#st-pane-brk .btn-full');
+  if(brkBtn){brkBtn.disabled=true;brkBtn.style.opacity='0.6';brkBtn.textContent='กำลังบันทึก...';}
   try{const r=await revSubmit('submitBreak',f);if(r&&r.ok){toast('✅ บันทึกเบรค ฿'+rnd_(r.amount));brkItems=[];brkQc=[];['bk-cust','bk-amt','bk-deposit','bk-note','bk-coname','bk-coaddr','bk-cotax','bk-cophone','bk-ctname','bk-ctphone'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});brkInit();renderBreakList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  finally{if(brkBtn){brkBtn.disabled=false;brkBtn.style.opacity='1';brkBtn.textContent='บันทึกออเดอร์เบรค';}}
 }
-async function brkAction(id,act){
+async function brkAction(btn,id,act){
   if(act==='cancel'&&!confirm('ยกเลิกออเดอร์นี้?'))return;
+  const card=document.getElementById('bkc_'+id);
+  const rowBtns=card?card.querySelectorAll('.btn-row button'):[btn];
+  rowBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';});
+  btn.textContent=act==='deliver'?'กำลังยืนยัน...':'กำลังยกเลิก...';
   const f={id:id}; if(act==='deliver')f.markDelivered=true; if(act==='cancel')f.cancel=true;
-  try{const r=await revSubmit('updateBreak',f);if(r&&r.ok){toast('✅ '+(r.status||'อัปเดต'));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  try{
+    const r=await revSubmit('updateBreak',f);
+    if(r&&r.ok){toast('✅ '+(r.status||'อัปเดต'));renderBreakList();}
+    else{toast('❌ '+((r&&r.error)||''));rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=act==='deliver'?'ส่งแล้ว':'ยกเลิก';}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=act==='deliver'?'ส่งแล้ว':'ยกเลิก';}
 }
-async function brkPay(id){
+async function brkPay(btn,id){
   const dt=raw_('pay_dt_'+id); if(!dt)return toast('เลือกวันที่ลูกค้าจ่าย');
-  try{const r=await revSubmit('updateBreak',{id:id,confirmPay:true,moneyInDate:dt});if(r&&r.ok){toast('✅ บันทึกชำระ — '+(r.status||''));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังบันทึก...';}
+  try{
+    const r=await revSubmit('updateBreak',{id:id,confirmPay:true,moneyInDate:dt});
+    if(r&&r.ok){toast('✅ บันทึกชำระ — '+(r.status||''));renderBreakList();}
+    else{toast('❌ '+((r&&r.error)||''));if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ยืนยันชำระ';}}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ยืนยันชำระ';}}
 }
 // ปุ่มชำระตามชนิด: มัดจำ → รับมัดจำ(งวด1) → เก็บคงเหลือ(งวด2) · เต็ม/เครดิต → ยืนยันชำระ
 function brkPayBtn(x){
   if(x.paid) return '<div class="bk-pay-inline" style="background:#EEF7EF;border-color:#cfe6d0;"><span class="bk-pl" style="color:var(--green);">✓ ชำระครบแล้ว</span></div>';
   const isDep=String(x.type||'').indexOf('มัดจำ')>=0, m=(x.ext&&x.ext.money)||{}, t=todayISO();
   if(isDep){
-    if(!m.depositDate) return `<div class="bk-pay-inline"><span class="bk-pl">💰 รับมัดจำ (งวด 1) — ระบุยอด + วันที่ แล้วยืนยัน</span><input type="number" class="fi fi-sm" style="flex:1;min-width:90px;" id="dep_amt_${x.id}" placeholder="ยอดมัดจำ" value="${m.deposit||''}"><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="dep_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkDeposit('${x.id}')">ยืนยันรับมัดจำ</button></div>`;
-    return `<div class="bk-pay-inline"><span class="bk-pl">💳 เก็บยอดคงเหลือ ฿${rnd_(m.balance)} — ระบุวันที่ แล้วยืนยัน</span><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="set_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkSettle('${x.id}')">ยืนยันเก็บครบ</button></div>`;
+    if(!m.depositDate) return `<div class="bk-pay-inline"><span class="bk-pl">💰 รับมัดจำ (งวด 1) — ระบุยอด + วันที่ แล้วยืนยัน</span><input type="number" class="fi fi-sm" style="flex:1;min-width:90px;" id="dep_amt_${x.id}" placeholder="ยอดมัดจำ" value="${m.deposit||''}"><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="dep_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkDeposit(this,'${x.id}')">ยืนยันรับมัดจำ</button></div>`;
+    return `<div class="bk-pay-inline"><span class="bk-pl">💳 เก็บยอดคงเหลือ ฿${rnd_(m.balance)} — ระบุวันที่ แล้วยืนยัน</span><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="set_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkSettle(this,'${x.id}')">ยืนยันเก็บครบ</button></div>`;
   }
-  return `<div class="bk-pay-inline"><span class="bk-pl">💳 ยืนยันชำระ — ระบุวันที่ลูกค้าจ่าย</span><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="pay_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkPay('${x.id}')">ยืนยันชำระ</button></div>`;
+  return `<div class="bk-pay-inline"><span class="bk-pl">💳 ยืนยันชำระ — ระบุวันที่ลูกค้าจ่าย</span><input type="date" class="fi fi-sm" style="flex:1;min-width:140px;" id="pay_dt_${x.id}" value="${t}"><button class="btn btn-sm btn-navy" onclick="brkPay(this,'${x.id}')">ยืนยันชำระ</button></div>`;
 }
 function brkDepInfo(x){
   const m=(x.ext&&x.ext.money)||{};
   if(String(x.type||'').indexOf('มัดจำ')>=0 && m.depositDate) return ` · มัดจำ ฿${rnd_(m.deposit)} ค้าง ฿${rnd_(m.balance)}`+(m.balanceDue?(' (ครบ '+m.balanceDue+')'):'');
   return '';
 }
-async function brkDeposit(id){
+async function brkDeposit(btn,id){
   const amt=raw_('dep_amt_'+id), dt=raw_('dep_dt_'+id);
   if(!amt||Number(amt)<=0)return toast('ใส่ยอดมัดจำ'); if(!dt)return toast('เลือกวันที่รับมัดจำ');
-  try{const r=await revSubmit('updateBreak',{id:id,recordDeposit:true,depositAmount:amt,depositDate:dt,balanceDue:''});if(r&&r.ok){toast('✅ รับมัดจำแล้ว · ค้าง ฿'+rnd_(r.balance));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังบันทึก...';}
+  try{
+    const r=await revSubmit('updateBreak',{id:id,recordDeposit:true,depositAmount:amt,depositDate:dt,balanceDue:''});
+    if(r&&r.ok){toast('✅ รับมัดจำแล้ว · ค้าง ฿'+rnd_(r.balance));renderBreakList();}
+    else{toast('❌ '+((r&&r.error)||''));if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ยืนยันรับมัดจำ';}}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ยืนยันรับมัดจำ';}}
 }
-async function brkSettle(id){
+async function brkSettle(btn,id){
   const dt=raw_('set_dt_'+id); if(!dt)return toast('เลือกวันที่รับยอดคงเหลือ');
-  try{const r=await revSubmit('updateBreak',{id:id,settleBalance:true,moneyInDate:dt});if(r&&r.ok){toast('✅ เก็บครบแล้ว — '+(r.status||''));renderBreakList();}else toast('❌ '+((r&&r.error)||''));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังบันทึก...';}
+  try{
+    const r=await revSubmit('updateBreak',{id:id,settleBalance:true,moneyInDate:dt});
+    if(r&&r.ok){toast('✅ เก็บครบแล้ว — '+(r.status||''));renderBreakList();}
+    else{toast('❌ '+((r&&r.error)||''));if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ยืนยันเก็บครบ';}}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='ยืนยันเก็บครบ';}}
 }
 async function genBreakPdf(id){
   if(!window.html2canvas||!window.jspdf){toast('กำลังโหลดตัวสร้างใบ... กดอีกครั้ง');return;}
@@ -1408,7 +1437,10 @@ async function saveExpense(){
   const splits=[];document.querySelectorAll('.ex-split').forEach(i=>splits.push({kitchen:i.dataset.k,pct:parseFloat(i.value)||0}));
   const f={date:raw_('ex-date'),vendor:raw_('ex-vendor'),category:raw_('ex-cat'),total:raw_('ex-total'),detail:raw_('ex-detail'),payMethod:raw_('ex-pay'),paidBy:raw_('ex-by'),staff:currentUser?.empId||'',splits:splits};
   const editing=exEditingBill; if(editing) f.billId=editing;
+  const exBtn=document.getElementById('ex-save-btn');
+  if(exBtn){exBtn.disabled=true;exBtn.style.opacity='0.6';exBtn.textContent='กำลังบันทึก...';}
   try{const r=await revSubmit(editing?'updateExpense':'submitExpense',f);if(r&&r.ok){toast((editing?'✅ อัปเดตรายจ่าย ฿':'✅ บันทึกรายจ่าย ฿')+rnd_(r.total));exCancelEdit();renderExpenseList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  finally{if(exBtn){exBtn.disabled=false;exBtn.style.opacity='1';exBtn.textContent=exEditingBill?'💾 อัปเดตรายจ่าย':'บันทึกรายจ่าย';}}
 }
 function exCancelEdit(){
   exEditingBill=null;
@@ -1429,11 +1461,16 @@ function exEditBill(id){
   const pane=document.getElementById('st-pane-exp'); if(pane&&pane.scrollIntoView)pane.scrollIntoView({block:'start'});
   toast('แก้ไขบิล — แก้แล้วกด "อัปเดตรายจ่าย"');
 }
-async function exDeleteBill(id){
+async function exDeleteBill(btn,id){
   if(!confirm('ลบรายจ่ายบิลนี้? (ลบถาวร)'))return;
-  try{const r=await revSubmit('deleteExpense',{billId:id});if(r&&r.ok){toast('🗑 ลบรายจ่ายแล้ว');if(String(exEditingBill)===String(id))exCancelEdit();renderExpenseList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังลบ...';}
+  try{
+    const r=await revSubmit('deleteExpense',{billId:id});
+    if(r&&r.ok){toast('🗑 ลบรายจ่ายแล้ว');if(String(exEditingBill)===String(id))exCancelEdit();renderExpenseList();}
+    else{toast('❌ '+((r&&r.error)||'ผิดพลาด'));if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='🗑 ลบ';}}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='🗑 ลบ';}}
 }
-async function renderExpenseList(){const el=document.getElementById('ex-list');if(!el)return;try{const r=await revGet('listExpenseByDate',{date:raw_('ex-date')});const a=(r&&r.data)||[];exBills=a;let tot=0;a.forEach(x=>tot+=(Number(x.total)||0));const t=document.getElementById('ex-daytotal');if(t)t.textContent=a.length?('รวม ฿'+rnd_(tot)):'';el.innerHTML=a.length?a.map(x=>{const sp=(x.splits||[]).map(s=>esc_(s.kitchen)+' '+s.pct+'%').join(' · ');return `<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b>${esc_(x.vendor||'')}</b><b style="color:var(--red);flex-shrink:0;">฿${rnd_(x.total)}</b></div><div class="t-cap" style="line-height:1.6;">${esc_(x.category||'')}${x.detail?(' · '+esc_(x.detail)):''}<br>${sp}${x.by?(' · โดย '+esc_(x.by)):''}</div><div class="btn-row" style="margin-top:8px;gap:6px;display:flex;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;flex:1;" onclick="exEditBill('${x.billId}')">✏️ แก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="exDeleteBill('${x.billId}')">🗑 ลบ</button></div></div>`;}).join(''):'<div class="t-cap">— ยังไม่มีรายจ่ายวันนี้ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+async function renderExpenseList(){const el=document.getElementById('ex-list');if(!el)return;try{const r=await revGet('listExpenseByDate',{date:raw_('ex-date')});const a=(r&&r.data)||[];exBills=a;let tot=0;a.forEach(x=>tot+=(Number(x.total)||0));const t=document.getElementById('ex-daytotal');if(t)t.textContent=a.length?('รวม ฿'+rnd_(tot)):'';el.innerHTML=a.length?a.map(x=>{const sp=(x.splits||[]).map(s=>esc_(s.kitchen)+' '+s.pct+'%').join(' · ');return `<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b>${esc_(x.vendor||'')}</b><b style="color:var(--red);flex-shrink:0;">฿${rnd_(x.total)}</b></div><div class="t-cap" style="line-height:1.6;">${esc_(x.category||'')}${x.detail?(' · '+esc_(x.detail)):''}<br>${sp}${x.by?(' · โดย '+esc_(x.by)):''}</div><div class="btn-row" style="margin-top:8px;gap:6px;display:flex;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;flex:1;" onclick="exEditBill('${x.billId}')">✏️ แก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="exDeleteBill(this,'${x.billId}')">🗑 ลบ</button></div></div>`;}).join(''):'<div class="t-cap">— ยังไม่มีรายจ่ายวันนี้ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
 /* ── รายได้: คำนวณสด + กระทบยอด + ลิสต์แยกครัว + แก้ไขยอด (ให้เหมือนต้นแบบ) ── */
 let rvRecent=[];
 function rvNum(id){const v=Number(raw_(id));return isNaN(v)?0:v;}
@@ -1508,15 +1545,20 @@ function rvEditCard(id){
     `<div class="fg2" style="margin-top:8px;">${f('POS-เงินสด','e_pc',r.posCash)}${f('POS-เงินโอน','e_ptr',r.posTransfer)}</div>`+
     `<div class="fg2" style="margin-top:8px;grid-template-columns:1fr 1fr 1fr;">${f('บาร์น้ำ','e_pb',r.posBar)}${f('เบเกอรี่','e_pk',r.posBakery)}${f('ครัว','e_pf',r.posKitchen)}</div>`+
     `<label class="t-label" style="margin-top:8px;">📝 หมายเหตุ</label><input type="text" class="fi" id="e_note_${id}" value="${esc_(r.note||'')}">`+
-    `<div class="btn-row" style="margin-top:10px;gap:6px;display:flex;"><button class="btn btn-sm btn-success" style="flex:1;" onclick="rvSaveEdit('${id}')">💾 บันทึกการแก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="renderRevList()">ยกเลิก</button></div>`;
+    `<div class="btn-row" style="margin-top:10px;gap:6px;display:flex;"><button class="btn btn-sm btn-success" style="flex:1;" onclick="rvSaveEdit(this,'${id}')">💾 บันทึกการแก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="renderRevList()">ยกเลิก</button></div>`;
 }
-async function rvSaveEdit(id){
+async function rvSaveEdit(btn,id){
   const n=fid=>{const v=Number(raw_(fid+'_'+id));return isNaN(v)?0:v;};
   const orig=rvRecent.filter(x=>String(x.id)===String(id))[0]||{};
   const p={id:id,date:raw_('e_d_'+id),staff:orig.staff||'',cash:n('e_c'),transfer1:n('e_t1'),transfer2:n('e_t2'),grab:n('e_g'),posCash:n('e_pc'),posTransfer:n('e_ptr'),posBar:n('e_pb'),posBakery:n('e_pk'),posKitchen:n('e_pf'),note:raw_('e_note_'+id),editor:(currentUser&&(currentUser.name||currentUser.empId))||''};
-  try{const r=await revSubmit('updateRevenue',p);if(r&&r.ok){toast('✅ แก้ไขยอดวันที่ '+p.date+' แล้ว');renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังบันทึก...';}
+  try{
+    const r=await revSubmit('updateRevenue',p);
+    if(r&&r.ok){toast('✅ แก้ไขยอดวันที่ '+p.date+' แล้ว');renderRevList();}
+    else{toast('❌ '+((r&&r.error)||'ผิดพลาด'));if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='💾 บันทึกการแก้ไข';}}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='💾 บันทึกการแก้ไข';}}
 }
-async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div id="bkc_${x.id}" style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;" onclick="brkEditCard('${x.id}')">✏️ แก้ไข</button><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}${(x.isPre&&!x.paid)?`<button class="btn btn-sm" style="opacity:.5;" onclick="toast('🔒 ต้องยืนยันรับเงินให้ครบก่อน จึงจะกดส่งได้')">🔒 ส่งแล้ว</button>`:`<button class="btn btn-sm btn-success" onclick="brkAction('${x.id}','deliver')">ส่งแล้ว</button>`}<button class="btn btn-sm btn-outline" onclick="brkAction('${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
+async function renderBreakList(){const el=document.getElementById('bk-list');if(!el)return;try{const r=await revGet('listOpenBreaks');const a=(r&&r.data)||[];brkList=a;el.innerHTML=a.length?a.map(x=>`<div id="bkc_${x.id}" style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${x.customer||''}</b><span class="chip chip-amber" style="flex-shrink:0;">${x.status||''}</span></div><div class="t-cap">฿${rnd_(x.amount)} · รับ ${x.pickupShow||''}${brkDepInfo(x)}</div><div class="btn-row" style="margin-top:8px;flex-wrap:wrap;gap:6px;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;" onclick="brkEditCard('${x.id}')">✏️ แก้ไข</button><button class="btn btn-sm btn-navy" onclick="genBreakPdf('${x.id}')">🧾 ออกใบ</button>${brkPayBtn(x)}${(x.isPre&&!x.paid)?`<button class="btn btn-sm" style="opacity:.5;" onclick="toast('🔒 ต้องยืนยันรับเงินให้ครบก่อน จึงจะกดส่งได้')">🔒 ส่งแล้ว</button>`:`<button class="btn btn-sm btn-success" onclick="brkAction(this,'${x.id}','deliver')">ส่งแล้ว</button>`}<button class="btn btn-sm btn-outline" onclick="brkAction(this,'${x.id}','cancel')">ยกเลิก</button></div></div>`).join(''):'<div class="t-cap">— ไม่มีเบรคค้าง —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
 /* ── แก้ไขรายละเอียดออเดอร์เบรค (ฟอร์ม + บันทึก + ตรวจซ้ำกับ backend กัน false success) ── */
 function brkEditCard(id){
   const x=(brkList||[]).find(o=>String(o.id)===String(id)); if(!x)return;
@@ -1530,16 +1572,21 @@ function brkEditCard(id){
     `<div class="fg2" style="margin-top:8px;"><div><label class="t-label">ยอดเงิน (฿)</label><input type="number" inputmode="decimal" class="fi" id="be_amt_${id}" value="${x.amount!=null?x.amount:''}"></div><div><label class="t-label">วันที่จอง</label><input type="date" class="fi" id="be_book_${id}" value="${esc_(x.bookDate||'')}"></div></div>`+
     `<label class="t-label" style="margin-top:8px;">ประเภท</label><select class="fi fi-sel" id="be_type_${id}">${typeOpts}</select>`+
     `<label class="t-label" style="margin-top:8px;">วันเวลานัดรับ</label><input type="datetime-local" class="fi" id="be_pickup_${id}" value="${esc_(x.pickup||'')}">`+
-    `<div class="btn-row" style="margin-top:10px;gap:6px;display:flex;"><button class="btn btn-sm btn-success" style="flex:1;" onclick="brkSaveEdit('${id}')">💾 บันทึก</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="renderBreakList()">ยกเลิก</button></div>`;
+    `<div class="btn-row" style="margin-top:10px;gap:6px;display:flex;"><button class="btn btn-sm btn-success" style="flex:1;" onclick="brkSaveEdit(this,'${id}')">💾 บันทึก</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="renderBreakList()">ยกเลิก</button></div>`;
 }
-async function brkSaveEdit(id){
+async function brkSaveEdit(btn,id){
   const g=fid=>raw_(fid+'_'+id);
   const amount=Number(g('be_amt'))||0;
   const p={id:id,edit:true,customer:(g('be_cust')||'').trim(),detail:g('be_detail'),amount:amount,type:g('be_type'),bookDate:g('be_book'),pickup:g('be_pickup')};
   if(!p.customer)return toast('กรุณาใส่ชื่อลูกค้า');
+  if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังบันทึก...';}
   try{
     const r=await revSubmit('updateBreak',p);
-    if(!(r&&r.ok))return toast('❌ '+((r&&r.error)||'แก้ไขไม่สำเร็จ — backend อาจยังไม่รองรับ'));
+    if(!(r&&r.ok)){
+      toast('❌ '+((r&&r.error)||'แก้ไขไม่สำเร็จ — backend อาจยังไม่รองรับ'));
+      if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='💾 บันทึก';}
+      return;
+    }
     // ตรวจซ้ำกับ backend: อ่านกลับมาเทียบ กัน false success
     let warned=false;
     try{
@@ -1551,7 +1598,7 @@ async function brkSaveEdit(id){
     }catch(e){}
     if(!warned)toast('✅ แก้ไขเบรคแล้ว');
     renderBreakList();
-  }catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='💾 บันทึก';}}
 }
 function pnlNum_(n){return (Number(n)||0).toLocaleString('th-TH',{maximumFractionDigits:0});}
 function pnlCostColor_(pct){pct=Number(pct)||0;if(pct<=0.35)return['var(--green)','#27500A','ดี'];if(pct<0.50)return['var(--amber)','#854F0B','เฝ้าระวัง'];return['var(--red)','#791F1F','สูงเกินเป้า'];}
@@ -1722,11 +1769,18 @@ function rStep(s){
 function pickIV(btn,lbl){['ivb1','ivb2','ivb3'].forEach(id=>{const b=document.getElementById(id);b.className=b===btn?'btn btn-dark btn-sm':'btn btn-outline btn-sm';});toast('นัดสัมภาษณ์: '+lbl);}
 
 /* ── APPLICANT APPROVE ── */
+let _apvSubmitting=false;
 async function apvApplicant(a,empId){
   if(!empId){toast('ไม่พบข้อมูลพนักงาน');return;}
+  if(_apvSubmitting)return;
+  _apvSubmitting=true;
   const salary=document.getElementById('apv-salary-input')?.value||'';
   const type=document.getElementById('apv-type-input')?.value||'';
   const note=document.getElementById('apv-note-input')?.value||'';
+  const apvBtns=document.querySelectorAll('#s-owner-apv-detail .btn-danger,#s-owner-apv-detail .btn-success');
+  apvBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';});
+  const loadBtn=document.querySelector('#s-owner-apv-detail .btn-'+(a==='approve'?'success':'danger'));
+  if(loadBtn)loadBtn.textContent=a==='approve'?'กำลังอนุมัติ...':'กำลังปฏิเสธ...';
   try{
     const res=await callAPI({action:'approveEmployee',empId,approve:a==='approve'?'true':'false',salary,type,note,approvedBy:currentUser?.name||'Owner'});
     if(res.ok){
@@ -1734,6 +1788,14 @@ async function apvApplicant(a,empId){
       setTimeout(()=>{const cur=document.querySelector('.sc.on')?.id;if(cur==='s-owner-apv-detail')back();renderApprovalTabs();renderOwnerHome();},1200);
     } else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+  finally{
+    _apvSubmitting=false;
+    apvBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});
+    const dBtn=document.querySelector('#s-owner-apv-detail .btn-danger');
+    const sBtn=document.querySelector('#s-owner-apv-detail .btn-success');
+    if(dBtn)dBtn.textContent='ปฏิเสธ';
+    if(sBtn)sBtn.textContent='อนุมัติบัญชี';
+  }
 }
 
 /* ── GENERIC TABS ── */
@@ -1902,8 +1964,8 @@ async function renderApprovalTabs(){
             ${total>5?`<div class="irow" style="padding:4px 0;border-bottom:none;"><span class="ilabel">รวม</span><span class="ival">${total} วัน</span></div>`:''}
           </div>
           <div class="btn-row">
-            <button class="btn btn-danger btn-full" onclick="approveScheduleAction('${s.id}','reject')">ปฏิเสธ</button>
-            <button class="btn btn-success btn-full" onclick="approveScheduleAction('${s.id}','approve')">อนุมัติ</button>
+            <button class="btn btn-danger btn-full" onclick="approveScheduleAction(this,'${s.id}','reject')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="approveScheduleAction(this,'${s.id}','approve')">อนุมัติ</button>
           </div>
         </div>`;}).join('')
         :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีตารางงานรออนุมัติ</div>';
@@ -1925,8 +1987,8 @@ async function renderApprovalTabs(){
           ${l.medCertUrl?`<div class="irow"><span class="ilabel">ใบรับรองแพทย์</span><span class="ival"><a href="${l.medCertUrl}" target="_blank" style="color:var(--navy);font-weight:700;">📄 เปิดดูไฟล์</a></span></div>`:(l.type==='s'?`<div class="irow"><span class="ilabel">ใบรับรองแพทย์</span><span class="ival" style="color:var(--ink3);">— ไม่ได้แนบ</span></div>`:'')}
           <div class="div"></div>
           <div class="btn-row">
-            <button class="btn btn-danger btn-full" onclick="approveLeaveAction('${l.id}','reject')">ปฏิเสธ</button>
-            <button class="btn btn-success btn-full" onclick="approveLeaveAction('${l.id}','approve')">อนุมัติ</button>
+            <button class="btn btn-danger btn-full" onclick="approveLeaveAction(this,'${l.id}','reject')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="approveLeaveAction(this,'${l.id}','approve')">อนุมัติ</button>
           </div>
         </div>`).join('')
         :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีคำขอวันลารออนุมัติ</div>';
@@ -1948,8 +2010,8 @@ async function renderApprovalTabs(){
           <div class="irow"><span class="ilabel">รวม</span><span class="ival" style="font-weight:700;">${o.requestedHours} ชั่วโมง</span></div>
           <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">${o.reason||'—'}</span></div>
           <div class="btn-row" style="margin-top:14px;">
-            <button class="btn btn-danger btn-full" onclick="approveOTAction('${o.id}','reject')">ปฏิเสธ</button>
-            <button class="btn btn-success btn-full" onclick="approveOTAction('${o.id}','approve')">อนุมัติ</button>
+            <button class="btn btn-danger btn-full" onclick="approveOTAction(this,'${o.id}','reject')">ปฏิเสธ</button>
+            <button class="btn btn-success btn-full" onclick="approveOTAction(this,'${o.id}','approve')">อนุมัติ</button>
           </div>
         </div>`).join('')
         :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีคำขอ OT รออนุมัติ</div>';
@@ -1957,27 +2019,36 @@ async function renderApprovalTabs(){
   }catch(e){toast('โหลดข้อมูลไม่สำเร็จ');}
 }
 
-async function approveScheduleAction(id,action){
+async function approveScheduleAction(btn,id,action){
+  const rowBtns=btn.closest('.btn-row')?.querySelectorAll('button')||[btn];
+  rowBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';});
+  btn.textContent=action==='approve'?'กำลังอนุมัติ...':'กำลังปฏิเสธ...';
   try{
     const fn=action==='approve'?'approveSchedule':'rejectSchedule';
     const res=await callAPI({action:fn,scheduleId:id,approvedBy:currentUser?.name||'Owner'});
     if(res.ok){toast(action==='approve'?'✓ อนุมัติตารางงานแล้ว':'ปฏิเสธตารางงานแล้ว');renderApprovalTabs();renderOwnerHome();}
-    else toast('เกิดข้อผิดพลาด: '+res.error);
-  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+    else{toast('เกิดข้อผิดพลาด: '+res.error);rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=action==='approve'?'อนุมัติ':'ปฏิเสธ';}
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=action==='approve'?'อนุมัติ':'ปฏิเสธ';}
 }
-async function approveLeaveAction(id,action){
+async function approveLeaveAction(btn,id,action){
+  const rowBtns=btn.closest('.btn-row')?.querySelectorAll('button')||[btn];
+  rowBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';});
+  btn.textContent=action==='approve'?'กำลังอนุมัติ...':'กำลังปฏิเสธ...';
   try{
     const res=await callAPI({action:'approveLeave',leaveId:id,approve:String(action==='approve'),approvedBy:currentUser?.name||'Owner'});
     if(res.ok){toast(action==='approve'?'✓ อนุมัติวันลาแล้ว':'ปฏิเสธวันลาแล้ว');renderApprovalTabs();renderOwnerHome();}
-    else toast('เกิดข้อผิดพลาด: '+res.error);
-  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+    else{toast('เกิดข้อผิดพลาด: '+res.error);rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=action==='approve'?'อนุมัติ':'ปฏิเสธ';}
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=action==='approve'?'อนุมัติ':'ปฏิเสธ';}
 }
-async function approveOTAction(id,action){
+async function approveOTAction(btn,id,action){
+  const rowBtns=btn.closest('.btn-row')?.querySelectorAll('button')||[btn];
+  rowBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';});
+  btn.textContent=action==='approve'?'กำลังอนุมัติ...':'กำลังปฏิเสธ...';
   try{
     const res=await callAPI({action:'approveOT',otId:id,approve:String(action==='approve'),approvedBy:currentUser?.name||'Owner'});
     if(res.ok){toast(action==='approve'?'✓ อนุมัติ OT แล้ว':'ปฏิเสธ OT แล้ว');renderApprovalTabs();renderOwnerHome();}
-    else toast('เกิดข้อผิดพลาด: '+res.error);
-  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+    else{toast('เกิดข้อผิดพลาด: '+res.error);rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=action==='approve'?'อนุมัติ':'ปฏิเสธ';}
+  }catch(e){toast('ไม่สามารถเชื่อมต่อได้');rowBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});btn.textContent=action==='approve'?'อนุมัติ':'ปฏิเสธ';}
 }
 
 /* ── LEAVE ── */
@@ -2048,11 +2119,18 @@ async function saveProfile(empId){
   ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName'].forEach(f=>{
     const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
   });
+  const saveBtns=[...document.querySelectorAll('#s-emp-profile-edit .btn-success,#s-emp-profile-edit .topbar-action')];
+  saveBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';b.textContent='กำลังบันทึก...';});
   try{
     const res=await callAPI({action:'updateEmployee',data:JSON.stringify(fields)});
     if(res.ok){toast('บันทึกข้อมูลเรียบร้อย ✓');setTimeout(()=>{back();back();},1200);}
     else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+  finally{
+    saveBtns.forEach(b=>{b.disabled=false;b.style.opacity='1';});
+    document.querySelectorAll('#s-emp-profile-edit .btn-success').forEach(b=>b.textContent='บันทึกการแก้ไข');
+    document.querySelectorAll('#s-emp-profile-edit .topbar-action').forEach(b=>b.textContent='บันทึก');
+  }
 }
 
 /* ── REGISTRATION SUBMIT ── */
@@ -3325,7 +3403,8 @@ async function submitSchedule(){
   // รวมวันเดิมของเดือนนี้ + วันที่เพิ่งเลือก → ส่งครบทั้งชุด (กันวันเดิมหาย)
   const merged={...existingMonthDates(),...calSelected};
   const keys=Object.keys(merged);
-  toast('กำลังส่งตาราง...');
+  const schedBtn=document.querySelector('#s-emp-sched .btn-navy');
+  if(schedBtn){schedBtn.disabled=true;schedBtn.style.opacity='0.6';schedBtn.textContent='กำลังส่ง...';}
   try{
     const res=await callAPI({
       action:'submitSchedule',
@@ -3340,6 +3419,9 @@ async function submitSchedule(){
       await loadExistingSchedules();   // refresh → ปฏิทิน highlight วันที่ส่งแล้วทันที
     }else{toast('เกิดข้อผิดพลาด: '+res.error);}
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
+  finally{
+    if(schedBtn){schedBtn.disabled=false;schedBtn.style.opacity='1';schedBtn.textContent='ส่งตารางขออนุมัติ';}
+  }
 }
 
 // Init
