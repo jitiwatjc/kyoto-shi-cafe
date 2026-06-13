@@ -1581,7 +1581,10 @@ async function renderBreakList(){const el=document.getElementById('bk-list');if(
 function brkEditCard(id){
   const x=(brkList||[]).find(o=>String(o.id)===String(id)); if(!x)return;
   const el=document.getElementById('bkc_'+id); if(!el)return;
-  const types=(storeCfg&&storeCfg.brkTypes&&storeCfg.brkTypes.length)?storeCfg.brkTypes:[x.type||''];
+  // ใช้ 3 ประเภทมาตรฐานเดียวกับฟอร์มสร้าง (กัน "มัดจำ" หายเพราะ storeCfg.brkTypes ไม่ตรง)
+  const CANON_BTYPES=['จ่ายล่วงหน้า (เต็มจำนวน)','จ่ายล่วงหน้า (มัดจำ)','เครดิต 14 วัน'];
+  const types=CANON_BTYPES.slice();
+  if(x.type&&types.indexOf(x.type)<0)types.unshift(x.type); // เก็บ type เดิม/แปลกไว้ถ้าไม่ตรงมาตรฐาน
   const typeOpts=types.map(t=>`<option${t===x.type?' selected':''}>${esc_(t)}</option>`).join('');
   el.innerHTML=
     `<div style="font-weight:600;color:var(--amber);margin-bottom:8px;">✏️ แก้ไขออเดอร์เบรค</div>`+
