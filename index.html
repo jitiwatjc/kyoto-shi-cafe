@@ -1564,18 +1564,47 @@ async function renderRevList(){
   }catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}
 }
 function rvCardHtml(r,ctx){
-  let diffCash=Number(r.diffCash)||0;
-  if(ctx&&String(ctx.date)===String(r.date)){
-    const cashExp=Number(ctx.cashExp)||0,brkInCash=Number(ctx.brkInCash)||0,brkDelCash=Number(ctx.brkDeliveredCash)||0;
-    diffCash=(Number(r.cash)||0)+cashExp-brkInCash-((Number(r.posCash)||0)-brkDelCash);
-  }
-  const cashFlag=diffCash===0?'<span style="color:var(--green);font-weight:600;">ตรง ✓</span>':`<span style="color:var(--red);font-weight:600;">⚠ ต่าง ${rnd_(diffCash)}</span>`;
-  const brk=(r.brkPickup?`เบรครับวันนี้ ${rnd_(r.brkPickup)}฿ · `:'')+(r.brkIn?`มัดจำเข้า ${rnd_(r.brkIn)}฿`:'');
-  const totalSales=(Number(r.posCash)||0)+(Number(r.posTransfer)||0)+(Number(r.grab)||0);
-  return `<div class="card" id="rvc_${r.id}" style="margin:8px 0;padding:10px 12px;">`+
-    `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b style="color:var(--navy);">${esc_(r.date)}</b><b style="color:var(--green);flex-shrink:0;">${rnd_(totalSales)} ฿</b></div>`+
-    `<div class="t-cap" style="line-height:1.7;margin-top:4px;">บาร์ ${rnd_(r.posBar)} · เบเกอรี่ ${rnd_(r.posBakery)} · ครัว ${rnd_(r.posKitchen)} · Grab ${rnd_(r.grab)}<br>POS สด ${rnd_(r.posCash)} / โอน ${rnd_(r.posTransfer)} · ผลต่างเงินสด ${cashFlag}${brk?('<br>'+brk):''} · โดย ${esc_(r.staff)}${r.note?('<br>📝 '+esc_(r.note)):''}</div>`+
-    `<button class="btn btn-sm btn-navy" style="width:100%;margin-top:8px;" onclick="rvEditCard('${r.id}')">✏️ แก้ไขยอดวันนี้</button></div>`;
+  const n=v=>Number(v)||0;
+  const posCash=n(r.posCash),posTr=n(r.posTransfer),grab=n(r.grab);
+  const total=posCash+posTr+grab;                 // ยอดขายวันนี้ (POS รูดรวมเบรคที่ส่งแล้ว)
+  const hasCtx=ctx&&String(ctx.date)===String(r.date);
+  const brkDel=hasCtx?n(ctx.brkDelivered):n(r.brkPickup);   // เบรคที่ส่งวันนี้ (เป็นยอดขาย)
+  const brkInToday=hasCtx?n(ctx.brkInTotal):n(r.brkIn);     // เงินเบรคเข้าวันนี้ (มัดจำ/คงเหลือ)
+  const shopFront=total-brkDel;                   // ยอดขายหน้าร้าน (ไม่รวมเบรค)
+  // ผลต่าง สด/โอน — สูตร v13 (เมื่อมี ctx ของวันนั้น) มิฉะนั้น fallback ค่าที่บันทึก
+  let diffCash,diffTr;
+  if(hasCtx){
+    const cashExp=n(ctx.cashExp),brkInCash=n(ctx.brkInCash),brkInTr=n(ctx.brkInTransfer);
+    const brkDelCash=n(ctx.brkDeliveredCash),brkDelTr=n(ctx.brkDeliveredTransfer);
+    diffCash=(n(r.cash)+cashExp-brkInCash)-(posCash-brkDelCash);
+    diffTr=(n(r.t1)+n(r.t2)-brkInTr)-(posTr-brkDelTr);
+  } else { diffCash=n(r.diffCash); diffTr=n(r.diffTr); }
+  const chk=v=>Math.abs(v)<0.005
+    ?'<b style="color:var(--green);">ตรง ✓</b>'
+    :`<b style="color:var(--red);">⚠ ต่าง ${rnd_(v)}</b>`;
+  const allOk=Math.abs(diffCash)<0.005&&Math.abs(diffTr)<0.005;
+  const box=(label,val,sub)=>`<div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:8px 10px;">`+
+    `<div class="t-cap" style="margin:0;">${label}</div><b style="color:var(--navy);font-size:15px;">${rnd_(val)} ฿</b>${sub?`<div class="t-cap" style="margin:0;font-size:11px;">${sub}</div>`:''}</div>`;
+  return `<div class="card" id="rvc_${r.id}" style="margin:8px 0;padding:12px;border-left:3px solid ${allOk?'var(--green)':'var(--red)'};">`+
+    // ── หัว: วันที่ + ยอดขายวันนี้ ──
+    `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">`+
+      `<div><b style="color:var(--navy);font-size:15px;">${esc_(r.date)}</b><div class="t-cap" style="margin:0;">โดย ${esc_(r.staff)}</div></div>`+
+      `<div style="text-align:right;flex-shrink:0;"><div class="t-cap" style="margin:0;">ยอดขายวันนี้</div><b style="color:var(--green);font-size:18px;">${rnd_(total)} ฿</b></div>`+
+    `</div>`+
+    // ── (1)+(4) ยอดขายหน้าร้าน + เบรค ──
+    `<div style="display:flex;gap:8px;margin-top:10px;">`+
+      box('🏪 ขายหน้าร้าน',shopFront,'')+
+      box('🎂 เบรคส่งวันนี้',brkDel,brkInToday?('เงินเข้า '+rnd_(brkInToday)):'')+
+    `</div>`+
+    // ── (2) ยอดแต่ละครัว ──
+    `<div class="t-cap" style="margin-top:10px;line-height:1.7;">🍴 บาร์ <b>${rnd_(r.posBar)}</b> · เบเกอรี่ <b>${rnd_(r.posBakery)}</b> · ครัว <b>${rnd_(r.posKitchen)}</b> · Grab <b>${rnd_(grab)}</b></div>`+
+    // ── (3) ตรวจยอด สด/โอน ──
+    `<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">`+
+      `<div class="t-cap" style="margin:0;">POS สด ${rnd_(posCash)} · โอน ${rnd_(posTr)}</div>`+
+      `<div style="display:flex;gap:16px;margin-top:3px;font-size:13px;"><span>💵 เงินสด ${chk(diffCash)}</span><span>🏦 เงินโอน ${chk(diffTr)}</span></div>`+
+    `</div>`+
+    (r.note?`<div class="t-cap" style="margin-top:6px;">📝 ${esc_(r.note)}</div>`:'')+
+    `<button class="btn btn-sm btn-navy" style="width:100%;margin-top:10px;" onclick="rvEditCard('${r.id}')">✏️ แก้ไขยอดวันนี้</button></div>`;
 }
 function rvEditCard(id){
   const r=rvRecent.filter(x=>String(x.id)===String(id))[0];if(!r)return;
