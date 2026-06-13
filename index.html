@@ -1555,12 +1555,21 @@ async function renderRevList(){
   const d=raw_('rv-date')||'';
   rvLoadBreaks(d); renderRevLog();
   el.innerHTML='<div class="t-cap">กำลังโหลด...</div>';
-  try{const r=await revGet('listRecentRevenue',{date:d});rvRecent=(r&&r.data)||[];
-    el.innerHTML=rvRecent.length?rvRecent.map(rvCardHtml).join(''):('<div class="t-cap">'+(d?('ยังไม่มีรายได้ของวันที่ '+d):'ยังไม่มีรายการ')+'</div>');
+  try{
+    const [rr,cr]=await Promise.all([revGet('listRecentRevenue',{date:d}),d?revGet('getDayContext',{date:d}):Promise.resolve(null)]);
+    rvRecent=(rr&&rr.data)||[];
+    const ctx=(cr&&cr.ok&&cr.data)||null;
+    if(ctx){rvCtx=ctx;rvCalc();}
+    el.innerHTML=rvRecent.length?rvRecent.map(r=>rvCardHtml(r,ctx)).join(''):('<div class="t-cap">'+(d?('ยังไม่มีรายได้ของวันที่ '+d):'ยังไม่มีรายการ')+'</div>');
   }catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}
 }
-function rvCardHtml(r){
-  const cashFlag=Number(r.diffCash)===0?'<span style="color:var(--green);font-weight:600;">ตรง ✓</span>':`<span style="color:var(--red);font-weight:600;">⚠ ต่าง ${rnd_(r.diffCash)}</span>`;
+function rvCardHtml(r,ctx){
+  let diffCash=Number(r.diffCash)||0;
+  if(ctx&&String(ctx.date)===String(r.date)){
+    const cashExp=Number(ctx.cashExp)||0,brkInCash=Number(ctx.brkInCash)||0,brkDelCash=Number(ctx.brkDeliveredCash)||0;
+    diffCash=(Number(r.cash)||0)+cashExp-brkInCash-((Number(r.posCash)||0)-brkDelCash);
+  }
+  const cashFlag=diffCash===0?'<span style="color:var(--green);font-weight:600;">ตรง ✓</span>':`<span style="color:var(--red);font-weight:600;">⚠ ต่าง ${rnd_(diffCash)}</span>`;
   const brk=(r.brkPickup?`เบรครับวันนี้ ${rnd_(r.brkPickup)}฿ · `:'')+(r.brkIn?`มัดจำเข้า ${rnd_(r.brkIn)}฿`:'');
   const totalSales=(Number(r.posCash)||0)+(Number(r.posTransfer)||0)+(Number(r.grab)||0);
   return `<div class="card" id="rvc_${r.id}" style="margin:8px 0;padding:10px 12px;">`+
