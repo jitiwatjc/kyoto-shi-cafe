@@ -1170,7 +1170,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div id="rv-list" style="margin-top:12px;"><div class="t-cap">—</div></div>
       </div>
       <div class="card">
-        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">📝 ประวัติการแก้ไขรายได้ (ใครแก้อะไร)<span class="t-cap" style="cursor:pointer;color:var(--info);flex-shrink:0;" onclick="renderRevLog()">🔄</span></div>
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">📝 ประวัติการแก้ไขรายได้<span class="t-cap" style="cursor:pointer;color:var(--info);flex-shrink:0;" onclick="renderRevLog()">🔄</span></div>
         <div id="rv-log" style="margin-top:10px;"><div class="t-cap">—</div></div>
       </div>
     </div>
@@ -1540,8 +1540,10 @@ async function rvLoadBreaks(d){
 }
 async function renderRevLog(){
   const el=document.getElementById('rv-log'); if(!el)return;
-  try{ const r=await revGet('listRevenueLog'); const a=(r&&r.data)||[];
-    el.innerHTML=a.length?a.map(x=>`<div style="border-bottom:1px solid var(--border);padding:8px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b style="font-size:12.5px;color:var(--navy);">${esc_(x.editor)}</b><span class="t-cap" style="flex-shrink:0;">${esc_(x.time)}</span></div><div class="t-cap" style="line-height:1.6;">วันที่ ${esc_(x.date)} · ${esc_(x.changes)}</div></div>`).join(''):'<div class="t-cap">— ยังไม่มีการแก้ไข —</div>';
+  const d=raw_('rv-date')||'';
+  try{ const r=await revGet('listRevenueLog'); let a=(r&&r.data)||[];
+    if(d) a=a.filter(x=>String(x.date)===d);   // โชว์เฉพาะ log ของวันที่ที่กำลังดู (แก้วันไหนโชว์วันนั้น)
+    el.innerHTML=a.length?a.map(x=>`<div style="border-bottom:1px solid var(--border);padding:8px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b style="font-size:12.5px;color:var(--navy);">${esc_(x.editor)}</b><span class="t-cap" style="flex-shrink:0;">${esc_(x.time)}</span></div><div class="t-cap" style="line-height:1.6;">วันที่ ${esc_(x.date)} · ${esc_(x.changes)}</div></div>`).join(''):('<div class="t-cap">— '+(d?('ไม่มีการแก้ไขของวันที่ '+d):'ยังไม่มีการแก้ไข')+' —</div>');
   }catch(e){ el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>'; }
 }
 async function renderRevList(){
