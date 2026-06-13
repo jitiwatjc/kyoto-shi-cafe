@@ -1161,6 +1161,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="card" style="padding:8px 12px;margin:10px 0 0;box-shadow:none;">
           <div class="irow" style="padding:8px 0;"><span class="ilabel">ผลต่างเงินสด (นับ+จ่าย − POS)</span><span class="ival" id="rv-diffcash">—</span></div>
           <div class="irow" style="padding:8px 0;border-bottom:none;"><span class="ilabel">เช็กยอด POS รวม (POS − เงินจริง)</span><span class="ival" id="rv-poschk">—</span></div>
+          <div class="t-cap" id="rv-posadjnote" style="padding:2px 0 0;line-height:1.5;color:var(--ink3);"></div>
         </div>
         <label class="t-label" style="margin-top:14px;">📝 หมายเหตุ</label><input type="text" class="fi" id="rv-note" placeholder="เพิ่มเติม (ถ้ามี)">
         <button class="btn btn-success btn-full" style="margin-top:14px;" onclick="saveRevenue()">บันทึกรายได้</button>
@@ -1503,12 +1504,12 @@ function rvSetDiff(id,diff,empty){const e=document.getElementById(id);if(!e)retu
   diff=Math.round((Number(diff)||0)*100)/100;
   if(diff===0){e.textContent='0 ฿ ✓';e.style.color='var(--green)';return;}
   e.textContent=(diff>0?'+':'')+rnd_(diff)+' ฿ ⚠'+(diff>0?' เงินเกิน':' เงินขาด');e.style.color='var(--red)';}
-let rvCtx={cashExp:0,brkInTotal:0,brkInCash:0,brkInTransfer:0,brkDelivered:0,date:''};
+let rvCtx={cashExp:0,brkInTotal:0,brkInCash:0,brkInTransfer:0,brkDelivered:0,brkDeliveredCash:0,brkDeliveredTransfer:0,date:''};
 function rvSetTxt_(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 async function rvLoadCtx(){
   const d=raw_('rv-date')||'';
-  try{const r=await revGet('getDayContext',{date:d});rvCtx=(r&&r.ok&&r.data)?r.data:{cashExp:0,brkInTotal:0,brkInCash:0,brkInTransfer:0,brkDelivered:0,date:d};}
-  catch(e){rvCtx={cashExp:0,brkInTotal:0,brkInCash:0,brkInTransfer:0,brkDelivered:0,date:d};}
+  try{const r=await revGet('getDayContext',{date:d});rvCtx=(r&&r.ok&&r.data)?r.data:{cashExp:0,brkInTotal:0,brkInCash:0,brkInTransfer:0,brkDelivered:0,brkDeliveredCash:0,brkDeliveredTransfer:0,date:d};}
+  catch(e){rvCtx={cashExp:0,brkInTotal:0,brkInCash:0,brkInTransfer:0,brkDelivered:0,brkDeliveredCash:0,brkDeliveredTransfer:0,date:d};}
   rvCalc();
 }
 // สูตรใหม่: เงินสดขายจริง = นับ + รายจ่ายเงินสด · ยอดหน้าร้าน = เงินสดขายจริง + (โอนรวม − เบรคเข้า) + Grab · ยอดรวม = หน้าร้าน + เบรคส่ง
@@ -1520,6 +1521,8 @@ function rvCalc(){
   let brkInCash,brkInTr;
   if(rvCtx.brkInCash!=null||rvCtx.brkInTransfer!=null){ brkInCash=Number(rvCtx.brkInCash)||0; brkInTr=Number(rvCtx.brkInTransfer)||0; }
   else { brkInCash=0; brkInTr=Number(rvCtx.brkInTotal)||0; }
+  // เบรคที่ส่งวันนี้ แยกวิธีจ่าย → หักออกจาก POS (รับเงินมาก่อนหน้า ไม่ได้เข้าวันส่ง)
+  const brkDelCash=Number(rvCtx.brkDeliveredCash)||0, brkDelTr=Number(rvCtx.brkDeliveredTransfer)||0;
   const cashReal=cash+cashExp-brkInCash, trNet=t1+t2-brkInTr, shopFront=cashReal+trNet+grab, total=shopFront+brkDel;
   rvSetTxt_('rv-cashreal',rnd_(cashReal));
   rvSetTxt_('rv-cashnote',(cashExp||brkInCash)?('= นับ '+rnd_(cash)+(cashExp?(' + จ่ายสด '+rnd_(cashExp)):'')+(brkInCash?(' − เบรคสด '+rnd_(brkInCash)):'')):'');
@@ -1528,8 +1531,9 @@ function rvCalc(){
   rvSetTxt_('rv-grabview',rnd_(grab));
   rvSetTxt_('rv-shopfront',rnd_(shopFront));
   rvSetTxt_('rv-salesview',rnd_(total));
-  rvSetDiff('rv-diffcash',cashReal-posCash,raw_('rv-poscash')==='');
+  rvSetDiff('rv-diffcash',cashReal-(posCash-brkDelCash),raw_('rv-poscash')==='');
   rvSetDiff('rv-poschk',(posCash+posTr)-(cashReal+trNet+brkDel),raw_('rv-poscash')===''&&raw_('rv-postr')==='');
+  rvSetTxt_('rv-posadjnote',(brkDelCash||brkDelTr)?('* POS วันนี้รวมยอดเบรคที่ส่ง หักออกแล้ว: '+(brkDelCash?('สด '+rnd_(brkDelCash)):'')+((brkDelCash&&brkDelTr)?' · ':'')+(brkDelTr?('โอน '+rnd_(brkDelTr)):'')+' (รับเงินมาก่อนหน้า)'):'');
 }
 async function rvLoadBreaks(d){
   const tEl=document.getElementById('rv-brktotal'),lEl=document.getElementById('rv-brklist');
