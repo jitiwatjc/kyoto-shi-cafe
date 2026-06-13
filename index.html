@@ -1297,10 +1297,28 @@ function exRecalc(){const tot=parseFloat(raw_('ex-total'))||0;let s=0;document.q
 function exVendorChanged(){if(!storeCfg||!storeCfg.vendorDefaults)return;const d=storeCfg.vendorDefaults[raw_('ex-vendor')];if(d&&d.cat){const c=document.getElementById('ex-cat');if(c)c.value=d.cat;}}
 async function saveRevenue(){
   if(!raw_('rv-date'))return toast('กรุณาเลือกวันที่');
-  const f={date:raw_('rv-date'),cash:raw_('rv-cash'),transfer1:raw_('rv-t1'),transfer2:raw_('rv-t2'),grab:raw_('rv-grab'),posCash:raw_('rv-poscash'),posTransfer:raw_('rv-postr'),posBar:raw_('rv-bar'),posBakery:raw_('rv-bake'),posKitchen:raw_('rv-kit'),staff:(currentUser&&(currentUser.name||currentUser.empId))||'',note:raw_('rv-note')};
+  const dateVal=raw_('rv-date');
+  const staff=(currentUser&&(currentUser.name||currentUser.empId))||'';
+  const f={date:dateVal,cash:raw_('rv-cash'),transfer1:raw_('rv-t1'),transfer2:raw_('rv-t2'),grab:raw_('rv-grab'),posCash:raw_('rv-poscash'),posTransfer:raw_('rv-postr'),posBar:raw_('rv-bar'),posBakery:raw_('rv-bake'),posKitchen:raw_('rv-kit'),staff,note:raw_('rv-note')};
+  // ถ้ามีข้อมูลวันนี้แล้วใน rvRecent → ใช้ updateRevenue แทน submitRevenue (กัน duplicate)
+  const existing=(rvRecent||[]).find(x=>x.date===dateVal);
+  const action=existing?'updateRevenue':'submitRevenue';
+  const payload=existing?{...f,id:existing.id,staff:existing.staff||staff,editor:staff}:f;
   const rvBtn=document.querySelector('#st-pane-rev .btn-success');
   if(rvBtn){rvBtn.disabled=true;rvBtn.style.opacity='0.6';rvBtn.textContent='กำลังบันทึก...';}
-  try{const r=await revSubmit('submitRevenue',f);if(r&&r.ok){const w=(Number(r.diffCash)&&r.diffCash!=null)?(' · ⚠ เงินสดต่าง '+rnd_(r.diffCash)):' · เงินสดตรง ✓';toast('✅ บันทึกรายได้ · ขาย ฿'+rnd_(r.sales)+w);['rv-cash','rv-t1','rv-t2','rv-grab','rv-poscash','rv-postr','rv-bar','rv-bake','rv-kit','rv-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});rvCalc();renderRevList();}else toast('❌ '+((r&&r.error)||'ผิดพลาด'));}catch(e){toast('❌ เชื่อมต่อไม่ได้');}
+  try{
+    const r=await revSubmit(action,payload);
+    if(r&&r.ok){
+      if(existing){
+        toast('✅ อัปเดตรายได้วันที่ '+dateVal+' แล้ว');
+      } else {
+        const w=(Number(r.diffCash)&&r.diffCash!=null)?(' · ⚠ เงินสดต่าง '+rnd_(r.diffCash)):' · เงินสดตรง ✓';
+        toast('✅ บันทึกรายได้ · ขาย ฿'+rnd_(r.sales)+w);
+      }
+      ['rv-cash','rv-t1','rv-t2','rv-grab','rv-poscash','rv-postr','rv-bar','rv-bake','rv-kit','rv-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      rvCalc();renderRevList();
+    }else toast('❌ '+((r&&r.error)||'ผิดพลาด'));
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');}
   finally{if(rvBtn){rvBtn.disabled=false;rvBtn.style.opacity='1';rvBtn.textContent='บันทึกรายได้';}}
 }
 /* ── เบรค A⁺: รายการ / QA-QC / ฟอร์ม / ใบ PDF ── */
