@@ -1676,7 +1676,8 @@ const SCRIPT_URL='https://script.google.com/macros/s/AKfycby5m2YzFxN-APkSDrdAIXO
 async function callAPI(params){
   const url=new URL(SCRIPT_URL);
   Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
-  const r=await fetch(url.toString());
+  url.searchParams.set('_',Date.now());            // cache-buster: กัน browser คืนข้อมูลเก่าหลัง mutation (เช่น ลบ/อนุมัติแล้วจอไม่อัปเดต)
+  const r=await fetch(url.toString(),{cache:'no-store'});
   return r.json();
 }
 // POST (form-urlencoded) — ใช้ส่งข้อมูลก้อนใหญ่ เช่น ไฟล์ base64 ที่ส่งผ่าน GET ไม่ได้
@@ -1693,7 +1694,8 @@ const REVENUE_URL='https://script.google.com/macros/s/AKfycbyNcDMVRdMM00eddA9Ygf
 async function callRev(params){
   const url=new URL(REVENUE_URL);
   Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
-  const r=await fetch(url.toString());
+  url.searchParams.set('_',Date.now());            // cache-buster: กัน browser คืนข้อมูลเก่าหลัง mutation (เช่น ลบรายจ่ายแล้วบิลกลับมา)
+  const r=await fetch(url.toString(),{cache:'no-store'});
   return r.json();
 }
 async function callRevPost(params){
