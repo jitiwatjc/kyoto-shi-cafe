@@ -1489,11 +1489,14 @@ function exEditBill(id){
 async function exDeleteBill(btn,id){
   if(!confirm('ลบรายจ่ายบิลนี้? (ลบถาวร)'))return;
   if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.textContent='กำลังลบ...';}
+  const reset=()=>{if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='🗑 ลบ';}};
   try{
     const r=await revSubmit('deleteExpense',{billId:id});
-    if(r&&r.ok){toast('🗑 ลบรายจ่ายแล้ว');if(String(exEditingBill)===String(id))exCancelEdit();renderExpenseList();}
-    else{toast('❌ '+((r&&r.error)||'ผิดพลาด'));if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='🗑 ลบ';}}
-  }catch(e){toast('❌ เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent='🗑 ลบ';}}
+    // success จริงต่อเมื่อ deleted>0 — กัน false success ที่ทำให้ "ลบแล้วไม่หาย"
+    if(r&&r.ok&&Number(r.deleted)>0){toast('🗑 ลบรายจ่ายแล้ว');if(String(exEditingBill)===String(id))exCancelEdit();renderExpenseList();}
+    else if(r&&r.ok){toast('⚠ ลบไม่สำเร็จ — ไม่พบบิลนี้ในระบบ (อาจถูกลบไปแล้ว/รหัสไม่ตรง) · รีเฟรชให้แล้ว');renderExpenseList();reset();}
+    else{toast('❌ '+((r&&r.error)||'ผิดพลาด'));reset();}
+  }catch(e){toast('❌ เชื่อมต่อไม่ได้');reset();}
 }
 async function renderExpenseList(){const el=document.getElementById('ex-list');if(!el)return;try{const r=await revGet('listExpenseByDate',{date:raw_('ex-date')});const a=(r&&r.data)||[];exBills=a;let tot=0;a.forEach(x=>tot+=(Number(x.total)||0));const t=document.getElementById('ex-daytotal');if(t)t.textContent=a.length?('รวม ฿'+rnd_(tot)):'';el.innerHTML=a.length?a.map(x=>{const sp=(x.splits||[]).map(s=>esc_(s.kitchen)+' '+s.pct+'%').join(' · ');return `<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><b>${esc_(x.vendor||'')}</b><b style="color:var(--red);flex-shrink:0;">฿${rnd_(x.total)}</b></div><div class="t-cap" style="line-height:1.6;">${esc_(x.category||'')}${x.detail?(' · '+esc_(x.detail)):''}<br>${sp}${x.by?(' · โดย '+esc_(x.by)):''}</div><div class="btn-row" style="margin-top:8px;gap:6px;display:flex;"><button class="btn btn-sm" style="background:var(--amber);color:#fff;flex:1;" onclick="exEditBill('${x.billId}')">✏️ แก้ไข</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="exDeleteBill(this,'${x.billId}')">🗑 ลบ</button></div></div>`;}).join(''):'<div class="t-cap">— ยังไม่มีรายจ่ายวันนี้ —</div>';}catch(e){el.innerHTML='<div class="t-cap">โหลดไม่ได้</div>';}}
 /* ── รายได้: คำนวณสด + กระทบยอด + ลิสต์แยกครัว + แก้ไขยอด (ให้เหมือนต้นแบบ) ── */
