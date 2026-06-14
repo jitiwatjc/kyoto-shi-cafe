@@ -239,6 +239,8 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 .cal-cell:not(.cal-empty):not(.cal-past):hover{background:var(--surface2);}
 .cal-cell.cal-work{background:var(--navy);color:#fff;font-weight:700;}
 .cal-cell.cal-work:hover{background:var(--blue);}
+.cal-cell.cal-off{background:#CFC8BC!important;color:#5F5E5A!important;font-weight:700;text-decoration:line-through;}
+.cal-cell.cal-off:hover{background:#C2BAAD!important;}
 .cal-cell.cal-empty{cursor:default;}
 .cal-cell.cal-today:not(.cal-work){box-shadow:inset 0 0 0 2px var(--blue);font-weight:700;color:var(--blue);}
 .cal-cell.cal-past{opacity:.3;cursor:not-allowed;}
@@ -752,7 +754,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="cal-grid" id="cal-grid"></div>
         <div style="display:flex;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3);">
-            <div style="width:13px;height:13px;border-radius:3px;background:var(--navy);flex-shrink:0;"></div>เลือกทำงาน
+            <div style="width:13px;height:13px;border-radius:3px;background:var(--navy);flex-shrink:0;"></div>วันทำงาน
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3);">
+            <div style="width:13px;height:13px;border-radius:3px;background:#CFC8BC;flex-shrink:0;"></div>วันหยุด (แตะซ้ำ)
           </div>
           <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink3);">
             <div style="width:13px;height:13px;border-radius:3px;box-shadow:inset 0 0 0 2px var(--blue);flex-shrink:0;"></div>วันนี้
@@ -2040,7 +2045,7 @@ async function renderApprovalTabs(){
           <div class="apv-sub">${subLabel}</div>
           <div class="div"></div>
           <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
-            ${dateEntries.map(([dt,v])=>{const s=(v&&v.start)||'',e=(v&&v.end)||'';const range=(s&&e)?`${s} – ${e}`:(s||'—');return `<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:var(--navy);font-weight:600;">${range} น.</span></div>`;}).join('')}
+            ${dateEntries.map(([dt,v])=>{const isOff=!!(v&&v.off);const s=(v&&v.start)||'',e=(v&&v.end)||'';const range=isOff?'หยุด':((s&&e)?`${s} – ${e} น.`:(s?(s+' น.'):'—'));return `<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:${isOff?'var(--ink3)':'var(--navy)'};font-weight:600;">${range}</span></div>`;}).join('')}
             ${total>5?`<div class="irow" style="padding:4px 0;border-bottom:none;"><span class="ilabel">รวม</span><span class="ival">${total} วัน</span></div>`:''}
           </div>
           <div class="btn-row">
@@ -2546,7 +2551,7 @@ function initTodaySchedule(){
         for(const s of r.data){
           if(String(s.status||'').toLowerCase()!=='approved')continue;
           const dates=s.dates||{};
-          if(dates[today]){slot=dates[today];break;}
+          if(dates[today]&&!dates[today].off){slot=dates[today];break;}  // วันหยุด = ไม่ปลดล็อกตอกบัตร
         }
       }
       if(slot){
@@ -3164,8 +3169,9 @@ let calEditTarget=null; // { scheduleId, key, start, end, month, year, status }
 function getExistingScheduleForDate(key){
   for(const s of calExistingSchedules){
     if(s.dates&&s.dates[key]){
-      return{scheduleId:s.id,status:(s.status||'').toLowerCase(),
-        start:s.dates[key].start||'08:30',end:s.dates[key].end||'17:00',
+      const e=s.dates[key];
+      return{scheduleId:s.id,status:(s.status||'').toLowerCase(),off:!!e.off,
+        start:e.start||'08:30',end:e.end||'17:00',
         month:s.month,year:s.year,isEdit:!!(s.isEdit||s.type==='edit')};
     }
   }
@@ -3205,9 +3211,11 @@ function renderSchedHistory(){
   const STL={approved:'Approved',rejected:'Rejected',pending:'รออนุมัติ'};
   el.innerHTML=rows.map(s=>{
     const st=(s.status||'').toLowerCase();
-    const days=Object.keys(s.dates||{}).length;
+    const dd=s.dates||{};
+    const dKeys=Object.keys(dd);
+    const nWork=dKeys.filter(k=>!dd[k].off).length, nOff=dKeys.length-nWork;
     const ml=(THAI_MONTHS_SHORT[(parseInt(s.month)||1)-1]||'')+' '+(s.year||'');
-    return `<div class="lrow" style="cursor:default;"><div class="lcol"><div class="ltitle">${ml}</div><div class="lsub">ทำงาน ${days} วัน</div></div><span class="chip ${STC[st]||'chip-amber'}">${STL[st]||s.status||''}</span></div>`;
+    return `<div class="lrow" style="cursor:default;"><div class="lcol"><div class="ltitle">${ml}</div><div class="lsub">ทำงาน ${nWork} วัน${nOff?(' · หยุด '+nOff):''}</div></div><span class="chip ${STC[st]||'chip-amber'}">${STL[st]||s.status||''}</span></div>`;
   }).join('');
 }
 
@@ -3332,11 +3340,12 @@ function buildCalendar(){
     else if(isToday) cell.classList.add('cal-today');
     if(!isPast&&isHoliday) cell.classList.add('cal-holiday');
     else if(!isPast&&isWeekend) cell.classList.add('cal-weekend');
-    if(calSelected[key]) cell.classList.add('cal-work');
+    if(calSelected[key]) cell.classList.add(calSelected[key].off?'cal-off':'cal-work');
     else{
       const exInfo=getExistingScheduleForDate(key);
       if(exInfo){
-        if(exInfo.status==='approved')cell.classList.add('cal-sched-approved');
+        if(exInfo.off)cell.classList.add('cal-off');
+        else if(exInfo.status==='approved')cell.classList.add('cal-sched-approved');
         else if(exInfo.status==='pending')cell.classList.add('cal-sched-pending');
       }
     }
@@ -3378,29 +3387,34 @@ function renderHolidayPanel(){
   panel.style.display='block';
 }
 
+// แตะวนสถานะ: ว่าง → ทำงาน(+เวลา) → หยุด → ว่าง
 function toggleCalDay(key){
   const existing=getExistingScheduleForDate(key);
   if(existing){openScheduleEditPanel(key,existing);return;}
-  if(calSelected[key]){delete calSelected[key];}
-  else{calSelected[key]={start:'08:30',end:'17:00'};}
+  const cur=calSelected[key];
+  if(!cur){ calSelected[key]={start:'08:30',end:'17:00'}; }   // ว่าง → ทำงาน
+  else if(!cur.off){ calSelected[key]={off:true}; }            // ทำงาน → หยุด
+  else { delete calSelected[key]; }                            // หยุด → ว่าง
   buildCalendar();
 }
 
 function renderWorkDayList(){
   const list=document.getElementById('cal-wday-list');
   if(!list)return;
-  const keys=Object.keys(calSelected).sort();
-  const count=keys.length;
+  const allKeys=Object.keys(calSelected).sort();
+  const workKeys=allKeys.filter(k=>!calSelected[k].off);
+  const offKeys=allKeys.filter(k=>calSelected[k].off);
   const countEl=document.getElementById('cal-count');
-  if(countEl)countEl.textContent=count+' วัน';
+  if(countEl)countEl.textContent='ทำงาน '+workKeys.length+' · หยุด '+offKeys.length;
 
-  if(count===0){
-    list.innerHTML='<div class="t-cap" style="text-align:center;padding:14px 0;">คลิกวันที่ในปฏิทินเพื่อเพิ่มวันทำงาน</div>';
+  if(!allKeys.length){
+    list.innerHTML='<div class="t-cap" style="text-align:center;padding:14px 0;">แตะวันในปฏิทิน — แตะ 1 ครั้ง = วันทำงาน · แตะซ้ำ = วันหยุด · แตะอีก = ล้าง</div>';
     return;
   }
 
   let html='';
-  keys.forEach(key=>{
+  if(workKeys.length) html+='<div style="font-size:11px;font-weight:700;color:var(--navy);margin:2px 0 8px;">🟦 วันทำงาน ('+workKeys.length+' วัน)</div>';
+  workKeys.forEach(key=>{
     const [y,m,d]=key.split('-');
     const dt=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
     const dow2=dt.getDay();
@@ -3461,6 +3475,17 @@ function renderWorkDayList(){
       <button class="wday-remove" style="align-self:flex-end;margin-bottom:2px;" onclick="removeCalDay('${key}')">✕</button>
     </div>`;
   });
+  if(offKeys.length){
+    html+='<div style="font-size:11px;font-weight:700;color:#5F5E5A;margin:14px 0 8px;">⬜ วันหยุด ('+offKeys.length+' วัน)</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    offKeys.forEach(key=>{
+      const [y,m,d]=key.split('-');
+      const dt=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+      const thaiDay=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][dt.getDay()];
+      html+=`<span style="display:inline-flex;align-items:center;gap:7px;background:#EDEAE3;color:#5F5E5A;border-radius:14px;padding:6px 11px;font-size:12px;font-weight:600;">${thaiDay} ${parseInt(d)} ${THAI_MONTHS_SHORT[parseInt(m)-1]}<span style="cursor:pointer;font-weight:700;opacity:.7;" onclick="removeCalDay('${key}')">✕</span></span>`;
+    });
+    html+='</div>';
+  }
   list.innerHTML=html;
 }
 
@@ -3478,11 +3503,12 @@ function filterCalendar(){
 }
 
 async function submitSchedule(){
-  if(!Object.keys(calSelected).length){toast('กรุณาเลือกวันทำงานก่อน');return;}
+  if(!Object.keys(calSelected).length){toast('กรุณาระบุวันทำงาน/วันหยุดก่อน');return;}
   if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
-  // รวมวันเดิมของเดือนนี้ + วันที่เพิ่งเลือก → ส่งครบทั้งชุด (กันวันเดิมหาย)
+  // รวมวันเดิมของเดือนนี้ + วันที่เพิ่งระบุ → ส่งครบทั้งชุด (กันวันเดิมหาย)
   const merged={...existingMonthDates(),...calSelected};
   const keys=Object.keys(merged);
+  const nWork=keys.filter(k=>!merged[k].off).length, nOff=keys.length-nWork;
   const schedBtn=document.querySelector('#s-emp-sched .btn-navy');
   if(schedBtn){schedBtn.disabled=true;schedBtn.style.opacity='0.6';schedBtn.textContent='กำลังส่ง...';}
   try{
@@ -3494,7 +3520,7 @@ async function submitSchedule(){
       dates:JSON.stringify(merged),
     });
     if(res.ok){
-      toast('ส่งตาราง '+keys.length+' วัน สำเร็จ รอ Owner อนุมัติ ✓');
+      toast('ส่งตาราง — ทำงาน '+nWork+' · หยุด '+nOff+' วัน สำเร็จ รอ Owner อนุมัติ ✓');
       calSelected={};
       await loadExistingSchedules();   // refresh → ปฏิทิน highlight วันที่ส่งแล้วทันที
     }else{toast('เกิดข้อผิดพลาด: '+res.error);}
