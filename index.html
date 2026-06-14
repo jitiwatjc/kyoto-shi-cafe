@@ -507,10 +507,8 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">อนุมัติ</div></div>
   <div class="page">
     <div class="tabs" id="approve-tabs" style="gap:0;">
-      <div class="tab on" onclick="swApproveTab(0)" style="font-size:11px;">บัญชีใหม่<span id="apv-tab-badge-emp" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
-      <div class="tab" onclick="swApproveTab(1)" style="font-size:11px;">ตารางงาน<span id="apv-tab-badge-sched" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
-      <div class="tab" onclick="swApproveTab(2)" style="font-size:11px;">วันลา<span id="apv-tab-badge-leave" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
-      <div class="tab" onclick="swApproveTab(3)" style="font-size:11px;">OT<span id="apv-tab-badge-ot" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
+      <div class="tab on" onclick="swApproveTab(0)" style="font-size:12px;">บัญชีใหม่<span id="apv-tab-badge-emp" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
+      <div class="tab" onclick="swApproveTab(1)" style="font-size:12px;">คำขอพนักงาน<span id="apv-tab-badge-req" class="chip chip-amber" style="font-size:9px;padding:2px 5px;margin-left:4px;display:none;"></span></div>
     </div>
 
     <!-- TAB 0: ใบสมัคร -->
@@ -520,19 +518,9 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       <div id="at-done" style="display:none;"><div id="apv-t0-done" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div></div>
     </div>
 
-    <!-- TAB 1: ตารางงาน -->
+    <!-- TAB 1: คำขอพนักงาน (ตาราง+ลา+OT รวม จัดกลุ่มตามคน) -->
     <div id="apv-t1" style="display:none;">
-      <div id="apv-t1-list" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
-    </div>
-
-    <!-- TAB 2: วันลา -->
-    <div id="apv-t2" style="display:none;">
-      <div id="apv-t2-list" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
-    </div>
-
-    <!-- TAB 3: OT -->
-    <div id="apv-t3" style="display:none;">
-      <div id="apv-t3-list" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
+      <div id="apv-inbox" style="color:var(--ink3);font-size:13px;padding:16px 0;">กำลังโหลด...</div>
     </div>
   </div>
   <div class="bnav">
@@ -1900,10 +1888,19 @@ function swTab(el,tid){
 
 /* ── OWNER APPROVE TABS ── */
 function swApproveTab(idx){
-  document.querySelectorAll('#approve-tabs .tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
-  [0,1,2,3].forEach(i=>{const el=document.getElementById('apv-t'+i);if(el)el.style.display=i===idx?'block':'none';});
+  // 0 = บัญชีใหม่ · 1 = คำขอพนักงาน (inbox รวม)
+  const inbox=idx>=1;
+  document.querySelectorAll('#approve-tabs .tab').forEach((t,i)=>t.classList.toggle('on',inbox?i===1:i===0));
+  const t0=document.getElementById('apv-t0'),t1=document.getElementById('apv-t1');
+  if(t0)t0.style.display=inbox?'none':'block';
+  if(t1)t1.style.display=inbox?'block':'none';
 }
-function goApprove(tab){swApproveTab(tab);go('s-owner-approve');renderApprovalTabs();}
+// tab: 0=บัญชีใหม่ · 1/2/3 (จากหน้า Home) = inbox + กรองตาราง/ลา/OT
+function goApprove(tab){
+  const map={1:'sched',2:'leave',3:'ot'};
+  if(tab===0){apvFilter='all';swApproveTab(0);} else {apvFilter=map[tab]||'all';swApproveTab(1);}
+  go('s-owner-approve');renderApprovalTabs();
+}
 
 /* ── EMPLOYEE HOME ── */
 async function renderEmpHome(){
@@ -2035,79 +2032,111 @@ async function renderApprovalTabs(){
       :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีรายการ</div>';
     }
 
-    // Tab 1: schedules
-    const t1=document.getElementById('apv-t1-list');
-    const scheds=d.schedules||[];
-    if(t1){
-      t1.innerHTML=scheds.length?scheds.map(s=>{
-        const datesObj=s.dates||{};
-        const dateEntries=Object.entries(datesObj).slice(0,5);
-        const total=Object.keys(datesObj).length;
-        const isEdit=!!(s.isEdit||s.type==='edit');
-        const editBadge=isEdit?`<span class="chip chip-amber" style="font-size:10px;margin-left:6px;">✏ แก้ไขตาราง</span>`:'';
-        const subLabel=isEdit?`✏ ขอแก้ไขตารางงาน ${s.month}/${s.year} · ${total} วัน`:`ขออนุมัติตาราง ${s.month}/${s.year} · ${total} วัน`;
-        return`<div class="apv-card">
-          <div class="apv-name" style="display:flex;align-items:center;flex-wrap:wrap;">${empName(s.empId,s.name)}${editBadge}</div>
-          <div class="apv-sub">${subLabel}</div>
-          <div class="div"></div>
-          <div style="background:var(--surface2);border-radius:var(--rsm);padding:12px;font-size:13px;margin-bottom:14px;">
-            ${dateEntries.map(([dt,v])=>{const isOff=!!(v&&v.off);const s=(v&&v.start)||'',e=(v&&v.end)||'';const range=isOff?'หยุด':((s&&e)?`${s} – ${e} น.`:(s?(s+' น.'):'—'));return `<div class="irow" style="padding:4px 0;"><span class="ilabel">${dt}</span><span class="ival" style="color:${isOff?'var(--ink3)':'var(--navy)'};font-weight:600;">${range}</span></div>`;}).join('')}
-            ${total>5?`<div class="irow" style="padding:4px 0;border-bottom:none;"><span class="ilabel">รวม</span><span class="ival">${total} วัน</span></div>`:''}
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-danger btn-full" onclick="approveScheduleAction(this,'${s.id}','reject')">ปฏิเสธ</button>
-            <button class="btn btn-success btn-full" onclick="approveScheduleAction(this,'${s.id}','approve')">อนุมัติ</button>
-          </div>
-        </div>`;}).join('')
-        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีตารางงานรออนุมัติ</div>';
-    }
-
-    // Tab 2: leave
-    const t2=document.getElementById('apv-t2-list');
-    const leaves=d.leave||[];
-    if(t2){
-      t2.innerHTML=leaves.length?leaves.map(l=>`
-        <div class="apv-card" style="border-left-color:var(--info);">
-          <div class="apv-name">${empName(l.empId,l.empName)}</div>
-          <div class="apv-sub">${l.position||''} · ${LEAVE_LABELS[l.type]||l.type}</div>
-          <div class="div"></div>
-          <div class="irow"><span class="ilabel">ประเภท</span><span class="ival">${LEAVE_LABELS[l.type]||l.type}</span></div>
-          <div class="irow"><span class="ilabel">วันที่</span><span class="ival">${l.startDate}${l.endDate&&l.endDate!==l.startDate?' – '+l.endDate:''} (${l.days} วัน)</span></div>
-          <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">${l.reason||'—'}</span></div>
-          <div class="irow"><span class="ilabel">ยื่นเมื่อ</span><span class="ival">${l.submittedAt||'—'}</span></div>
-          ${l.medCertUrl?`<div class="irow"><span class="ilabel">ใบรับรองแพทย์</span><span class="ival"><a href="${l.medCertUrl}" target="_blank" style="color:var(--navy);font-weight:700;">📄 เปิดดูไฟล์</a></span></div>`:(l.type==='s'?`<div class="irow"><span class="ilabel">ใบรับรองแพทย์</span><span class="ival" style="color:var(--ink3);">— ไม่ได้แนบ</span></div>`:'')}
-          <div class="div"></div>
-          <div class="btn-row">
-            <button class="btn btn-danger btn-full" onclick="approveLeaveAction(this,'${l.id}','reject')">ปฏิเสธ</button>
-            <button class="btn btn-success btn-full" onclick="approveLeaveAction(this,'${l.id}','approve')">อนุมัติ</button>
-          </div>
-        </div>`).join('')
-        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีคำขอวันลารออนุมัติ</div>';
-    }
-
-    // Tab 3: OT
-    const t3=document.getElementById('apv-t3-list');
-    const ots=d.ot||[];
-    if(t3){
-      t3.innerHTML=ots.length?ots.map(o=>`
-        <div class="apv-card" style="border-left-color:var(--amber);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-            <div class="apv-name">${empName(o.empId,o.empName)}</div>
-            <span class="chip chip-amber">รออนุมัติ</span>
-          </div>
-          <div class="apv-sub">${o.position||''} · ขอ OT วันที่ ${o.date}</div>
-          <div class="div"></div>
-          <div class="irow"><span class="ilabel">วันที่</span><span class="ival">${o.date}</span></div>
-          <div class="irow"><span class="ilabel">รวม</span><span class="ival" style="font-weight:700;">${o.requestedHours} ชั่วโมง</span></div>
-          <div class="irow"><span class="ilabel">เหตุผล</span><span class="ival">${o.reason||'—'}</span></div>
-          <div class="btn-row" style="margin-top:14px;">
-            <button class="btn btn-danger btn-full" onclick="approveOTAction(this,'${o.id}','reject')">ปฏิเสธ</button>
-            <button class="btn btn-success btn-full" onclick="approveOTAction(this,'${o.id}','approve')">อนุมัติ</button>
-          </div>
-        </div>`).join('')
-        :'<div style="color:var(--ink3);padding:16px 0;font-size:13px;">ไม่มีคำขอ OT รออนุมัติ</div>';
-    }
+    // Tab 1: คำขอพนักงาน (ตาราง+ลา+OT) — เก็บข้อมูลไว้ render แบบจัดกลุ่มตามคน
+    apvData=d; apvNameMap=_nameMap;
+    const reqN=(d.schedules||[]).length+(d.leave||[]).length+(d.ot||[]).length;
+    const reqBadge=document.getElementById('apv-tab-badge-req');
+    if(reqBadge){reqBadge.textContent=reqN;reqBadge.style.display=reqN>0?'':'none';}
+    renderApproveInbox();
   }catch(e){toast('โหลดข้อมูลไม่สำเร็จ');}
+}
+
+/* ── OWNER APPROVE INBOX — รวมคำขอ จัดกลุ่มตามคน + กรอง + อนุมัติทั้งคน ── */
+let apvData=null, apvNameMap={}, apvFilter='all', apvOpenEmp=null;
+function apvGroupData(){
+  const d=apvData||{}; const groups={};
+  const add=(empId,name,position,item)=>{ const k=String(empId);
+    if(!groups[k])groups[k]={empId:k,name:(apvNameMap[k]||name||k),position:position||'',items:[]};
+    groups[k].items.push(item); };
+  (d.schedules||[]).forEach(s=>add(s.empId,s.name,'',{type:'sched',raw:s}));
+  (d.leave||[]).forEach(l=>add(l.empId,l.empName,l.position,{type:'leave',raw:l}));
+  (d.ot||[]).forEach(o=>add(o.empId,o.empName,o.position,{type:'ot',raw:o}));
+  return Object.values(groups);
+}
+function apvSetFilter(f){ apvFilter=f; renderApproveInbox(); }
+function apvToggleOpen(empId){ apvOpenEmp=(apvOpenEmp===String(empId)?null:String(empId)); renderApproveInbox(); }
+function renderApproveInbox(){
+  const el=document.getElementById('apv-inbox'); if(!el)return;
+  const d=apvData||{};
+  const counts={sched:(d.schedules||[]).length,leave:(d.leave||[]).length,ot:(d.ot||[]).length};
+  const total=counts.sched+counts.leave+counts.ot;
+  let groups=apvGroupData();
+  if(apvFilter!=='all') groups=groups.map(g=>({...g,items:g.items.filter(it=>it.type===apvFilter)})).filter(g=>g.items.length);
+  let h='<div style="font-size:15px;font-weight:700;color:var(--ink);margin:4px 0 10px;">รออนุมัติ '+total+' รายการ</div>';
+  const chip=(f,label,n)=>`<span onclick="apvSetFilter('${f}')" class="chip ${apvFilter===f?'chip-navy':'chip-gray'}" style="cursor:pointer;font-size:12px;padding:6px 11px;">${label} ${n}</span>`;
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">'+chip('all','ทั้งหมด',total)+chip('sched','📋 ตาราง',counts.sched)+chip('leave','📅 ลา',counts.leave)+chip('ot','⏰ OT',counts.ot)+'</div>';
+  if(!groups.length){ el.innerHTML=h+'<div style="color:var(--ink3);font-size:13px;padding:24px 0;text-align:center;">🎉 ไม่มีคำขอรออนุมัติ</div>'; return; }
+  groups.forEach(g=>{ h+=apvPersonCard(g); });
+  el.innerHTML=h;
+}
+function apvPersonCard(g){
+  const open=apvOpenEmp===g.empId;
+  const initial=(g.name||'?').charAt(0);
+  const byType={sched:[],leave:[],ot:[]}; g.items.forEach(it=>byType[it.type].push(it));
+  let sumChips='';
+  byType.sched.forEach(it=>{const s=it.raw;const n=Object.keys(s.dates||{}).length;sumChips+=`<span class="chip chip-navy" style="font-size:11px;">📋 ตาราง ${s.month}/${s.year} · ${n}วัน${(s.isEdit||s.type==='edit')?' ✏':''}</span>`;});
+  if(byType.ot.length){const hrs=byType.ot.reduce((a,it)=>a+(parseFloat(it.raw.requestedHours)||0),0);sumChips+=`<span class="chip chip-amber" style="font-size:11px;">⏰ OT ${byType.ot.length}วัน · ${hrs}ชม.</span>`;}
+  byType.leave.forEach(it=>{sumChips+=`<span class="chip chip-blue" style="font-size:11px;">📅 ${LEAVE_LABELS[it.raw.type]||it.raw.type}</span>`;});
+  let h='<div class="card" style="padding:12px;margin-bottom:10px;">';
+  h+='<div style="display:flex;align-items:center;gap:10px;">'
+    +'<div class="lavatar" style="width:34px;height:34px;background:var(--navy-lt);color:var(--navy);flex-shrink:0;">'+initial+'</div>'
+    +'<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;color:var(--ink);">'+g.name+'</div><div class="t-cap">'+g.items.length+' รายการรออนุมัติ</div></div>'
+    +'<button class="btn btn-sm '+(open?'btn-navy':'btn-ghost')+'" onclick="apvToggleOpen(\''+g.empId+'\')">'+(open?'ปิด ▲':'เปิด ▼')+'</button></div>';
+  if(!open){ h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-left:44px;">'+sumChips+'</div>'; }
+  else{
+    h+='<div style="margin-top:12px;">';
+    if(g.items.length>1) h+='<button class="btn btn-sm btn-success" style="width:100%;margin-bottom:10px;" onclick="apvApproveAllPerson(\''+g.empId+'\')">✓ อนุมัติทั้งหมด '+g.items.length+' รายการ</button>';
+    g.items.forEach(it=>{ h+=apvItemDetail(it); });
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+function apvItemBtns_(type,id){
+  const fn={sched:'approveScheduleAction',leave:'approveLeaveAction',ot:'approveOTAction'}[type];
+  return '<div class="btn-row" style="margin-top:8px;gap:6px;display:flex;">'
+    +'<button class="btn btn-sm btn-danger" style="flex:1;" onclick="'+fn+'(this,\''+id+'\',\'reject\')">ปฏิเสธ</button>'
+    +'<button class="btn btn-sm btn-success" style="flex:1;" onclick="'+fn+'(this,\''+id+'\',\'approve\')">อนุมัติ</button></div>';
+}
+function apvItemDetail(it){
+  const r=it.raw;
+  if(it.type==='sched'){
+    const dd=r.dates||{}; const allK=Object.keys(dd).sort(); const ks=allK.slice(0,4);
+    const nW=allK.filter(k=>!dd[k].off).length, nO=allK.length-nW;
+    const rows=ks.map(k=>{const v=dd[k];const rng=v.off?'หยุด':((v.start&&v.end)?(v.start+' – '+v.end):'—');return '<div class="irow" style="padding:3px 0;"><span class="ilabel">'+k+'</span><span class="ival" style="color:'+(v.off?'var(--ink3)':'var(--navy)')+';font-weight:600;">'+rng+'</span></div>';}).join('');
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">'
+      +'<div style="font-weight:700;font-size:13px;margin-bottom:6px;">📋 ตาราง '+r.month+'/'+r.year+((r.isEdit||r.type==='edit')?' · ✏ แก้ไข':'')+' <span style="font-weight:400;color:var(--ink3);">· ทำงาน '+nW+(nO?(' · หยุด '+nO):'')+'</span></div>'
+      +'<div style="background:var(--surface2);border-radius:6px;padding:6px 10px;">'+rows+(allK.length>4?'<div class="t-cap" style="text-align:center;padding-top:2px;">+ อีก '+(allK.length-4)+' วัน</div>':'')+'</div>'
+      +apvItemBtns_('sched',r.id)+'</div>';
+  }
+  if(it.type==='ot'){
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">'
+      +'<div style="font-weight:700;font-size:13px;">⏰ OT '+r.date+' · '+r.requestedHours+' ชม.</div>'
+      +'<div class="t-cap" style="margin:4px 0 0;line-height:1.5;">'+(r.reason||'—')+'</div>'
+      +apvItemBtns_('ot',r.id)+'</div>';
+  }
+  if(it.type==='leave'){
+    const med=r.medCertUrl?(' · <a href="'+r.medCertUrl+'" target="_blank" style="color:var(--navy);font-weight:700;">📄 ใบรับรอง</a>'):'';
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">'
+      +'<div style="font-weight:700;font-size:13px;">📅 '+(LEAVE_LABELS[r.type]||r.type)+' · '+r.startDate+(r.endDate&&r.endDate!==r.startDate?(' – '+r.endDate):'')+' ('+r.days+' วัน)</div>'
+      +'<div class="t-cap" style="margin:4px 0 0;line-height:1.5;">'+(r.reason||'—')+med+'</div>'
+      +apvItemBtns_('leave',r.id)+'</div>';
+  }
+  return '';
+}
+async function apvApproveAllPerson(empId){
+  const g=apvGroupData().find(x=>x.empId===String(empId)); if(!g)return;
+  if(!confirm('อนุมัติทั้งหมด '+g.items.length+' รายการของ '+g.name+'?'))return;
+  toast('กำลังอนุมัติ '+g.items.length+' รายการ...');
+  for(const it of g.items){
+    try{
+      if(it.type==='sched') await callAPI({action:'approveSchedule',scheduleId:it.raw.id,approvedBy:currentUser?.name||'Owner'});
+      else if(it.type==='leave') await callAPI({action:'approveLeave',leaveId:it.raw.id,approve:'true',approvedBy:currentUser?.name||'Owner'});
+      else if(it.type==='ot') await callAPI({action:'approveOT',otId:it.raw.id,approve:'true',approvedBy:currentUser?.name||'Owner'});
+    }catch(e){}
+  }
+  toast('✓ อนุมัติทั้งหมดของ '+g.name+' แล้ว');
+  apvOpenEmp=null;
+  renderApprovalTabs(); renderOwnerHome();
 }
 
 async function approveScheduleAction(btn,id,action){
@@ -3078,6 +3107,8 @@ async function renderOwnerHome(){
       setApv('sched',schedN,'รายการรออนุมัติ');
       setApv('leave',leaveN,'รายการรออนุมัติ');
       setApv('ot',otN,'รายการรออนุมัติ');
+      const tbReq=document.getElementById('apv-tab-badge-req'),reqTot=schedN+leaveN+otN;
+      if(tbReq){tbReq.textContent=reqTot;tbReq.style.display=reqTot>0?'':'none';}
     }
   }catch(e){}
 
