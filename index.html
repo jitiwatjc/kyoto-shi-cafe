@@ -484,6 +484,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       </div>
     </div>
 
+    <div class="t-sect" style="margin-top:4px;">ตารางทีมวันนี้</div>
+    <div class="card" id="owner-roster-card" style="cursor:pointer;border:1.5px solid var(--blue);" onclick="go('s-owner-roster')">
+      <div id="owner-roster-home"><div class="t-cap">กำลังโหลด...</div></div>
+    </div>
+
     <div class="t-sect" style="margin-top:4px;">Clock In วันนี้</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="stat-val" style="color:var(--green);" id="stat-clocked">—</div><div class="stat-lbl">เข้าแล้ว</div></div>
@@ -497,6 +502,27 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <button class="bn on"><span class="bn-icon"><svg class="ic"><use href="#ic-home"/></svg></span>Home</button>
     <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn" onclick="goApprove(0)"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ<span class="bn-dot"></span></button>
+    <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
+  </div>
+</div>
+
+<!-- ════════════════════════ OWNER: ตารางทีมรายวัน ════════════════════════ -->
+<div id="s-owner-roster" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ตารางทีม</div></div>
+  <div class="page">
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+      <button class="cal-nav-btn" onclick="rosterShift(-1)">‹</button>
+      <div style="text-align:center;flex:1;"><div id="roster-date-lbl" style="font-size:15px;font-weight:700;color:var(--navy);">—</div><div id="roster-date-rel" class="t-cap" style="margin:0;"></div></div>
+      <button class="cal-nav-btn" onclick="rosterShift(1)">›</button>
+    </div>
+    <input type="date" id="roster-date" class="fi" style="margin-top:10px;" onchange="renderTeamRoster()">
+    <div id="roster-body" style="margin-top:12px;"><div class="t-cap" style="text-align:center;padding:20px 0;">เลือกวันที่</div></div>
+  </div>
+  <div class="bnav">
+    <button class="bn" onclick="go('s-owner-home')"><span class="bn-icon"><svg class="ic"><use href="#ic-home"/></svg></span>Home</button>
+    <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
+    <button class="bn" onclick="goApprove(0)"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ</button>
     <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
     <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
   </div>
@@ -1296,6 +1322,7 @@ function go(id){
   if(id==='s-emp-home'){renderEmpHome();}
   if(id==='s-emp-profile-self'){renderEmpProfile();}
   if(id==='s-owner-home'){renderOwnerHome();}
+  if(id==='s-owner-roster'){initRoster();}
   if(id==='s-owner-approve'){renderApprovalTabs();}
   if(id==='s-owner-emps'){renderEmpList();}
   if(id==='s-owner-export'){renderAttendanceExport();}
@@ -3193,6 +3220,72 @@ function viewEmpProfile(empId){
 }
 
 /* ── OWNER HOME ── */
+/* ── OWNER: ตารางทีมรายวัน (getDayRoster) ── */
+const ROSTER_THDAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+function rosterShiftLabel_(start,end){ const s=(typeof SHIFTS!=='undefined')&&SHIFTS.find(x=>x.start===start&&x.end===end); return s?('กะ'+s.label+' · '+start+'–'+end):('กะ '+(start||'—')+'–'+(end||'—')); }
+function rosterStatusChip_(w,dateK){
+  const todayK=todayISO();
+  if(w.status==='in') return '<span class="chip chip-green" style="font-size:11px;">เข้า '+w.clockIn+' ✓</span>';
+  if(w.status==='late') return '<span class="chip chip-amber" style="font-size:11px;">สาย '+w.clockIn+'</span>';
+  if(dateK<todayK) return '<span class="chip chip-red" style="font-size:11px;">ขาด</span>';
+  if(dateK===todayK) return '<span class="chip chip-gray" style="font-size:11px;">ยังไม่เข้า</span>';
+  return '<span class="chip chip-gray" style="font-size:11px;">รอเข้า '+(w.start||'')+'</span>';
+}
+function initRoster(){ const el=document.getElementById('roster-date'); if(el&&!el.value) el.value=todayISO(); renderTeamRoster(); }
+function rosterShift(delta){
+  const el=document.getElementById('roster-date'); if(!el)return;
+  const p=(el.value||todayISO()).split('-').map(Number); const d=new Date(p[0],p[1]-1,p[2]); d.setDate(d.getDate()+delta);
+  el.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  renderTeamRoster();
+}
+async function renderTeamRoster(){
+  const body=document.getElementById('roster-body'); if(!body)return;
+  const dEl=document.getElementById('roster-date'); const dateK=(dEl&&dEl.value)||todayISO();
+  const p=dateK.split('-').map(Number), dt=new Date(p[0],p[1]-1,p[2]), todayK=todayISO();
+  const lbl=document.getElementById('roster-date-lbl'); if(lbl)lbl.textContent=ROSTER_THDAY[dt.getDay()]+' '+p[2]+' '+THAI_MONTHS_FULL[p[1]-1]+' '+(p[0]+543);
+  const rel=document.getElementById('roster-date-rel'); if(rel)rel.textContent=dateK===todayK?'วันนี้':'';
+  body.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{
+    const r=await callAPI({action:'getDayRoster',date:dateK});
+    if(!r||!r.ok){ body.innerHTML='<div class="alert alert-warn" style="font-size:13px;">โหลดตารางทีมไม่ได้ — '+((r&&r.error)||'อาจต้องอัปเดต backend (getDayRoster) ก่อน')+'</div>'; return; }
+    const working=r.working||[], off=r.off||[], c=r.counts||{working:0,off:0,late:0};
+    let h='<div style="display:flex;gap:8px;margin-bottom:12px;">'
+      +'<div style="flex:1;text-align:center;background:var(--navy-lt);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--navy);">'+c.working+'</div><div class="t-cap">เข้างาน</div></div>'
+      +'<div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--ink2);">'+c.off+'</div><div class="t-cap">หยุด</div></div>'
+      +'<div style="flex:1;text-align:center;background:var(--amber-bg);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--amber);">'+c.late+'</div><div class="t-cap">มาสาย</div></div></div>';
+    if(!working.length){
+      h+='<div class="card" style="text-align:center;padding:20px;"><div class="t-cap">— ไม่มีใครเข้างานวันนี้ (ตามตารางที่อนุมัติ) —</div></div>';
+    }else{
+      let curKey=null;
+      working.forEach((w,i)=>{
+        const gk=(w.start||'')+'|'+(w.end||'');
+        if(gk!==curKey){ if(curKey!==null)h+='</div>'; h+='<div class="t-cap" style="letter-spacing:.5px;margin:'+(curKey===null?'0':'12px')+' 0 6px;">'+rosterShiftLabel_(w.start,w.end)+(w.otHrs>0?(' · OT +'+w.otHrs+' ชม'):'')+'</div><div class="card" style="padding:0;overflow:hidden;">'; curKey=gk; }
+        const last=(i===working.length-1)||((working[i+1].start||'')+'|'+(working[i+1].end||''))!==gk;
+        h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;'+(last?'':'border-bottom:1px solid var(--border);')+'">'
+          +'<div class="lavatar" style="width:28px;height:28px;background:var(--surface2);color:var(--ink3);flex-shrink:0;">'+esc_((w.name||'?').charAt(0))+'</div>'
+          +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+esc_(w.name)+(w.specialDay?' <span style="font-size:10px;color:var(--amber);">×2</span>':'')+'</div><div class="t-cap" style="margin:0;">'+esc_(w.position||'')+'</div></div>'
+          +rosterStatusChip_(w,dateK)+'</div>';
+      });
+      h+='</div>';
+    }
+    if(off.length) h+='<div class="card" style="margin-top:12px;padding:11px 13px;"><span class="t-cap">😴 หยุดวันนี้: </span><span style="font-size:12px;color:var(--ink2);">'+off.map(o=>esc_(o.name)).join(' · ')+'</span></div>';
+    body.innerHTML=h;
+  }catch(e){ body.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+async function renderOwnerRosterHome(){
+  const el=document.getElementById('owner-roster-home'); if(!el)return;
+  const head='<div style="font-size:14px;font-weight:600;color:var(--ink);">📋 ตารางทีมวันนี้</div>';
+  try{
+    const r=await callAPI({action:'getDayRoster',date:todayISO()});
+    if(!r||!r.ok){ el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;">'+head+'<span class="t-cap" style="color:var(--info);">เปิดดู ›</span></div>'; return; }
+    const w=r.working||[], c=r.counts||{};
+    const names=w.slice(0,4).map(x=>'<span style="background:var(--surface2);font-size:11px;padding:3px 9px;border-radius:20px;">'+esc_(x.name)+' '+(x.start||'')+'</span>').join(' ');
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+head+'<span class="t-cap" style="color:var(--info);">ดูทั้งหมด ›</span></div>'
+      +'<div class="t-cap" style="margin-bottom:8px;">เข้างาน '+(c.working||0)+' คน · หยุด '+(c.off||0)+' คน'+(c.late?(' · สาย '+c.late):'')+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+(names||'<span class="t-cap">— ไม่มีใครเข้าวันนี้ —</span>')+(w.length>4?(' <span style="background:var(--surface2);font-size:11px;padding:3px 9px;border-radius:20px;">+'+(w.length-4)+'</span>'):'')+'</div>';
+  }catch(e){ el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;">'+head+'<span class="t-cap" style="color:var(--info);">เปิดดู ›</span></div>'; }
+}
+
 async function renderOwnerHome(){
   // Date + greeting
   const now=new Date();
@@ -3204,6 +3297,8 @@ async function renderOwnerHome(){
   const nick=currentUser?.nickname||currentUser?.name||'เจ้าของ';
   if(greetEl)greetEl.textContent='สวัสดี, คุณ '+nick;
   if(avatarEl)avatarEl.textContent=nick.charAt(0).toUpperCase();
+
+  renderOwnerRosterHome();
 
   // Reset pending badges
   ['emp','sched','leave','ot'].forEach(k=>{
