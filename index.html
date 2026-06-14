@@ -653,6 +653,8 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       <div class="clock-gps"><span class="gps-pulse"></span> GPS: <span id="emp-gps-sub">ตรวจสอบ...</span></div>
       <button class="btn btn-blue" style="margin-top:18px;padding:12px 36px;position:relative;z-index:1;" onclick="go('s-emp-clockin')">Clock In / Out</button>
     </div>
+    <div id="home-next-shift" style="margin-top:16px;"></div>
+    <div id="home-breaks" style="margin-top:14px;"></div>
     <div class="t-sect">เมนูหลัก</div>
     <div class="scroll-x">
       <div class="qcard" onclick="openStore()" style="border:1.5px solid var(--navy);"><div class="qcard-icon">🧾</div><div class="qcard-title">บัญชี</div><div class="qcard-sub">รายได้/เบรค/รายจ่าย</div></div>
@@ -1995,6 +1997,74 @@ async function renderEmpHome(){
     const schedEl=document.getElementById('qcard-sched-sub');
     if(schedEl)schedEl.textContent='ส่งตารางงาน';
   }catch(e){}
+
+  // กะถัดไป + เบรคที่ต้องส่ง (สรุปบนหน้า home)
+  renderHomeNextShift();
+  renderHomePendingBreaks();
+}
+
+// กะถัดไป — วันทำงานถัดไป ≥ วันนี้ จากตารางที่อนุมัติแล้ว
+async function renderHomeNextShift(){
+  const el=document.getElementById('home-next-shift'); if(!el||!currentUser)return;
+  try{
+    const r=await callAPI({action:'getSchedules',empId:currentUser.empId});
+    const schs=(r.ok&&Array.isArray(r.data))?r.data:[];
+    const todayK=todayISO();
+    let best=null;
+    for(const s of schs){
+      if(String(s.status||'').toLowerCase()!=='approved') continue;
+      const dd=s.dates||{};
+      Object.keys(dd).forEach(k=>{ if(k>=todayK&&!dd[k].off&&dd[k].start&&(!best||k<best.key)) best={key:k,start:dd[k].start,end:dd[k].end}; });
+    }
+    if(!best){ el.innerHTML='<div class="card" style="padding:12px 14px;box-shadow:none;border:1px solid var(--border);"><div class="t-cap">🗓️ ยังไม่มีกะถัดไป — แตะ "ตารางงาน" เพื่อลงตาราง</div></div>'; return; }
+    const p=best.key.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]);
+    const THDAY=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+    const tom=new Date(); tom.setDate(tom.getDate()+1);
+    const tomK=tom.getFullYear()+'-'+String(tom.getMonth()+1).padStart(2,'0')+'-'+String(tom.getDate()).padStart(2,'0');
+    const when=best.key===todayK?'วันนี้':(best.key===tomK?'พรุ่งนี้':THDAY[dt.getDay()]);
+    el.innerHTML='<div class="card" style="padding:12px 14px;background:var(--info-bg);border:1px solid var(--info);box-shadow:none;display:flex;align-items:center;gap:14px;">'
+      +'<div style="text-align:center;min-width:52px;"><div style="font-size:10px;color:var(--info);">กะถัดไป</div><div style="font-size:14px;font-weight:700;color:var(--info);">'+when+'</div><div style="font-size:11px;color:var(--info);">'+THDAY[dt.getDay()]+' '+(+p[2])+' '+THAI_MONTHS_SHORT[+p[1]-1]+'</div></div>'
+      +'<div style="flex:1;border-left:1px solid var(--info);padding-left:14px;"><div style="font-size:11px;color:var(--info);">ต้องเข้างาน</div><div style="font-size:24px;font-weight:700;color:var(--info);line-height:1.15;">'+best.start+' <span style="font-size:12px;">น.</span></div><div style="font-size:11px;color:var(--info);">เลิก '+(best.end||'—')+' น.</div></div></div>';
+  }catch(e){ el.innerHTML=''; }
+}
+
+// เบรคที่ต้องส่ง — ยังไม่จัดส่ง + นัดรับใน 7 วัน (รวมเลยกำหนด) เรียงใกล้สุดก่อน
+async function renderHomePendingBreaks(){
+  const el=document.getElementById('home-breaks'); if(!el||!currentUser)return;
+  try{
+    const r=await revGet('listOpenBreaks');
+    const all=(r&&r.data)||[];
+    const todayK=todayISO();
+    const lim=new Date(); lim.setDate(lim.getDate()+7);
+    const limK=lim.getFullYear()+'-'+String(lim.getMonth()+1).padStart(2,'0')+'-'+String(lim.getDate()).padStart(2,'0');
+    const pend=all.filter(b=>!b.delivered).map(b=>Object.assign({},b,{pk:String(b.pickup||'').slice(0,10)}))
+      .filter(b=>b.pk&&b.pk<=limK).sort((a,b)=>a.pk<b.pk?-1:(a.pk>b.pk?1:0));
+    const totalUndelivered=all.filter(b=>!b.delivered).length;
+    if(!pend.length){
+      el.innerHTML='<div class="card" style="padding:12px 14px;box-shadow:none;border:1px solid var(--border);"><div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;">🎂 เบรคที่ต้องส่ง</div><div class="t-cap">— ไม่มีเบรคต้องส่งใน 7 วันนี้'+(totalUndelivered?(' (ค้างทั้งหมด '+totalUndelivered+')'):'')+' —</div></div>';
+      return;
+    }
+    const THDAY=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+    const tom=new Date(); tom.setDate(tom.getDate()+1);
+    const tomK=tom.getFullYear()+'-'+String(tom.getMonth()+1).padStart(2,'0')+'-'+String(tom.getDate()).padStart(2,'0');
+    const stChip=st=>{ st=String(st||''); if(st.indexOf('ค้างเงิน')>=0&&st.indexOf('รอส่ง')>=0) return '<span class="chip chip-gray" style="font-size:10px;">รอส่ง·ค้างเงิน</span>'; if(st.indexOf('รอชำระ')>=0) return '<span class="chip chip-red" style="font-size:10px;">รอชำระ·รอส่ง</span>'; if(st.indexOf('ชำระแล้ว')>=0) return '<span class="chip chip-amber" style="font-size:10px;">ชำระแล้ว·รอส่ง</span>'; return '<span class="chip chip-gray" style="font-size:10px;">'+esc_(st)+'</span>'; };
+    let rows=pend.slice(0,4).map(b=>{
+      const p=b.pk.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]);
+      const urgent=b.pk<=tomK;
+      const overdue=b.pk<todayK;
+      const whenTxt=overdue?('เลยกำหนด '+THDAY[dt.getDay()]+' '+(+p[2])+' '+THAI_MONTHS_SHORT[+p[1]-1]):(b.pk===todayK?('รับวันนี้'):(b.pk===tomK?'รับพรุ่งนี้':('รับ '+THDAY[dt.getDay()]+' '+(+p[2])+' '+THAI_MONTHS_SHORT[+p[1]-1])));
+      const timePart=String(b.pickupShow||'').slice(11)||'';
+      return '<div style="border-left:3px solid '+(urgent?'var(--red)':'var(--border)')+';padding:6px 0 6px 10px;margin-top:'+'8px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-size:13px;font-weight:600;color:var(--ink);">'+esc_(b.customer||'-')+'</span><span style="font-size:13px;font-weight:700;flex-shrink:0;">฿'+rnd_(b.amount)+'</span></div>'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;"><span style="font-size:11px;color:'+(urgent?'var(--red)':'var(--ink3)')+';font-weight:'+(urgent?'700':'400')+';">🕐 '+whenTxt+(timePart?(' '+timePart):'')+'</span>'+stChip(b.status)+'</div></div>';
+    }).join('');
+    const more=totalUndelivered>pend.length||pend.length>4;
+    el.innerHTML='<div class="card" style="padding:12px 14px;box-shadow:none;border:1px solid var(--border);">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><div style="font-size:14px;font-weight:600;color:var(--ink);">🎂 เบรคที่ต้องส่ง <span class="chip chip-amber" style="font-size:10px;">'+pend.length+'</span></div>'
+      +'<span class="t-cap" style="color:var(--info);cursor:pointer;" onclick="openStore();swStoreTab(\'brk\')">ดูทั้งหมด ›</span></div>'
+      +rows
+      +(more?('<div class="t-cap" style="text-align:center;margin-top:8px;">+ ค้างส่งทั้งหมด '+totalUndelivered+' รายการ</div>'):'')+'</div>';
+  }catch(e){ el.innerHTML=''; }
 }
 
 /* ── EMPLOYEE PROFILE SELF ── */
