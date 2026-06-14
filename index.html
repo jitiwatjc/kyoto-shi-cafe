@@ -1095,6 +1095,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
           <div><label class="t-label" style="font-size:11px;">เวลาออก</label><select id="de-end" class="fi fi-sel" style="font-size:13px;padding:10px 28px 10px 10px;" onchange="deCustomTime()"></select></div>
         </div>
       </div>
+      <div id="de-special-row" style="margin-top:10px;"></div>
       <div id="de-ot-badge" style="display:none;"></div>
     </div>
     <div class="btn-row" style="margin-top:16px;">
@@ -2145,7 +2146,7 @@ function apvItemDetail(it){
   if(it.type==='sched'){
     const dd=r.dates||{}; const allK=Object.keys(dd).sort(); const ks=allK.slice(0,4);
     const nW=allK.filter(k=>!dd[k].off).length, nO=allK.length-nW;
-    let otP=0; allK.forEach(k=>{if(!dd[k].off)otP+=plannedOT_(k,dd[k].start,dd[k].end).hrs;}); otP=Math.round(otP*10)/10;
+    let otP=0; allK.forEach(k=>{if(!dd[k].off)otP+=plannedOT_(k,dd[k].start,dd[k].end,dd[k].specialDay).hrs;}); otP=Math.round(otP*10)/10;
     const rows=ks.map(k=>{const v=dd[k];const rng=v.off?'หยุด':((v.start&&v.end)?(v.start+' – '+v.end):'—');return '<div class="irow" style="padding:3px 0;"><span class="ilabel">'+k+'</span><span class="ival" style="color:'+(v.off?'var(--ink3)':'var(--navy)')+';font-weight:600;">'+rng+'</span></div>';}).join('');
     return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">'
       +'<div style="font-weight:700;font-size:13px;margin-bottom:6px;">📋 ตาราง '+r.month+'/'+r.year+((r.isEdit||r.type==='edit')?' · ✏ แก้ไข':'')+' <span style="font-weight:400;color:var(--ink3);">· ทำงาน '+nW+(nO?(' · หยุด '+nO):'')+'</span></div>'
@@ -3332,7 +3333,7 @@ async function renderMySummary(){
   const nWork=workKeys.length, nOff=offKeys.length;
   let planMin=0; workKeys.forEach(k=>{const s=dates[k].start,e=dates[k].end;if(s&&e)planMin+=ms_toMin_(e)-ms_toMin_(s);});
   const planHrs=Math.round(planMin/60*10)/10;
-  let otPlanned=0; workKeys.forEach(k=>{otPlanned+=plannedOT_(k,dates[k].start,dates[k].end).hrs;}); otPlanned=Math.round(otPlanned*10)/10;
+  let otPlanned=0; workKeys.forEach(k=>{otPlanned+=plannedOT_(k,dates[k].start,dates[k].end,dates[k].specialDay).hrs;}); otPlanned=Math.round(otPlanned*10)/10;
   const status=(sched.status||'').toLowerCase();
   const stChip=status==='approved'?'<span class="chip chip-green">อนุมัติแล้ว</span>':(status==='pending'?'<span class="chip chip-amber">รออนุมัติ</span>':'');
   const todayK=todayISO();
@@ -3468,7 +3469,7 @@ const SHIFTS=[
 const STD_WORK_HRS=9;  // 8 ทำงาน + 1 พัก
 function shiftHrs_(s,e){ return Math.round(((ms_toMin_(e)-ms_toMin_(s))/60)*100)/100; }
 function isSpecialDay_(key){ const p=key.split('-'); const dow=new Date(+p[0],+p[1]-1,+p[2]).getDay(); return dow===0||dow===6||!!THAI_HOLIDAYS[key]; }
-function plannedOT_(key,start,end){ if(!start||!end) return {hrs:0,rate:1}; const ot=Math.max(0,shiftHrs_(start,end)-STD_WORK_HRS); return {hrs:Math.round(ot*10)/10, rate:isSpecialDay_(key)?2:1}; }
+function plannedOT_(key,start,end,special){ if(!start||!end) return {hrs:0,rate:1}; const ot=Math.max(0,shiftHrs_(start,end)-STD_WORK_HRS); return {hrs:Math.round(ot*10)/10, rate:(isSpecialDay_(key)||special===true)?2:1}; }
 function shiftIdOf_(start,end){ const s=SHIFTS.find(x=>x.start===start&&x.end===end); return s?s.id:'c'; }
 // state: กะประจำ (จ-ศ ทำงาน) + วันที่กำลังแก้ใน sheet
 let schedDefDows={1:true,2:true,3:true,4:true,5:true}, schedDefShift='m';
@@ -3614,7 +3615,7 @@ function renderWorkDayList(){
     list.innerHTML='<div class="t-cap" style="text-align:center;padding:14px 0;">ตั้งกะประจำแล้วกด "เติมทั้งเดือน" หรือแตะวันในปฏิทินเพื่อกำหนดเอง</div>';
     return;
   }
-  let otTotal=0; workKeys.forEach(k=>{otTotal+=plannedOT_(k,calSelected[k].start,calSelected[k].end).hrs;});
+  let otTotal=0; workKeys.forEach(k=>{otTotal+=plannedOT_(k,calSelected[k].start,calSelected[k].end,calSelected[k].specialDay).hrs;});
   otTotal=Math.round(otTotal*10)/10;
   let h='<div style="display:flex;gap:8px;">';
   h+='<div style="flex:1;text-align:center;background:var(--navy-lt);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--navy);">'+workKeys.length+'</div><div class="t-cap">วันทำงาน</div></div>';
@@ -3629,10 +3630,10 @@ function removeCalDay(key){delete calSelected[key];buildCalendar();}
 /* ── DAY EDIT SHEET (เลือกกะ/หยุด + OT วางแผน) ── */
 function openDayEdit(key){
   dayEditKey=key;
-  const cur=calSelected[key];
-  if(cur&&cur.off) dayEditState={mode:'off',start:'',end:'',_custom:false};
-  else if(cur) dayEditState={mode:'work',start:cur.start,end:cur.end,_custom:(shiftIdOf_(cur.start,cur.end)==='c')};
-  else { const sh=SHIFTS.find(s=>s.id===schedDefShift)||SHIFTS[0]; dayEditState={mode:'work',start:sh.start,end:sh.end,_custom:false}; }
+  const cur=calSelected[key], defSpecial=isSpecialDay_(key);
+  if(cur&&cur.off) dayEditState={mode:'off',start:'',end:'',_custom:false,special:defSpecial};
+  else if(cur) dayEditState={mode:'work',start:cur.start,end:cur.end,_custom:(shiftIdOf_(cur.start,cur.end)==='c'),special:(cur.specialDay!==undefined?cur.specialDay:defSpecial)};
+  else { const sh=SHIFTS.find(s=>s.id===schedDefShift)||SHIFTS[0]; dayEditState={mode:'work',start:sh.start,end:sh.end,_custom:false,special:defSpecial}; }
   const p=key.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]);
   const thaiDay=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dt.getDay()];
   document.getElementById('de-date-lbl').textContent=thaiDay+' '+(+p[2])+' '+THAI_MONTHS_SHORT[+p[1]-1];
@@ -3656,7 +3657,7 @@ function deCustomTime(){ dayEditState.start=document.getElementById('de-start').
 function deSave(){
   const key=dayEditKey; if(!key)return;
   if(dayEditState.mode==='off') calSelected[key]={off:true};
-  else calSelected[key]={start:dayEditState.start,end:dayEditState.end,specialDay:isSpecialDay_(key)};
+  else calSelected[key]={start:dayEditState.start,end:dayEditState.end,specialDay:!!dayEditState.special};
   closeModal('m-day-edit'); buildCalendar();
 }
 function deClear(){ if(dayEditKey)delete calSelected[dayEditKey]; closeModal('m-day-edit'); buildCalendar(); }
@@ -3669,7 +3670,7 @@ function renderDayEditSheet(){
   const curId=st._custom?'c':shiftIdOf_(st.start,st.end);
   const row=document.getElementById('de-shift-row');
   let html=SHIFTS.map(s=>{
-    const ot=plannedOT_(dayEditKey,s.start,s.end), active=(curId===s.id);
+    const ot=plannedOT_(dayEditKey,s.start,s.end,st.special), active=(curId===s.id);
     const otTxt=ot.hrs>0?('OT +'+ot.hrs+' ชม ×'+ot.rate):(shiftHrs_(s.start,s.end)+' ชม · ไม่มี OT');
     return `<div onclick="dePickShift('${s.id}')" style="display:flex;align-items:center;justify-content:space-between;border:${active?'2px solid var(--navy)':'1px solid var(--border)'};background:${active?'var(--navy-lt)':'var(--surface)'};border-radius:8px;padding:10px 12px;cursor:pointer;"><span style="font-size:13px;font-weight:600;color:${active?'var(--navy)':'var(--ink)'};">${s.label} · ${s.start}–${s.end}</span><span style="font-size:11px;color:${ot.hrs>0?'var(--amber)':'var(--ink3)'};">${otTxt}</span></div>`;
   }).join('');
@@ -3678,10 +3679,18 @@ function renderDayEditSheet(){
   row.innerHTML=html;
   const cb=document.getElementById('de-custom'); cb.style.display=cActive?'block':'none';
   if(cActive){ document.getElementById('de-start').value=st.start; document.getElementById('de-end').value=st.end; }
-  const ot=plannedOT_(dayEditKey,st.start,st.end), badge=document.getElementById('de-ot-badge');
+  // วันหยุดพิเศษ: เสาร์อาทิตย์/วันหยุด = ×2 อัตโนมัติ · วันธรรมดา = ติ๊กระบุเองได้
+  const specEl=document.getElementById('de-special-row');
+  if(isSpecialDay_(dayEditKey)){
+    specEl.innerHTML='<div style="display:flex;align-items:center;gap:8px;background:var(--amber-bg);border-radius:8px;padding:9px 11px;"><span style="font-size:16px;">🎌</span><div style="font-size:12px;color:var(--amber);font-weight:600;">เสาร์อาทิตย์/วันหยุดนักขัตฤกษ์ — OT คิด ×2 อัตโนมัติ</div></div>';
+  } else {
+    specEl.innerHTML='<label style="display:flex;align-items:flex-start;gap:8px;background:'+(st.special?'var(--amber-bg)':'var(--surface2)')+';border-radius:8px;padding:9px 11px;cursor:pointer;"><input type="checkbox" '+(st.special?'checked':'')+' onchange="deToggleSpecial(this.checked)" style="margin-top:2px;flex-shrink:0;accent-color:var(--amber);"><div><div style="font-size:12px;font-weight:600;color:'+(st.special?'var(--amber)':'var(--ink2)')+';">🎌 วันหยุดพิเศษ (OT ×2)</div><div style="font-size:10px;color:var(--ink3);margin-top:1px;">ติ๊กถ้าเป็นวันหยุดศาสนา/วันสำคัญที่ไม่อยู่ในระบบ — OT วันนี้คิด ×2</div></div></label>';
+  }
+  const ot=plannedOT_(dayEditKey,st.start,st.end,st.special), badge=document.getElementById('de-ot-badge');
   if(ot.hrs>0){ badge.style.display='block'; badge.innerHTML='<div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px;margin-top:10px;"><div style="font-size:13px;font-weight:700;color:var(--amber);">⏰ OT วางแผน +'+ot.hrs+' ชม. (×'+ot.rate+')</div><div style="font-size:11px;color:var(--amber);">นับให้อัตโนมัติ ไม่ต้องขอ OT แยก</div></div>'; }
   else badge.style.display='none';
 }
+function deToggleSpecial(v){ dayEditState.special=v; renderDayEditSheet(); }
 
 /* ── กะประจำ (เติมทั้งเดือน) ── */
 function renderDefaultPatternUI(){
