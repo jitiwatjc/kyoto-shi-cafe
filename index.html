@@ -721,11 +721,16 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ตารางงาน</div></div>
   <div class="page">
     <div class="tabs">
-      <div class="tab on" onclick="swTab(this,'sc-cur')">สร้างตาราง</div>
+      <div class="tab on" onclick="swTab(this,'sc-summary')">สรุป</div>
+      <div class="tab" onclick="swTab(this,'sc-cur')">สร้างตาราง</div>
       <div class="tab" onclick="swTab(this,'sc-hist')">ที่ผ่านมา</div>
     </div>
 
-    <div id="sc-cur">
+    <div id="sc-summary">
+      <div id="ms-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div>
+    </div>
+
+    <div id="sc-cur" style="display:none;">
       <div id="sched-deadline-banner"></div>
 
       <!-- Filter เดือน / ปี -->
@@ -1890,6 +1895,7 @@ function swTab(el,tid){
   document.querySelectorAll('[id^="'+pre+'"]').forEach(d=>d.style.display='none');
   document.getElementById(tid).style.display='block';
   if(tid==='sc-hist')renderSchedHistory();
+  if(tid==='sc-summary')renderMySummary();
 }
 
 /* ── OWNER APPROVE TABS ── */
@@ -3191,13 +3197,101 @@ function existingMonthDates(){
 }
 
 async function loadExistingSchedules(){
-  if(!currentUser){calExistingSchedules=[];buildCalendar();return;}
+  if(!currentUser){calExistingSchedules=[];buildCalendar();renderMySummary();return;}
   try{
     const r=await callAPI({action:'getSchedules',empId:currentUser.empId});
     calExistingSchedules=(r.ok&&Array.isArray(r.data))?r.data:[];
   }catch(e){calExistingSchedules=[];}
   buildCalendar();
   renderSchedHistory();
+  renderMySummary();
+}
+
+// แท็บ "สรุป" — สรุปตารางงานของฉัน (วันทำงาน+เวลาเข้า · วันหยุด · OT สะสม)
+function ms_toMin_(t){const a=String(t||'').split(':').map(Number);return (a[0]||0)*60+(a[1]||0);}
+async function renderMySummary(){
+  const el=document.getElementById('ms-body'); if(!el)return;
+  const monthLbl=THAI_MONTHS_FULL[calMonth]+' '+calYear;
+  const THDAY=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  const fmtK=k=>{const p=k.split('-');const dt=new Date(+p[0],+p[1]-1,+p[2]);return THDAY[dt.getDay()]+' '+(+p[2])+' '+THAI_MONTHS_SHORT[+p[1]-1];};
+  // หา schedule ของเดือนที่กำลังดู (ไม่ใช่คำขอแก้ไข · ไม่ rejected)
+  let sched=null;
+  for(const s of (calExistingSchedules||[])){
+    if(s.isEdit) continue;
+    if((s.status||'').toLowerCase()==='rejected') continue;
+    if(String(s.month)===String(calMonth+1)&&String(s.year)===String(calYear)){sched=s;break;}
+  }
+  if(!sched){
+    el.innerHTML='<div class="card" style="text-align:center;padding:26px 16px;">'
+      +'<div style="font-size:30px;margin-bottom:8px;">🗓️</div>'
+      +'<div style="font-size:14px;font-weight:600;color:var(--ink);">ยังไม่ได้ลงตาราง'+monthLbl+'</div>'
+      +'<div class="t-cap" style="margin:6px 0 14px;">แตะ "สร้างตาราง" เพื่อระบุวันทำงาน-วันหยุด</div>'
+      +'<button class="btn btn-navy" onclick="swTab(document.querySelectorAll(\'#s-emp-sched .tab\')[1],\'sc-cur\')">+ ลงตารางเดือนนี้</button></div>';
+    return;
+  }
+  const dates=sched.dates||{};
+  const dayKeys=Object.keys(dates);
+  const workKeys=dayKeys.filter(k=>!dates[k].off).sort();
+  const offKeys=dayKeys.filter(k=>dates[k].off).sort();
+  const nWork=workKeys.length, nOff=offKeys.length;
+  let planMin=0; workKeys.forEach(k=>{const s=dates[k].start,e=dates[k].end;if(s&&e)planMin+=ms_toMin_(e)-ms_toMin_(s);});
+  const planHrs=Math.round(planMin/60*10)/10;
+  const status=(sched.status||'').toLowerCase();
+  const stChip=status==='approved'?'<span class="chip chip-green">อนุมัติแล้ว</span>':(status==='pending'?'<span class="chip chip-amber">รออนุมัติ</span>':'');
+  const todayK=todayISO();
+  const nextKey=workKeys.find(k=>k>=todayK)||null;
+  // OT สะสมเดือนนี้
+  let otApproved=0, otPending=0;
+  try{
+    const res=await callAPI({action:'getOTHistory',empId:currentUser&&currentUser.empId,month:calMonth+1,year:calYear});
+    const rows=(res.ok&&res.data)?res.data:[];
+    otApproved=rows.filter(r=>r.status==='approved').reduce((a,r)=>a+(parseFloat(r.requestedHours)||0),0);
+    otPending=rows.filter(r=>r.status==='pending').length;
+  }catch(e){}
+
+  let h='';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:16px;font-weight:700;color:var(--ink);">'+monthLbl+'</div>'+stChip+'</div>';
+  // กะถัดไป
+  if(nextKey){
+    const isToday=nextKey===todayK;
+    h+='<div class="card" style="padding:14px;background:var(--info-bg);border:1px solid var(--info);display:flex;align-items:center;gap:14px;margin-bottom:12px;box-shadow:none;">'
+      +'<div style="text-align:center;min-width:54px;"><div style="font-size:10px;color:var(--info);">'+(isToday?'วันนี้':'กะถัดไป')+'</div><div style="font-size:14px;font-weight:700;color:var(--info);">'+fmtK(nextKey).split(' ').slice(0,2).join(' ')+'</div></div>'
+      +'<div style="flex:1;border-left:1px solid var(--info);padding-left:14px;"><div style="font-size:11px;color:var(--info);">ต้องเข้างาน</div><div style="font-size:24px;font-weight:700;color:var(--info);line-height:1.15;">'+(dates[nextKey].start||'—')+' <span style="font-size:12px;">น.</span></div><div style="font-size:11px;color:var(--info);">เลิก '+(dates[nextKey].end||'—')+' น.</div></div></div>';
+  }
+  // สถิติ 3 กล่อง
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px;">'
+    +'<div class="card" style="flex:1;text-align:center;padding:12px 4px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:22px;font-weight:700;color:var(--navy);">'+nWork+'</div><div class="t-cap">วันทำงาน</div></div>'
+    +'<div class="card" style="flex:1;text-align:center;padding:12px 4px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:22px;font-weight:700;color:var(--ink2);">'+nOff+'</div><div class="t-cap">วันหยุด</div></div>'
+    +'<div class="card" style="flex:1;text-align:center;padding:12px 4px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:22px;font-weight:700;color:var(--amber);">'+otApproved.toFixed(1)+'</div><div class="t-cap">OT สะสม</div></div>'
+    +'</div>';
+  // แผนชั่วโมง + OT รอ
+  h+='<div class="card" style="padding:8px 14px;margin-bottom:12px;box-shadow:none;border:1px solid var(--border);">'
+    +'<div class="irow" style="padding:5px 0;border:none;"><span class="ilabel">ชั่วโมงตามแผนทั้งเดือน</span><span class="ival">'+planHrs+' ชม.</span></div>'
+    +(otPending?'<div class="irow" style="padding:5px 0;border:none;border-top:1px solid var(--border);"><span class="ilabel">OT รออนุมัติ</span><span class="ival" style="color:var(--amber);">'+otPending+' รายการ</span></div>':'')+'</div>';
+  // รายการวันทำงาน
+  h+='<div class="t-sect">วันทำงาน · เวลาเข้า–ออก</div><div class="card" style="padding:0;overflow:hidden;">';
+  if(workKeys.length){
+    h+=workKeys.map((k,i)=>{
+      const isToday=k===todayK, hi=(k===nextKey);
+      const bg=hi?'background:var(--info-bg);':'';
+      const last=i===workKeys.length-1;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;'+(last?'':'border-bottom:1px solid var(--border);')+bg+'">'
+        +'<div style="min-width:58px;font-size:13px;font-weight:600;color:'+(hi?'var(--info)':'var(--ink2)')+';">'+fmtK(k)+'</div>'
+        +'<div style="flex:1;font-size:15px;font-weight:700;color:var(--ink);">'+(dates[k].start||'—')+' <span style="font-size:12px;font-weight:400;color:var(--ink3);">– '+(dates[k].end||'—')+'</span></div>'
+        +(isToday?'<span class="chip chip-blue" style="font-size:10px;">วันนี้</span>':'')+'</div>';
+    }).join('');
+  }else{
+    h+='<div class="t-cap" style="text-align:center;padding:16px 0;">ยังไม่มีวันทำงาน</div>';
+  }
+  h+='</div>';
+  // วันหยุดที่ระบุ
+  if(offKeys.length){
+    h+='<div class="t-sect" style="margin-top:14px;">วันหยุดที่ระบุ ('+nOff+')</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+      +offKeys.map(k=>'<span style="background:#EDEAE3;color:#5F5E5A;border-radius:14px;padding:6px 11px;font-size:12px;font-weight:600;">'+fmtK(k)+'</span>').join('')
+      +'</div>';
+  }
+  el.innerHTML=h;
 }
 
 // แท็บ "ที่ผ่านมา" — แสดงตารางจริงที่ส่งไปแล้ว (จาก getSchedules)
