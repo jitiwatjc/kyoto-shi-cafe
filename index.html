@@ -1303,8 +1303,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 </div>
 
 <div id="s-pnl" class="sc">
-  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">P&amp;L · สรุปเดือน</div></div>
-  <div class="page"><div id="pnl-body"><div class="t-cap">กำลังโหลด...</div></div></div>
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">P&amp;L · สรุป</div></div>
+  <div class="page">
+    <div id="pnl-filter" style="margin-bottom:12px;"></div>
+    <div id="pnl-body"><div class="t-cap">กำลังโหลด...</div></div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -1751,25 +1754,51 @@ async function brkSaveEdit(btn,id){
 }
 function pnlNum_(n){return (Number(n)||0).toLocaleString('th-TH',{maximumFractionDigits:0});}
 function pnlCostColor_(pct){pct=Number(pct)||0;if(pct<=0.35)return['var(--green)','#27500A','ดี'];if(pct<0.50)return['var(--amber)','#854F0B','เฝ้าระวัง'];return['var(--red)','#791F1F','สูงเกินเป้า'];}
+/* ── P&L period filter ── */
+let pnlFrom='', pnlTo='', pnlPreset='month';
+function pnlMonthRange_(d){ const pad=n=>('0'+n).slice(-2); const y=d.getFullYear(),m=d.getMonth(); return [y+'-'+pad(m+1)+'-01', y+'-'+pad(m+1)+'-'+pad(new Date(y,m+1,0).getDate())]; }
+function pnlSetPreset(preset){
+  pnlPreset=preset; const now=new Date();
+  if(preset==='month'){ const r=pnlMonthRange_(now); pnlFrom=r[0]; pnlTo=r[1]; }
+  else if(preset==='prev'){ const r=pnlMonthRange_(new Date(now.getFullYear(),now.getMonth()-1,1)); pnlFrom=r[0]; pnlTo=r[1]; }
+  renderPnlFilter(); if(preset!=='custom') renderPnl();
+}
+function pnlCustomApply(){
+  const f=raw_('pnl-from'), t=raw_('pnl-to');
+  if(!f||!t){toast('เลือกช่วงวันที่ให้ครบ');return;}
+  if(f>t){toast('วันที่เริ่มต้องไม่เกินวันสิ้นสุด');return;}
+  pnlPreset='custom'; pnlFrom=f; pnlTo=t; renderPnlFilter(); renderPnl();
+}
+function renderPnlFilter(){
+  const el=document.getElementById('pnl-filter'); if(!el)return;
+  if(!pnlFrom||!pnlTo){ const r=pnlMonthRange_(new Date()); pnlFrom=r[0]; pnlTo=r[1]; }
+  const chip=function(key,label){ return '<span onclick="pnlSetPreset(\''+key+'\')" class="chip '+(pnlPreset===key?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;">'+label+'</span>'; };
+  let h='<div style="display:flex;gap:6px;flex-wrap:wrap;">'+chip('month','เดือนนี้')+chip('prev','เดือนก่อน')+'<span onclick="pnlPreset=\'custom\';renderPnlFilter();" class="chip '+(pnlPreset==='custom'?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;">กำหนดเอง</span></div>';
+  if(pnlPreset==='custom') h+='<div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;"><input type="date" id="pnl-from" class="fi" style="flex:1;min-width:115px;" value="'+pnlFrom+'"><span class="t-cap">ถึง</span><input type="date" id="pnl-to" class="fi" style="flex:1;min-width:115px;" value="'+pnlTo+'"><button class="btn btn-sm btn-navy" onclick="pnlCustomApply()">ดู</button></div>';
+  el.innerHTML=h;
+}
 async function renderPnl(){
   const el=document.getElementById('pnl-body');if(!el)return;
+  if(!pnlFrom||!pnlTo){ const r=pnlMonthRange_(new Date()); pnlFrom=r[0]; pnlTo=r[1]; }
+  renderPnlFilter();
   el.innerHTML='<div class="t-cap">กำลังโหลด...</div>';
   try{
-    const r=await revGet('getSummary');
+    const r=await revGet('getSummary',{from:pnlFrom,to:pnlTo});
     if(!r||!r.ok){el.innerHTML='<div class="alert alert-danger">'+((r&&r.error)||'เข้าถึงไม่ได้ (เฉพาะเจ้าของ)')+'</div>';return;}
     const d=r.data; let h='';
     const margin=d.margin?(Number(d.margin)*100).toFixed(1):'0.0';
-    h+='<div class="card" style="text-align:center;padding:16px;"><div class="t-cap">กำไรเดือนนี้ (ก่อนลงทุนใหม่)</div>'
+    h+='<div class="card" style="text-align:center;padding:16px;"><div class="t-cap">กำไร · '+esc_(d.periodLabel||'')+' (ก่อนลงทุนใหม่)</div>'
       +'<div style="font-size:34px;font-weight:600;color:var(--green);line-height:1.2;">'+pnlNum_(d.profit)+'</div>'
       +'<div style="display:flex;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap;"><span style="font-size:11px;background:#EAF3DE;color:#27500A;padding:2px 10px;border-radius:10px;">มาร์จิ้น '+margin+'%</span>'
-      +(d.momPct!=null?('<span style="font-size:11px;'+(d.momPct>=0?'background:#EAF3DE;color:#27500A':'background:#FCEBEB;color:#791F1F')+';padding:2px 10px;border-radius:10px;">'+(d.momPct>=0?'▲':'▼')+' '+Math.abs(d.momPct)+'% จากเดือนก่อน</span>'):'')+'</div>'
+      +(d.momPct!=null?('<span style="font-size:11px;'+(d.momPct>=0?'background:#EAF3DE;color:#27500A':'background:#FCEBEB;color:#791F1F')+';padding:2px 10px;border-radius:10px;">'+(d.momPct>=0?'▲':'▼')+' '+Math.abs(d.momPct)+'% จากช่วงก่อน</span>'):'')+'</div>'
       +'<div style="display:flex;border-top:0.5px solid var(--border);margin-top:14px;padding-top:12px;"><div style="flex:1;"><div class="t-cap">ยอดขาย</div><div style="font-size:16px;font-weight:600;">'+pnlNum_(d.sales)+'</div></div>'
       +'<div style="flex:1;border-left:0.5px solid var(--border);"><div class="t-cap">รายจ่าย</div><div style="font-size:16px;font-weight:600;color:var(--red);">'+pnlNum_(d.opex)+'</div></div>'
       +'<div style="flex:1;border-left:0.5px solid var(--border);"><div class="t-cap">เฉลี่ย/วัน</div><div style="font-size:16px;font-weight:600;">'+pnlNum_(d.avgPerDay)+'</div></div></div></div>';
     if(d.daily&&d.daily.length){
       const mx=Math.max.apply(null,d.daily.concat([1])),today=d.daysElapsed||d.daily.length;let bars='';
       for(let i=0;i<d.daily.length;i++){const hp=Math.round((d.daily[i]/mx)*100);bars+='<div style="flex:1;background:var(--navy);opacity:'+((i+1===today)?1:(d.daily[i]?0.4:0.12))+';height:'+Math.max(hp,3)+'%;border-radius:2px 2px 0 0;min-width:2px;"></div>';}
-      h+='<div class="card" style="padding:14px 16px;"><div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:13px;font-weight:600;">ยอดขายรายวัน</span><span class="t-cap">คาดสิ้นเดือน ~'+pnlNum_(d.projection)+'</span></div><div style="display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:10px;">'+bars+'</div><div style="display:flex;justify-content:space-between;" class="t-cap"><span>1</span><span>'+(d.daysInMonth||d.daily.length)+' '+(d.month||'')+'</span></div></div>';
+      const proj=(d.isFullMonth&&d.daysElapsed<d.daysInMonth)?'<span class="t-cap">คาดสิ้นเดือน ~'+pnlNum_(d.projection)+'</span>':'';
+      h+='<div class="card" style="padding:14px 16px;"><div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:13px;font-weight:600;">ยอดขายรายวัน</span>'+proj+'</div><div style="display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:10px;">'+bars+'</div><div style="display:flex;justify-content:space-between;" class="t-cap"><span>'+(d.from||'')+'</span><span>'+(d.daysInMonth||d.daily.length)+' วัน</span></div></div>';
     }
     h+='<div class="t-cap" style="font-weight:600;margin:16px 0 8px;">กำไรขั้นต้น แยก 3 ครัว</div>';
     (d.kitchens||[]).forEach(function(k){const cc=pnlCostColor_(k.costPct),pt=((Number(k.costPct)||0)*100).toFixed(0),bw=Math.min((Number(k.costPct)||0)*100,100);
@@ -1777,7 +1806,7 @@ async function renderPnl(){
     h+='<div class="t-cap" style="font-weight:600;margin:16px 0 8px;">เงินที่ต้องตาม</div><div class="card" style="padding:2px 16px;background:#FFFBF0;border-color:#F0E2B8;">';
     const fr=function(l,v,red,last){return '<div class="irow" style="border-color:#F0E2B8;'+(last?'border-bottom:0;':'')+'"><span class="ilabel" style="color:#854F0B;font-size:12px;">'+l+'</span><span class="ival"'+(red?' style="color:var(--red);"':'')+'>'+pnlNum_(v)+'</span></div>';};
     h+=fr('ค้างจ่ายคืนเม่น (สำรองจ่าย)',d.owePmn,true,false)+fr('เครดิตเบรค ค้างเก็บเงิน',d.breakCreditDue,true,false)+fr('เบรคค้างส่ง',d.breakPending,false,d.netCashDiff==null);
-    if(d.netCashDiff!=null)h+='<div class="irow" style="border-bottom:0;"><span class="ilabel" style="color:#854F0B;font-size:12px;">ผลต่างเงินสดสะสมเดือนนี้</span><span class="ival" style="color:'+(Math.abs(d.netCashDiff)<=100?'var(--green)':'var(--red)')+';">'+(d.netCashDiff>0?'+':'')+pnlNum_(d.netCashDiff)+' ฿</span></div>';
+    if(d.netCashDiff!=null)h+='<div class="irow" style="border-bottom:0;"><span class="ilabel" style="color:#854F0B;font-size:12px;">ผลต่างเงินสดสะสม (ช่วงนี้)</span><span class="ival" style="color:'+(Math.abs(d.netCashDiff)<=100?'var(--green)':'var(--red)')+';">'+(d.netCashDiff>0?'+':'')+pnlNum_(d.netCashDiff)+' ฿</span></div>';
     h+='</div>';
     if(d.expenseCats&&d.expenseCats.length){const mc=Math.max.apply(null,d.expenseCats.map(function(c){return c.amount;}).concat([1]));
       h+='<div class="t-cap" style="font-weight:600;margin:16px 0 8px;">รายจ่าย หมวดหลัก</div><div class="card" style="padding:12px 16px;">';
