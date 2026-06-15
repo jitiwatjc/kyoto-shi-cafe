@@ -488,6 +488,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="card" id="owner-roster-card" style="cursor:pointer;border:1.5px solid var(--blue);" onclick="go('s-owner-roster')">
       <div id="owner-roster-home"><div class="t-cap">กำลังโหลด...</div></div>
     </div>
+    <div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;margin-bottom:4px;" onclick="go('s-sw-owner')">
+      <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧹</div>
+      <div class="lcol"><div class="ltitle">Sidework · ความเรียบร้อยร้าน</div><div class="lsub">ตั้งงาน · ดูงานเสร็จ · อันดับ</div></div>
+      <span style="color:var(--ink3);">›</span>
+    </div>
 
     <div class="t-sect" style="margin-top:4px;">Clock In วันนี้</div>
     <div class="stat-grid">
@@ -686,6 +691,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       <div class="qcard" onclick="openStore()" style="border:1.5px solid var(--navy);"><div class="qcard-icon">🧾</div><div class="qcard-title">บัญชี</div><div class="qcard-sub">รายได้/เบรค/รายจ่าย</div></div>
       <div class="qcard" onclick="go('s-emp-profile-self')"><div class="qcard-icon">👤</div><div class="qcard-title">โปรไฟล์</div><div class="qcard-sub">ข้อมูลของฉัน</div></div>
       <div class="qcard" onclick="go('s-emp-sched')"><div class="qcard-icon">📋</div><div class="qcard-title">ตารางงาน</div><div class="qcard-sub" id="qcard-sched-sub">—</div></div>
+      <div class="qcard" onclick="go('s-sidework')"><div class="qcard-icon">🧹</div><div class="qcard-title">Sidework</div><div class="qcard-sub" id="qcard-sw-sub">งานประจำร้าน</div></div>
       <div class="qcard" onclick="go('s-emp-clockin')"><div class="qcard-icon">🕐</div><div class="qcard-title">Clock In/Out</div><div class="qcard-sub">GPS Verified</div></div>
       <div class="qcard" onclick="go('s-emp-leave')"><div class="qcard-icon">📅</div><div class="qcard-title">วันลา</div><div class="qcard-sub" id="qcard-leave-sub">—</div></div>
       <div class="qcard" onclick="go('s-emp-ot')"><div class="qcard-icon">⏰</div><div class="qcard-title">ขอ OT</div><div class="qcard-sub" id="qcard-ot-sub">—</div></div>
@@ -1035,6 +1041,12 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <select class="fi fi-sel" id="edit-position">
           <option value="บาร์หน้า (Barista)">บาร์หน้า (Barista)</option><option value="เบเกอรี่ (Bakery)">เบเกอรี่ (Bakery)</option><option value="ครัว (Kitchen)">ครัว (Kitchen)</option><option value="แม่บ้าน (Housekeeper)">แม่บ้าน (Housekeeper)</option>
         </select></div>
+      <div class="fg"><label class="t-label">ครัว (Sidework) *</label>
+        <select class="fi fi-sel" id="edit-kitchen">
+          <option value="">— ไม่ระบุ —</option>
+          <option value="บาร์น้ำ">บาร์น้ำ</option><option value="เบเกอรี่">เบเกอรี่</option><option value="ครัวอาหาร">ครัวอาหาร</option>
+        </select>
+        <div class="fhint">ใช้กำหนดว่าพนักงานเห็นงาน Sidework ของครัวไหน (+ งานส่วนกลาง)</div></div>
       <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
         <select class="fi fi-sel" id="edit-type">
           <option value="Full-time">Full-time · ประจำ</option>
@@ -1310,6 +1322,26 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   </div>
 </div>
 
+<!-- ════ STAFF: SIDEWORK (บอร์ดทีม + อันดับ) ════ -->
+<div id="s-sidework" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">Sidework</div></div>
+  <div class="page">
+    <div class="tabs"><div class="tab on" onclick="swkTab('board')">บอร์ดงาน</div><div class="tab" onclick="swkTab('rank')">อันดับ</div></div>
+    <div id="swk-board"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div>
+    <div id="swk-rank" style="display:none;"><div class="t-cap" style="text-align:center;padding:20px 0;">—</div></div>
+  </div>
+</div>
+
+<!-- ════ OWNER: SIDEWORK (ความเรียบร้อย + ตั้งค่า) ════ -->
+<div id="s-sw-owner" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">Sidework</div></div>
+  <div class="page">
+    <div class="tabs"><div class="tab on" onclick="swoTab('dash')">ความเรียบร้อย</div><div class="tab" onclick="swoTab('setup')">ตั้งค่างาน</div></div>
+    <div id="swo-dash"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div>
+    <div id="swo-setup" style="display:none;"><div class="t-cap" style="text-align:center;padding:20px 0;">—</div></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1326,6 +1358,8 @@ function go(id){
   if(id==='s-emp-profile-self'){renderEmpProfile();}
   if(id==='s-owner-home'){renderOwnerHome();}
   if(id==='s-owner-roster'){initRoster();}
+  if(id==='s-sidework'){swkTab('board');}
+  if(id==='s-sw-owner'){swoTab('dash');}
   if(id==='s-owner-approve'){renderApprovalTabs();}
   if(id==='s-owner-emps'){renderEmpList();}
   if(id==='s-owner-export'){renderAttendanceExport();}
@@ -2408,7 +2442,7 @@ async function saveProfile(empId){
   const fname=(document.getElementById('edit-fname')?.value||'').trim();
   const lname=(document.getElementById('edit-lname')?.value||'').trim();
   const fields={empId:id,name:fname&&lname?fname+' '+lname:fname||lname};
-  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName'].forEach(f=>{
+  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName','kitchen'].forEach(f=>{
     const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
   });
   const saveBtns=[...document.querySelectorAll('#s-emp-profile-edit .btn-success,#s-emp-profile-edit .topbar-action')];
@@ -3238,7 +3272,7 @@ function viewEmpProfile(empId){
   setVal('edit-salary',e.salary||'');
   setVal('edit-bankAcc',e.bankAcc||'');
   setVal('edit-bankAccName',e.bankAccName||'');
-  ['edit-position','edit-type','edit-status','edit-bank'].forEach(id=>{
+  ['edit-position','edit-type','edit-status','edit-bank','edit-kitchen'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
     const key=id.replace('edit-','');
@@ -3313,6 +3347,133 @@ async function renderOwnerRosterHome(){
       +'<div class="t-cap" style="margin-bottom:8px;">เข้างาน '+(c.working||0)+' คน · หยุด '+(c.off||0)+' คน'+(c.late?(' · สาย '+c.late):'')+'</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+(names||'<span class="t-cap">— ไม่มีใครเข้าวันนี้ —</span>')+(w.length>4?(' <span style="background:var(--surface2);font-size:11px;padding:3px 9px;border-radius:20px;">+'+(w.length-4)+'</span>'):'')+'</div>';
   }catch(e){ el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;">'+head+'<span class="t-cap" style="color:var(--info);">เปิดดู ›</span></div>'; }
+}
+
+/* ── SIDEWORK (frontend) ── */
+let _swBoard=null, _swSetupKitchen='บาร์น้ำ';
+function swkTab(which){
+  const b=document.getElementById('swk-board'), rk=document.getElementById('swk-rank'); if(!b)return;
+  b.style.display=which==='board'?'block':'none'; rk.style.display=which==='rank'?'block':'none';
+  document.querySelectorAll('#s-sidework .tab').forEach((t,i)=>t.classList.toggle('on', i===(which==='board'?0:1)));
+  if(which==='board') renderSwBoard(); else renderSwRank();
+}
+async function renderSwBoard(){
+  const el=document.getElementById('swk-board'); if(!el||!currentUser)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{
+    const r=await callAPI({action:'getSideworkBoard',empId:currentUser.empId});
+    if(!r||!r.ok){ el.innerHTML='<div class="alert alert-warn" style="font-size:13px;">โหลดไม่ได้ — '+((r&&r.error)||'อาจต้องอัปเดต backend')+'</div>'; return; }
+    _swBoard=r.data; el.innerHTML=swBoardHtml(r.data);
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+function swTaskRow_(t,active){
+  if(t.done) return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(t.mine?'background:#EAF3DE;':'opacity:.7;')+'"><span style="color:var(--green);font-size:16px;">✓</span><span style="flex:1;font-size:13px;text-decoration:line-through;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+(t.tier==='daily'?'วัน':'สัปดาห์')+'</span></span><span style="font-size:11px;color:'+(t.mine?'var(--green)':'var(--ink3)')+';font-weight:'+(t.mine?'600':'400')+';">โดย '+(t.mine?'คุณ':esc_(t.doneByName))+'</span></div>';
+  const btn=active?('<button class="btn btn-sm btn-navy" onclick="swDo(\''+t.id+'\')">'+(t.tier==='weekly'?'หยิบ':'ทำ')+' +'+t.points+'</button>'):'<span class="chip chip-gray" style="font-size:10px;">รอบปิด</span>';
+  return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);"><span style="width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;"></span><span style="flex:1;font-size:13px;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+(t.tier==='daily'?'วัน':'สัปดาห์')+'</span></span>'+btn+'</div>';
+}
+function swSectionHtml_(title,icon,grp,dailyActive,weeklyActive){
+  const all=grp.core.concat(grp.pool); if(!all.length) return '';
+  const doneN=all.filter(t=>t.done).length;
+  let h='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 6px;"><span>'+icon+'</span><span style="font-size:13px;font-weight:700;">'+title+'</span><span class="t-cap" style="margin-left:auto;">'+doneN+'/'+all.length+'</span></div><div class="card" style="padding:0;overflow:hidden;">';
+  grp.core.forEach(t=>h+=swTaskRow_(t,dailyActive));
+  grp.pool.forEach(t=>h+=swTaskRow_(t,weeklyActive));
+  return h+'</div>';
+}
+function swBoardHtml(d){
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div style="font-size:15px;font-weight:700;">ครัว'+esc_(d.kitchen||'—')+'</div>'+(d.isBusy?'<span class="chip chip-amber" style="font-size:10px;">โหมดเบา (วันยุ่ง)</span>':'<span class="chip chip-blue" style="font-size:10px;">โหมดเต็ม</span>')+'</div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:6px;"><div class="card" style="flex:1;text-align:center;padding:8px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:16px;font-weight:700;color:var(--amber);">'+d.myMonth+'</div><div class="t-cap">เดือนนี้ (#'+d.myMonthRank+')</div></div><div class="card" style="flex:1;text-align:center;padding:8px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:16px;font-weight:700;color:var(--navy);">'+d.myAllTime+'</div><div class="t-cap">สะสม (#'+d.myAllRank+')</div></div></div>';
+  if(!d.dailyActive) h+='<div class="alert alert-warn" style="font-size:12px;">รอบวันปิด (เริ่มใหม่ 06:00) — กดทำไม่ได้</div>';
+  if(!d.kitchen) h+='<div class="alert alert-info" style="font-size:12px;">ยังไม่ได้ตั้งครัวให้คุณ — แจ้ง owner ตั้งครัวในโปรไฟล์</div>';
+  h+=swSectionHtml_('งานครัว'+(d.kitchen||''),'🟦',d.own,d.dailyActive,d.weeklyActive);
+  h+=swSectionHtml_('งานส่วนกลาง (ทุกคนช่วยกัน)','🤝',d.central,d.dailyActive,d.weeklyActive);
+  h+='<div class="card" style="margin-top:12px;padding:10px 12px;background:var(--info-bg);border:none;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">📲</span><span style="flex:1;font-size:11px;color:var(--info);">ทำเสร็จแล้วแจ้ง owner ทาง LINE ด้วย</span><button class="btn btn-sm btn-blue" onclick="swCopySummary()">คัดลอกสรุป</button></div>';
+  return h;
+}
+function swDo(taskId){
+  if(!currentUser)return;
+  callAPI({action:'submitSidework',empId:currentUser.empId,taskId:taskId}).then(r=>{
+    if(r&&r.ok){toast('✓ +'+r.points+' แต้ม');renderSwBoard();} else toast('⚠ '+((r&&r.error)||'ทำไม่ได้'));
+  }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+}
+function swCopySummary(){
+  if(!_swBoard)return; const d=_swBoard; const lines=['Sidework '+(d.kitchen||'')+' · '+todayISO()];
+  const add=g=>{g.core.concat(g.pool).forEach(t=>{ if(t.done) lines.push('✓ '+t.name+(t.mine?' (ฉัน)':' ('+t.doneByName+')')); });};
+  add(d.own); add(d.central);
+  const txt=lines.join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(()=>toast('คัดลอกแล้ว — วางใน LINE ส่ง owner'),()=>toast('คัดลอกไม่ได้'));
+  else toast('อุปกรณ์ไม่รองรับคัดลอก');
+}
+async function renderSwRank(){
+  const el=document.getElementById('swk-rank'); if(!el||!currentUser)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{ const r=await callAPI({action:'getSideworkLeaderboard'});
+    if(!r||!r.ok){el.innerHTML='<div class="alert alert-warn" style="font-size:13px;">โหลดไม่ได้</div>';return;}
+    el.innerHTML=swRankHtml(r.data, currentUser.empId, false);
+  }catch(e){el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>';}
+}
+function swRankList_(arr,myId,giveBtn){
+  if(!arr||!arr.length) return '<div class="t-cap" style="text-align:center;padding:12px 0;">— ยังไม่มีแต้ม —</div>';
+  const medal=['🥇','🥈','🥉'];
+  return arr.map((e,i)=>{ const me=String(e.empId)===String(myId);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(me?'background:#EAF3DE;':'')+'"><span style="width:22px;text-align:center;font-size:13px;">'+(i<3?medal[i]:(i+1))+'</span><span style="flex:1;font-size:13px;font-weight:'+(me?'700':'400')+';">'+esc_(e.name)+(me?' (คุณ)':'')+'</span><span style="font-size:12px;color:var(--ink2);">'+e.points+'</span>'+(giveBtn&&i===0?'<button class="btn btn-sm btn-success" style="margin-left:8px;" onclick="swGiveCredit(\''+esc_(e.name)+'\')">฿500</button>':'')+'</div>';
+  }).join('');
+}
+function swRankHtml(d,myId,giveBtn){
+  let h='<div class="card" style="padding:9px 12px;margin-bottom:10px;background:var(--amber-bg);border:none;box-shadow:none;font-size:12px;color:var(--amber);">🏅 อันดับ 1 สิ้นเดือน ได้เครดิตสินค้า ฿500</div>';
+  h+='<div class="t-sect" style="margin-top:0;">เดือนนี้</div><div class="card" style="padding:0;overflow:hidden;">'+swRankList_(d.month,myId,giveBtn)+'</div>';
+  h+='<div class="t-sect">สะสมตลอดกาล</div><div class="card" style="padding:0;overflow:hidden;">'+swRankList_(d.allTime,myId,false)+'</div>';
+  return h;
+}
+/* owner sidework */
+function swoTab(which){
+  const dd=document.getElementById('swo-dash'), st=document.getElementById('swo-setup'); if(!dd)return;
+  dd.style.display=which==='dash'?'block':'none'; st.style.display=which==='setup'?'block':'none';
+  document.querySelectorAll('#s-sw-owner .tab').forEach((t,i)=>t.classList.toggle('on', i===(which==='dash'?0:1)));
+  if(which==='dash') renderSwDash(); else renderSwSetup();
+}
+async function renderSwDash(){
+  const el=document.getElementById('swo-dash'); if(!el)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{ const r=await callAPI({action:'getSideworkDashboard'});
+    if(!r||!r.ok){el.innerHTML='<div class="alert alert-warn" style="font-size:13px;">โหลดไม่ได้ — '+((r&&r.error)||'อัปเดต backend ก่อน')+'</div>';return;}
+    const d=r.data; let h='';
+    if(d.isBusy) h+='<div class="card" style="padding:9px 12px;background:var(--amber-bg);border:none;box-shadow:none;font-size:12px;color:var(--amber);margin-bottom:10px;">🔥 วันนี้วันยุ่ง (โหมดเบา) — งานน้อยเป็นปกติ</div>';
+    h+='<div class="t-sect" style="margin-top:0;">งานประจำวันเสร็จ · แยกครัว</div><div class="card" style="padding:10px 14px;">';
+    (d.kitchens||[]).forEach(k=>{const pct=k.coreTotal?Math.round(k.coreDone/k.coreTotal*100):0;const col=pct>=100?'var(--green)':(pct>=60?'var(--blue)':'var(--amber)');
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><span style="width:64px;font-size:12px;">'+esc_(k.kitchen)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:99px;"><div style="width:'+pct+'%;height:7px;background:'+col+';border-radius:99px;"></div></div><span style="font-size:11px;width:36px;text-align:right;">'+k.coreDone+'/'+k.coreTotal+'</span></div>';});
+    h+='</div>'+swRankHtml(d.leaderboard,'',true);
+    el.innerHTML=h;
+  }catch(e){el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>';}
+}
+function swGiveCredit(name){ toast('✅ มอบเครดิตสินค้า ฿500 ให้ '+name+' (บันทึก/แจ้งนอกระบบ)'); }
+async function renderSwSetup(){
+  const el=document.getElementById('swo-setup'); if(!el)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{ const r=await callAPI({action:'getSideworkTasks',kitchen:_swSetupKitchen});
+    el.innerHTML=swSetupHtml((r&&r.data)||[]);
+  }catch(e){el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>';}
+}
+function swPickKitchen(k){_swSetupKitchen=k;renderSwSetup();}
+function swSetupHtml(tasks){
+  const KS=['บาร์น้ำ','เบเกอรี่','ครัวอาหาร','ส่วนกลาง'];
+  let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'+KS.map(k=>'<span onclick="swPickKitchen(\''+k+'\')" class="chip '+(_swSetupKitchen===k?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;">'+k+'</span>').join('')+'</div>';
+  h+='<div style="font-size:13px;font-weight:600;margin-bottom:8px;">งานของ "'+_swSetupKitchen+'" ('+tasks.length+')</div>';
+  if(!tasks.length) h+='<div class="t-cap" style="text-align:center;padding:10px 0;">ยังไม่มีงาน</div>';
+  tasks.forEach(t=>{
+    h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(t.name)+'</span><span style="font-size:15px;cursor:pointer;" onclick="swDelTask(\''+t.id+'\','+(t.doneThisCycle?'true':'false')+')">🗑</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;"><span class="chip '+(t.tier==='daily'?'chip-red':'chip-amber')+'" style="font-size:10px;">'+(t.tier==='daily'?'ประจำวัน':'รายสัปดาห์')+'</span>'+(t.category?'<span class="chip chip-gray" style="font-size:10px;">'+esc_(t.category)+'</span>':'')+'<span class="chip chip-gray" style="font-size:10px;">+'+t.points+'</span>'+(t.busyInclude?'<span class="chip chip-amber" style="font-size:10px;">ทำวันยุ่ง</span>':'')+(t.doneThisCycle?'<span class="chip chip-green" style="font-size:10px;">ทำรอบนี้แล้ว · ลบไม่ได้</span>':'')+'</div></div>';
+  });
+  h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มงานใหม่ ("'+_swSetupKitchen+'")</div><input type="text" class="fi" id="sw-new-name" placeholder="ชื่องาน" style="margin-bottom:8px;"><div class="fg2" style="margin-bottom:8px;"><select class="fi fi-sel" id="sw-new-tier"><option value="daily">ประจำวัน</option><option value="weekly">รายสัปดาห์</option></select><input type="number" class="fi" id="sw-new-points" value="1" placeholder="แต้ม"></div><input type="text" class="fi" id="sw-new-cat" placeholder="หมวด (สะอาด/บำรุง/พัฒนา)" style="margin-bottom:8px;"><label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;"><input type="checkbox" id="sw-new-busy"> ทำในวันยุ่งด้วย (เสาร์อาทิตย์/วันหยุด)</label><button class="btn btn-success btn-full" onclick="swSaveTask()">บันทึกงาน</button></div>';
+  return h;
+}
+function swSaveTask(){
+  const name=raw_('sw-new-name'); if(!name){toast('ใส่ชื่องาน');return;}
+  callAPI({action:'saveSideworkTask',kitchen:_swSetupKitchen,name:name,tier:raw_('sw-new-tier'),points:raw_('sw-new-points')||1,category:raw_('sw-new-cat'),busyInclude:(document.getElementById('sw-new-busy')||{}).checked?'true':'false'})
+    .then(r=>{ if(r&&r.ok){toast('เพิ่มงานแล้ว');renderSwSetup();} else toast('⚠ '+((r&&r.error)||'ผิดพลาด')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+}
+function swDelTask(id,doneThisCycle){
+  if(doneThisCycle){toast('⚠ มีคนทำรอบนี้แล้ว — ลบได้หลังรีเซ็ต');return;}
+  if(!confirm('ลบงานนี้?'))return;
+  callAPI({action:'deleteSideworkTask',id:id}).then(r=>{ if(r&&r.ok){toast('ลบแล้ว');renderSwSetup();} else toast('⚠ '+((r&&r.error)||'ลบไม่ได้')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
 }
 
 async function renderOwnerHome(){
