@@ -689,9 +689,9 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="t-sect">เมนูหลัก</div>
     <div class="scroll-x">
       <div class="qcard" onclick="openStore()" style="border:1.5px solid var(--navy);"><div class="qcard-icon">🧾</div><div class="qcard-title">บัญชี</div><div class="qcard-sub">รายได้/เบรค/รายจ่าย</div></div>
+      <div class="qcard" onclick="go('s-sidework')"><div class="qcard-icon">🧹</div><div class="qcard-title">Sidework</div><div class="qcard-sub" id="qcard-sw-sub">งานประจำร้าน</div></div>
       <div class="qcard" onclick="go('s-emp-profile-self')"><div class="qcard-icon">👤</div><div class="qcard-title">โปรไฟล์</div><div class="qcard-sub">ข้อมูลของฉัน</div></div>
       <div class="qcard" onclick="go('s-emp-sched')"><div class="qcard-icon">📋</div><div class="qcard-title">ตารางงาน</div><div class="qcard-sub" id="qcard-sched-sub">—</div></div>
-      <div class="qcard" onclick="go('s-sidework')"><div class="qcard-icon">🧹</div><div class="qcard-title">Sidework</div><div class="qcard-sub" id="qcard-sw-sub">งานประจำร้าน</div></div>
       <div class="qcard" onclick="go('s-emp-clockin')"><div class="qcard-icon">🕐</div><div class="qcard-title">Clock In/Out</div><div class="qcard-sub">GPS Verified</div></div>
       <div class="qcard" onclick="go('s-emp-leave')"><div class="qcard-icon">📅</div><div class="qcard-title">วันลา</div><div class="qcard-sub" id="qcard-leave-sub">—</div></div>
       <div class="qcard" onclick="go('s-emp-ot')"><div class="qcard-icon">⏰</div><div class="qcard-title">ขอ OT</div><div class="qcard-sub" id="qcard-ot-sub">—</div></div>
@@ -1159,7 +1159,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       เวลาเดิม: <strong id="sched-edit-orig-time">— – —</strong> น.<br>
       <span style="color:var(--ink3);">การแก้ไขต้องรอ Owner อนุมัติใหม่ก่อนมีผล</span>
     </div>
-    <div class="fg2">
+    <div class="btn-row" style="margin-bottom:12px;">
+      <button id="se-mode-work" class="btn btn-full" onclick="seSetMode('work')">🟦 ทำงาน</button>
+      <button id="se-mode-off" class="btn btn-full" onclick="seSetMode('off')">⬜ หยุด</button>
+    </div>
+    <div id="se-time-section" class="fg2">
       <div>
         <label class="t-label" style="font-size:11px;">เวลาเข้างานใหม่</label>
         <select id="sched-edit-start" class="fi fi-sel" style="font-size:13px;padding:10px 28px 10px 10px;"></select>
@@ -1169,6 +1173,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <select id="sched-edit-end" class="fi fi-sel" style="font-size:13px;padding:10px 28px 10px 10px;"></select>
       </div>
     </div>
+    <div id="se-off-note" class="alert alert-info" style="font-size:12px;display:none;margin-top:4px;">ตั้งวันนี้เป็น <strong>วันหยุด</strong> — ส่งให้ Owner อนุมัติก่อนมีผล</div>
     <div class="btn-row" style="margin-top:12px;">
       <button class="btn btn-ghost btn-full" onclick="closeModal('m-sched-edit')">ยกเลิก</button>
       <button class="btn btn-navy btn-full" onclick="submitScheduleEdit()">ส่งขอแก้ไข →</button>
@@ -3622,7 +3627,8 @@ const _calInitNow=new Date();
 let calYear=_calInitNow.getFullYear(), calMonth=_calInitNow.getMonth(); // เริ่มที่เดือนปัจจุบัน
 let calSelected={}; // { "2026-05-18": { start:"08:30", end:"17:00" } }
 let calExistingSchedules=[]; // schedules fetched from API (approved + pending)
-let calEditTarget=null; // { scheduleId, key, start, end, month, year, status }
+let calEditTarget=null; // { scheduleId, key, start, end, month, year, status, off }
+let seEditMode='work';  // โหมดที่กำลังแก้ใน sheet แก้ไขตารางงาน: 'work' | 'off'
 
 function getExistingScheduleForDate(key){
   for(const s of calExistingSchedules){
@@ -3775,7 +3781,7 @@ function openScheduleEditPanel(key,info){
   const thaiDay=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][dt.getDay()];
   const dateStr=thaiDay+' '+parseInt(d)+' '+THAI_MONTHS_SHORT[parseInt(m)-1]+' '+(parseInt(y)+543);
   const lbl=document.getElementById('sched-edit-date-lbl');if(lbl)lbl.textContent=dateStr;
-  const origEl=document.getElementById('sched-edit-orig-time');if(origEl)origEl.textContent=info.start+' – '+info.end;
+  const origEl=document.getElementById('sched-edit-orig-time');if(origEl)origEl.textContent=info.off?'วันหยุด':(info.start+' – '+info.end);
   const chipEl=document.getElementById('sched-edit-status-chip');
   if(chipEl){
     if(info.status==='approved'){chipEl.textContent='Approved ✓';chipEl.className='chip chip-green';}
@@ -3786,20 +3792,41 @@ function openScheduleEditPanel(key,info){
   const endSel=document.getElementById('sched-edit-end');
   if(startSel)startSel.innerHTML=TIME_OPTIONS.map(t=>`<option value="${t}"${info.start===t?' selected':''}>${t} น.</option>`).join('');
   if(endSel)endSel.innerHTML=END_TIME_OPTIONS.map(t=>`<option value="${t}"${info.end===t?' selected':''}>${t} น.</option>`).join('');
+  seSetMode(info.off?'off':'work');
   openModal('m-sched-edit');
+}
+
+// สลับโหมด ทำงาน/หยุด ในหน้าแก้ไขตารางงาน
+function seSetMode(m){
+  seEditMode=m;
+  const workBtn=document.getElementById('se-mode-work');
+  const offBtn=document.getElementById('se-mode-off');
+  if(workBtn)workBtn.className='btn btn-full '+(m==='work'?'btn-navy':'btn-outline');
+  if(offBtn)offBtn.className='btn btn-full '+(m==='off'?'btn-navy':'btn-outline');
+  const sec=document.getElementById('se-time-section');if(sec)sec.style.display=(m==='work'?'':'none');
+  const note=document.getElementById('se-off-note');if(note)note.style.display=(m==='off'?'':'none');
 }
 
 async function submitScheduleEdit(){
   if(!calEditTarget||!currentUser)return;
-  const{scheduleId,key,start:origStart,end:origEnd,month,year}=calEditTarget;
-  const newStart=document.getElementById('sched-edit-start')?.value;
-  const newEnd=document.getElementById('sched-edit-end')?.value;
-  if(!newStart||!newEnd)return;
-  if(newStart===origStart&&newEnd===origEnd){toast('ไม่มีการเปลี่ยนแปลงเวลา กรุณาแก้ไขก่อนส่ง');return;}
+  const{scheduleId,key,start:origStart,end:origEnd,month,year,off:origOff}=calEditTarget;
+  const newOff=seEditMode==='off';
+  let dayPayload,newStart,newEnd;
+  if(newOff){
+    dayPayload={off:true};
+  }else{
+    newStart=document.getElementById('sched-edit-start')?.value;
+    newEnd=document.getElementById('sched-edit-end')?.value;
+    if(!newStart||!newEnd)return;
+    dayPayload={start:newStart,end:newEnd};
+  }
+  // เปลี่ยนแปลงจริงเมื่อ: สลับ ทำงาน↔หยุด หรือ (ยังทำงานอยู่แต่เวลาเปลี่ยน)
+  const changed=(!!origOff!==newOff)||(!newOff&&(newStart!==origStart||newEnd!==origEnd));
+  if(!changed){toast('ยังไม่ได้เปลี่ยนแปลงอะไร — เลือกเวลาใหม่ หรือสลับ ทำงาน/หยุด ก่อนส่ง');return;}
   closeModal('m-sched-edit');
   toast('กำลังส่งคำขอแก้ไข...');
   try{
-    const dates={};dates[key]={start:newStart,end:newEnd};
+    const dates={};dates[key]=dayPayload;
     const res=await callAPI({action:'editSchedule',empId:currentUser.empId,
       originalScheduleId:scheduleId,date:key,month,year,dates:JSON.stringify(dates)});
     if(res.ok){
