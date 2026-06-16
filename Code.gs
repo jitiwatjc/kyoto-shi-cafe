@@ -39,6 +39,15 @@ function doGet(e) {
       case 'getEmployees':    return res(getEmployees());
       case 'getAttendance':   return res(getAttendance(p.empId, p.month, p.year, p.limit));
       case 'getSchedules':    return res(getSchedules(p.empId));
+      case 'getDayRoster':    return res(getDayRoster(p.date));
+      // ── Sidework ──
+      case 'getSideworkBoard':       return res(getSideworkBoard(p.empId));
+      case 'getSideworkTasks':       return res(getSideworkTasks(p.kitchen));
+      case 'saveSideworkTask':       return res(saveSideworkTask(p));
+      case 'deleteSideworkTask':     return res(deleteSideworkTask(p));
+      case 'submitSidework':         return res(submitSidework(p));
+      case 'getSideworkLeaderboard': return res(getSideworkLeaderboard());
+      case 'getSideworkDashboard':   return res(getSideworkDashboard());
       case 'getPending':           return res(getPendingApprovals());
       case 'getPendingApprovals':  return res(getPendingApprovals());
       case 'getTodayClock':        return res(getTodayClock(p.empId, p.date));
@@ -159,6 +168,7 @@ function getEmployees() {
       note:        row[18] || '',
       otrate:      row[19] || '',
       pdpaConsent: row[20] || '',
+      kitchen:     row[21] || '',
     });
   }
   return { ok: true, data: employees };
@@ -267,6 +277,7 @@ function updateEmployee(p) {
       if (p.bankAccName !== undefined) sh.getRange(r, 18).setValue(p.bankAccName);
       if (p.note        !== undefined) sh.getRange(r, 19).setValue(p.note);
       if (p.otrate      !== undefined) sh.getRange(r, 20).setValue(p.otrate);
+      if (p.kitchen     !== undefined) sh.getRange(r, 22).setValue(p.kitchen);
       return { ok: true };
     }
   }
@@ -456,6 +467,191 @@ function getSchedules(empId) {
     });
   }
   return { ok: true, data: result };
+}
+
+// ── ตารางทีมรายวัน (owner): ใครเข้างานวันที่ X · กี่โมง · สถานะตอกบัตร ──
+// รวมตารางที่ "อนุมัติแล้ว" ของทุกคน + สถานะตอกบัตรของวันนั้น ในการเรียกครั้งเดียว
+function getDayRoster(date) {
+  if (!date) return { ok: false, error: 'missing date' };
+  const ss = openSS();
+  const toMinR = function (t) { if (!t) return 0; const a = String(t).split(':').map(Number); return (a[0] || 0) * 60 + (a[1] || 0); };
+  // employees
+  const emps = ss.getSheetByName(SH.EMPLOYEES).getDataRange().getValues();
+  const empMap = {};
+  for (let i = 1; i < emps.length; i++) {
+    const r = emps[i]; if (!r[0]) continue;
+    empMap[String(r[0])] = { empId: String(r[0]), name: (r[4] || r[1] || r[0]), position: r[5] || '', status: String(r[10] || '').trim().toLowerCase() };
+  }
+  // approved schedule entries — both the exact-date plan AND each employee's
+  // work-day range this month, so we can surface implicit days off
+  // (วันหยุดที่เก็บเป็น "วันที่ไม่มี key" ไม่ใช่ {off:true} — ข้อมูลแบบเก่า)
+  const monthPrefix = String(date).slice(0, 7) + '-';   // 'YYYY-MM-'
+  const sch = ss.getSheetByName(SH.SCHEDULES).getDataRange().getValues();
+  const plan = {}, wkRange = {};
+  for (let i = 1; i < sch.length; i++) {
+    const r = sch[i]; if (!r[0]) continue;
+    if (String(r[5]).toLowerCase() !== 'approved') continue;
+    let dd = {}; try { dd = r[4] ? JSON.parse(r[4]) : {}; } catch (e) { dd = {}; }
+    const id = String(r[1]);
+    if (dd[date]) plan[id] = dd[date];
+    Object.keys(dd).forEach(function (k) {
+      if (k.indexOf(monthPrefix) !== 0) return;   // เฉพาะเดือนที่กำลังดู
+      if (dd[k] && dd[k].off) return;             // วันหยุดไม่ขยายช่วงวันทำงาน
+      const cur = wkRange[id] || { min: k, max: k };
+      if (k < cur.min) cur.min = k;
+      if (k > cur.max) cur.max = k;
+      wkRange[id] = cur;
+    });
+  }
+  // attendance for the date
+  const att = ss.getSheetByName(SH.ATTENDANCE).getDataRange().getValues();
+  const dayAtt = {};
+  for (let i = 1; i < att.length; i++) {
+    const r = att[i]; if (!r[0]) continue;
+    const rd = r[2] ? fmtDate(new Date(r[2])) : '';
+    if (rd === date) dayAtt[String(r[1])] = { clockIn: fmtTime(r[3]), clockOut: fmtTime(r[4]) };
+  }
+  const working = [], off = [];
+  Object.keys(empMap).forEach(function (id) {
+    const e = empMap[id]; if (e.status === 'inactive') return;
+    const pl = plan[id];
+    if (!pl || pl.off) {
+      // ไม่มีกะวันนั้น → ถือเป็น "หยุด" ถ้าระบุหยุดชัด (pl.off) หรือ
+      // มีตารางอนุมัติเดือนนี้และวันนี้อยู่ในช่วงวันที่ลงตารางไว้ (วันหยุดแบบช่องว่าง)
+      const rg = wkRange[id];
+      if ((pl && pl.off) || (rg && date >= rg.min && date <= rg.max)) {
+        off.push({ empId: id, name: e.name, position: e.position });
+      }
+      return;                                          // นอกช่วงตาราง/ไม่มีตาราง = ไม่แสดง
+    }
+    const a = dayAtt[id] || {};
+    const start = pl.start || '', end = pl.end || '';
+    let status = 'planned', late = false;
+    if (a.clockIn) { late = !!(start && toMinR(a.clockIn) > toMinR(start) + 15); status = late ? 'late' : 'in'; }
+    const otHrs = (start && end) ? Math.max(0, (toMinR(end) - toMinR(start)) / 60 - 9) : 0;
+    working.push({ empId: id, name: e.name, position: e.position, start: start, end: end,
+      specialDay: !!pl.specialDay, otHrs: Math.round(otHrs * 10) / 10,
+      clockIn: a.clockIn || '', clockOut: a.clockOut || '', status: status, late: late });
+  });
+  working.sort(function (a, b) { return (String(a.start) + a.end).localeCompare(String(b.start) + b.end); });
+  return { ok: true, date: date, working: working, off: off,
+    counts: { working: working.length, off: off.length, late: working.filter(function (w) { return w.late; }).length } };
+}
+
+// ════════════════════════════════════════════════════════════
+// SIDEWORK — งานประจำร้าน (บอร์ดทีมต่อครัว · แต้ม · leaderboard)
+// Sidework_Tasks: [0]id [1]kitchen [2]name [3]category [4]tier(daily/weekly) [5]points [6]busyInclude [7]active [8]createdAt
+// Sidework_Log:   [0]id [1]ts [2]cycleType [3]cycleKey [4]taskId [5]taskName [6]kitchen [7]empId [8]empName [9]points
+// reset: daily 19:30 (เริ่ม 06:00) · weekly เสาร์ 19:30 (เริ่มอาทิตย์ 06:00) — คำนวณ logical จากเวลาปัจจุบัน
+// ════════════════════════════════════════════════════════════
+const SW = { TASKS:'Sidework_Tasks', LOG:'Sidework_Log' };
+const SW_OPEN=360, SW_CLOSE=1170;  // 06:00, 19:30 (นาทีของวัน)
+const SW_KITCHENS=['บาร์น้ำ','เบเกอรี่','ครัวอาหาร','ส่วนกลาง'];
+const SW_HOLIDAYS={'2026-01-01':1,'2026-02-06':1,'2026-04-06':1,'2026-04-13':1,'2026-04-14':1,'2026-04-15':1,'2026-05-01':1,'2026-05-05':1,'2026-05-11':1,'2026-06-03':1,'2026-07-28':1,'2026-08-12':1,'2026-10-13':1,'2026-10-23':1,'2026-12-05':1,'2026-12-10':1,'2026-12-31':1};
+
+function swEnsure_(){
+  const ss=openSS();
+  if(!ss.getSheetByName(SW.TASKS)){ const t=ss.insertSheet(SW.TASKS); t.appendRow(['id','kitchen','name','category','tier','points','busyInclude','active','createdAt']); t.setFrozenRows(1); }
+  if(!ss.getSheetByName(SW.LOG)){ const l=ss.insertSheet(SW.LOG); l.appendRow(['id','ts','cycleType','cycleKey','taskId','taskName','kitchen','empId','empName','points']); l.setFrozenRows(1); }
+  return ss;
+}
+function swAddDays_(dateStr,delta){ const p=dateStr.split('-').map(Number); const d=new Date(p[0],p[1]-1,p[2]); d.setDate(d.getDate()+delta); const z=n=>('0'+n).slice(-2); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+function swCycle_(){
+  const n=new Date();
+  const dateStr=Utilities.formatDate(n,'Asia/Bangkok','yyyy-MM-dd');
+  const mins=parseInt(Utilities.formatDate(n,'Asia/Bangkok','H'),10)*60+parseInt(Utilities.formatDate(n,'Asia/Bangkok','m'),10);
+  const dow=parseInt(Utilities.formatDate(n,'Asia/Bangkok','u'),10)%7;  // Mon=1..Sun=7 → Sun=0
+  const dailyActive=mins>=SW_OPEN && mins<SW_CLOSE;
+  const weeklyClosed=(dow===6 && mins>=SW_CLOSE) || (dow===0 && mins<SW_OPEN);
+  return { dateStr:dateStr, mins:mins, dow:dow, dailyKey:dateStr, dailyActive:dailyActive,
+    weeklyKey:swAddDays_(dateStr,-dow), weeklyActive:!weeklyClosed, isBusy:(dow===0||dow===6)||!!SW_HOLIDAYS[dateStr] };
+}
+function swEmpKitchen_(empId){
+  const d=openSS().getSheetByName(SH.EMPLOYEES).getDataRange().getValues();
+  for(let i=1;i<d.length;i++){ if(String(d[i][0])===String(empId)) return { kitchen:String(d[i][21]||''), name:(d[i][4]||d[i][1]||d[i][0]) }; }
+  return { kitchen:'', name:empId };
+}
+function swReadTasks_(){
+  const sh=swEnsure_().getSheetByName(SW.TASKS), last=sh.getLastRow(); if(last<2) return [];
+  const r=sh.getRange(2,1,last-1,9).getValues(), out=[];
+  for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[0]) continue;
+    out.push({id:String(x[0]),kitchen:String(x[1]),name:String(x[2]),category:String(x[3]),tier:String(x[4]),points:Number(x[5])||0,
+      busyInclude:(x[6]===true||x[6]==='TRUE'||x[6]==='true'), active:!(x[7]===false||x[7]==='FALSE'||x[7]==='false'), _row:i+2}); }
+  return out;
+}
+function swCurrentDone_(){
+  const cyc=swCycle_(), sh=openSS().getSheetByName(SW.LOG), last=sh.getLastRow(), done={};
+  if(last>=2){ const r=sh.getRange(2,1,last-1,9).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[4]) continue; const ct=String(x[2]), ck=String(x[3]);
+      if((ct==='daily'&&ck===cyc.dailyKey)||(ct==='weekly'&&ck===cyc.weeklyKey)) done[String(x[4])]={empName:String(x[8]),empId:String(x[7])}; } }
+  return done;
+}
+function swLeaderboard_(){
+  const sh=swEnsure_().getSheetByName(SW.LOG), last=sh.getLastRow();
+  const month=Utilities.formatDate(new Date(),'Asia/Bangkok','yyyy-MM'); const all={}, mon={};
+  if(last>=2){ const r=sh.getRange(2,1,last-1,10).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[7]) continue; const id=String(x[7]), nm=String(x[8]||id), pt=Number(x[9])||0;
+      all[id]=all[id]||{empId:id,name:nm,points:0}; all[id].points+=pt; all[id].name=nm;
+      if(String(x[1]).slice(0,7)===month){ mon[id]=mon[id]||{empId:id,name:nm,points:0}; mon[id].points+=pt; mon[id].name=nm; } } }
+  const rank=function(o){ const a=Object.keys(o).map(k=>o[k]).sort((x,y)=>y.points-x.points); a.forEach((e,i)=>e.rank=i+1); return a; };
+  return { allTime:rank(all), month:rank(mon) };
+}
+
+function getSideworkBoard(empId){
+  swEnsure_(); const cyc=swCycle_(), me=swEmpKitchen_(empId);
+  const tasks=swReadTasks_().filter(t=>t.active && (t.kitchen===me.kitchen || t.kitchen==='ส่วนกลาง'));
+  const done=swCurrentDone_();
+  const pack=function(t){ const dn=done[t.id]; return {id:t.id,name:t.name,category:t.category,tier:t.tier,points:t.points,kitchen:t.kitchen,done:!!dn,doneByName:dn?dn.empName:'',mine:dn?String(dn.empId)===String(empId):false}; };
+  const grp=function(m){ const ts=tasks.filter(m); return { core: ts.filter(t=>t.tier==='daily' && (!cyc.isBusy||t.busyInclude)).map(pack), pool: ts.filter(t=>t.tier==='weekly').map(pack) }; };
+  const lb=swLeaderboard_(); const mA=lb.allTime.filter(x=>String(x.empId)===String(empId))[0], mM=lb.month.filter(x=>String(x.empId)===String(empId))[0];
+  return { ok:true, data:{ kitchen:me.kitchen, empName:me.name, isBusy:cyc.isBusy, dailyActive:cyc.dailyActive, weeklyActive:cyc.weeklyActive,
+    own:grp(t=>t.kitchen===me.kitchen), central:grp(t=>t.kitchen==='ส่วนกลาง'),
+    myAllTime:mA?mA.points:0, myAllRank:mA?mA.rank:'-', myMonth:mM?mM.points:0, myMonthRank:mM?mM.rank:'-' } };
+}
+function submitSidework(p){
+  swEnsure_(); const cyc=swCycle_(), me=swEmpKitchen_(p.empId);
+  const task=swReadTasks_().filter(t=>t.id===String(p.taskId))[0];
+  if(!task||!task.active) return { ok:false, error:'ไม่พบงานนี้' };
+  if(task.tier==='daily' && !cyc.dailyActive) return { ok:false, error:'รอบวันปิดแล้ว เริ่มใหม่ 06:00' };
+  if(task.tier==='weekly' && !cyc.weeklyActive) return { ok:false, error:'รอบสัปดาห์ปิดแล้ว เริ่มใหม่อาทิตย์ 06:00' };
+  const ck=task.tier==='daily'?cyc.dailyKey:cyc.weeklyKey;
+  const sh=openSS().getSheetByName(SW.LOG), last=sh.getLastRow();
+  if(last>=2){ const r=sh.getRange(2,1,last-1,9).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(String(x[4])===task.id && String(x[2])===task.tier && String(x[3])===ck) return { ok:false, error:(String(x[8])||'มีคน')+' ทำไปแล้ว' }; } }
+  sh.appendRow(['SWL'+Date.now(), fmtDateTime(new Date()), task.tier, ck, task.id, task.name, task.kitchen, String(p.empId), me.name, task.points]);
+  return { ok:true, points:task.points, doneByName:me.name };
+}
+function getSideworkTasks(kitchen){
+  swEnsure_(); const done=swCurrentDone_(); let ts=swReadTasks_().filter(t=>t.active); if(kitchen) ts=ts.filter(t=>t.kitchen===kitchen);
+  return { ok:true, data: ts.map(function(t){ return {id:t.id,kitchen:t.kitchen,name:t.name,category:t.category,tier:t.tier,points:t.points,busyInclude:t.busyInclude,doneThisCycle:!!done[t.id]}; }) };
+}
+function saveSideworkTask(p){
+  const sh=swEnsure_().getSheetByName(SW.TASKS);
+  if(!p.name||!p.kitchen) return { ok:false, error:'กรอกชื่อ+ครัว' };
+  const tier=(p.tier==='weekly')?'weekly':'daily', points=Number(p.points)||1, busy=(p.busyInclude===true||p.busyInclude==='true'||p.busyInclude==='TRUE');
+  if(p.id){ const last=sh.getLastRow(); if(last>=2){ const ids=sh.getRange(2,1,last-1,1).getValues();
+    for(let i=0;i<ids.length;i++){ if(String(ids[i][0])===String(p.id)){ sh.getRange(i+2,2,1,7).setValues([[p.kitchen,p.name,p.category||'',tier,points,busy,true]]); return { ok:true, id:p.id }; } } } }
+  const id='SWT'+Date.now();
+  sh.appendRow([id,p.kitchen,p.name,p.category||'',tier,points,busy,true,fmtDateTime(new Date())]);
+  return { ok:true, id:id };
+}
+function deleteSideworkTask(p){
+  const ss=swEnsure_(), sh=ss.getSheetByName(SW.TASKS);
+  const task=swReadTasks_().filter(t=>t.id===String(p.id))[0];
+  if(!task) return { ok:false, error:'ไม่พบงาน' };
+  const cyc=swCycle_(), ck=task.tier==='daily'?cyc.dailyKey:cyc.weeklyKey;
+  const log=ss.getSheetByName(SW.LOG), last=log.getLastRow();
+  if(last>=2){ const r=log.getRange(2,1,last-1,9).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(String(x[4])===task.id && String(x[2])===task.tier && String(x[3])===ck) return { ok:false, blocked:true, error:'มีคนทำรอบนี้แล้ว — ลบได้หลังรีเซ็ต' }; } }
+  sh.deleteRow(task._row);
+  return { ok:true };
+}
+function getSideworkLeaderboard(){ return { ok:true, data:swLeaderboard_() }; }
+function getSideworkDashboard(){
+  swEnsure_(); const cyc=swCycle_(), tasks=swReadTasks_().filter(t=>t.active), done=swCurrentDone_(), kits={};
+  SW_KITCHENS.forEach(function(k){ kits[k]={kitchen:k,coreTotal:0,coreDone:0}; });
+  tasks.forEach(function(t){ if(t.tier!=='daily') return; if(cyc.isBusy && !t.busyInclude) return; const k=kits[t.kitchen]; if(!k) return; k.coreTotal++; if(done[t.id]) k.coreDone++; });
+  return { ok:true, data:{ isBusy:cyc.isBusy, dailyActive:cyc.dailyActive, kitchens:SW_KITCHENS.map(k=>kits[k]), leaderboard:swLeaderboard_() } };
 }
 
 function submitSchedule(p) {
