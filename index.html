@@ -8,6 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
+<script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap');
@@ -45,9 +46,26 @@
   --sh-lg: 0 10px 30px rgba(28,24,20,.12);
   --font-head: 'Noto Sans Thai','Inter',system-ui,sans-serif;
   --font-body: 'Noto Sans Thai','Inter',system-ui,sans-serif;
+  --mine-bg:  #EAF3DE;   /* highlight = แถวของฉัน */
 }
+/* ── Dark mode (สลับเอง · จำค่าใน localStorage) ── */
+html[data-theme="dark"]{
+  --navy:#E0563B; --navy-dk:#C8462E; --navy-lt:#3A2620;
+  --blue:#E0563B; --blue-lt:#3A2620;
+  --ink:#ECE7DF; --ink2:#CFC8BD; --ink3:#9A938A;
+  --bg:#15130F; --surface:#211E19; --surface2:#2B2722; --border:#393429;
+  --green:#7FA982; --green-bg:#22301F;
+  --red:#E26A60; --red-bg:#3A201D;
+  --amber:#D6A24E; --amber-bg:#332915;
+  --info:#8FB0BC; --info-bg:#1E2A2F;
+  --tan:#E0563B; --tan-dk:#C8462E; --tan-lt:#3A2620;
+  --mine-bg:#26331F;
+  --sh:0 1px 2px rgba(0,0,0,.30), 0 2px 10px rgba(0,0,0,.35);
+  --sh-lg:0 10px 30px rgba(0,0,0,.55);
+}
+html[data-theme="dark"] img,html[data-theme="dark"] .clock-hero{filter:brightness(.92);}
 
-body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.5;overflow-x:hidden;}
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.55;overflow-x:hidden;}
 /* Serif (Noto Serif Thai) for brand + large headings only — keeps Thai body legible */
 .topbar-title,.card-title,.t-title,.clock-time,.stat-val,.leave-num,.brand-word{font-family:var(--font-head);}
 
@@ -274,6 +292,8 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+
+<button id="theme-fab" onclick="toggleTheme()" aria-label="สลับโหมดมืด/สว่าง" title="สลับโหมดมืด/สว่าง" style="position:fixed;right:14px;bottom:80px;width:46px;height:46px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);box-shadow:var(--sh-lg);font-size:21px;z-index:60;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink);line-height:1;">🌙</button>
 
 <!-- ════ Line-icon sprite (minimal, inherits color via currentColor) ════ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -1181,6 +1201,20 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   </div>
 </div>
 
+<!-- MODAL: SIDEWORK HELPERS (1.4 เลือกเพื่อนช่วยงาน) -->
+<div class="modal" id="m-sw-helpers">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">ใครช่วยทำบ้าง?</div>
+    <div class="t-cap" style="margin-bottom:10px;">เลือกเพื่อนที่ช่วย — แต้มจะหารเท่ากันทุกคน (คุณถูกเลือกไว้แล้ว)</div>
+    <div id="sw-helpers-list" style="max-height:46vh;overflow-y:auto;margin-bottom:14px;"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-full" onclick="closeModal('m-sw-helpers')">ยกเลิก</button>
+      <button class="btn btn-navy btn-full" onclick="swConfirmHelpers()">ยืนยัน ✓</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: EARLY CLOCK-OUT REQUEST -->
 <div class="modal" id="m-early-clockout">
   <div class="modal-sheet">
@@ -1828,8 +1862,8 @@ async function renderPnl(){
     const margin=d.margin?(Number(d.margin)*100).toFixed(1):'0.0';
     h+='<div class="card" style="text-align:center;padding:16px;"><div class="t-cap">กำไร · '+esc_(d.periodLabel||'')+' (ก่อนลงทุนใหม่)</div>'
       +'<div style="font-size:34px;font-weight:600;color:var(--green);line-height:1.2;">'+pnlNum_(d.profit)+'</div>'
-      +'<div style="display:flex;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap;"><span style="font-size:11px;background:#EAF3DE;color:#27500A;padding:2px 10px;border-radius:10px;">มาร์จิ้น '+margin+'%</span>'
-      +(d.momPct!=null?('<span style="font-size:11px;'+(d.momPct>=0?'background:#EAF3DE;color:#27500A':'background:#FCEBEB;color:#791F1F')+';padding:2px 10px;border-radius:10px;">'+(d.momPct>=0?'▲':'▼')+' '+Math.abs(d.momPct)+'% จากช่วงก่อน</span>'):'')+'</div>'
+      +'<div style="display:flex;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap;"><span style="font-size:11px;background:var(--mine-bg);color:#27500A;padding:2px 10px;border-radius:10px;">มาร์จิ้น '+margin+'%</span>'
+      +(d.momPct!=null?('<span style="font-size:11px;'+(d.momPct>=0?'background:var(--mine-bg);color:#27500A':'background:#FCEBEB;color:#791F1F')+';padding:2px 10px;border-radius:10px;">'+(d.momPct>=0?'▲':'▼')+' '+Math.abs(d.momPct)+'% จากช่วงก่อน</span>'):'')+'</div>'
       +'<div style="display:flex;border-top:0.5px solid var(--border);margin-top:14px;padding-top:12px;"><div style="flex:1;"><div class="t-cap">ยอดขาย</div><div style="font-size:16px;font-weight:600;">'+pnlNum_(d.sales)+'</div></div>'
       +'<div style="flex:1;border-left:0.5px solid var(--border);"><div class="t-cap">รายจ่าย</div><div style="font-size:16px;font-weight:600;color:var(--red);">'+pnlNum_(d.opex)+'</div></div>'
       +'<div style="flex:1;border-left:0.5px solid var(--border);"><div class="t-cap">เฉลี่ย/วัน</div><div style="font-size:16px;font-weight:600;">'+pnlNum_(d.avgPerDay)+'</div></div></div></div>';
@@ -3355,7 +3389,14 @@ async function renderOwnerRosterHome(){
 }
 
 /* ── SIDEWORK (frontend) ── */
-let _swBoard=null, _swSetupKitchen='บาร์น้ำ';
+let _swBoard=null, _swSetupKitchen='บาร์น้ำ', _swStaff=[], _swHelpTask=null;
+const SW_DOW_TH={'0':'อา','1':'จ','2':'อ','3':'พ','4':'พฤ','5':'ศ','6':'ส'};
+function swDaysLabel_(days){ if(!days||days==='*') return 'ทุกวัน'; return String(days).split(',').map(d=>SW_DOW_TH[d.trim()]||'').filter(Boolean).join(' '); }
+function shortDeadline_(s){ if(!s) return ''; const p=String(s).split(' '); const d=(p[0]||'').split('-'); return (d[2]||'')+'/'+(d[1]||'')+(p[1]?' '+p[1]:''); }
+function swTierChange(){ const tier=(document.getElementById('sw-new-tier')||{}).value||'daily';
+  const show=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'':'none';};
+  show('sw-days-row',tier==='daily'); show('sw-busy-row',tier==='daily'); show('sw-deadline-row',tier==='once'); }
+function swAssigneeChange(){ const a=(document.getElementById('sw-new-assignee')||{}).value||''; const m=document.getElementById('sw-multi-row'); if(m) m.style.display=a?'none':'flex'; }
 function swkTab(which){
   const b=document.getElementById('swk-board'), rk=document.getElementById('swk-rank'); if(!b)return;
   b.style.display=which==='board'?'block':'none'; rk.style.display=which==='rank'?'block':'none';
@@ -3371,17 +3412,18 @@ async function renderSwBoard(){
     _swBoard=r.data; el.innerHTML=swBoardHtml(r.data);
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
-function swTaskRow_(t,active){
-  if(t.done) return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(t.mine?'background:#EAF3DE;':'opacity:.7;')+'"><span style="color:var(--green);font-size:16px;">✓</span><span style="flex:1;font-size:13px;text-decoration:line-through;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+(t.tier==='daily'?'วัน':'สัปดาห์')+'</span></span><span style="font-size:11px;color:'+(t.mine?'var(--green)':'var(--ink3)')+';font-weight:'+(t.mine?'600':'400')+';">โดย '+(t.mine?'คุณ':esc_(t.doneByName))+'</span></div>';
-  const btn=active?('<button class="btn btn-sm btn-navy" onclick="swDo(\''+t.id+'\')">'+(t.tier==='weekly'?'หยิบ':'ทำ')+' +'+t.points+'</button>'):'<span class="chip chip-gray" style="font-size:10px;">รอบปิด</span>';
-  return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);"><span style="width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;"></span><span style="flex:1;font-size:13px;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+(t.tier==='daily'?'วัน':'สัปดาห์')+'</span></span>'+btn+'</div>';
+function swTaskRow_(t){
+  const tierTxt=t.tier==='weekly'?'สัปดาห์':(t.tier==='once'?('ครั้งเดียว'+(t.deadline?' · ถึง '+shortDeadline_(t.deadline):'')):'วัน');
+  const multiTag=t.multi?' <span style="font-size:10px;color:var(--blue);font-weight:600;">👥</span>':'';
+  if(t.done) return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(t.mine?'background:var(--mine-bg);':'opacity:.7;')+'"><span style="color:var(--green);font-size:16px;">✓</span><span style="flex:1;font-size:13px;text-decoration:line-through;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+tierTxt+'</span></span><span style="font-size:11px;color:'+(t.mine?'var(--green)':'var(--ink3)')+';font-weight:'+(t.mine?'600':'400')+';">โดย '+(t.mine?'คุณ':esc_(t.doneByName))+'</span></div>';
+  const btn=t.active?('<button class="btn btn-sm btn-navy" onclick="swDo(\''+t.id+'\','+(t.multi?'true':'false')+')">'+(t.tier==='weekly'?'หยิบ':'ทำ')+' +'+t.points+'</button>'):'<span class="chip chip-gray" style="font-size:10px;">'+(t.tier==='once'?'หมดเขต':'รอบปิด')+'</span>';
+  return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);"><span style="width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;"></span><span style="flex:1;font-size:13px;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+tierTxt+'</span>'+multiTag+'</span>'+btn+'</div>';
 }
-function swSectionHtml_(title,icon,grp,dailyActive,weeklyActive){
-  const all=grp.core.concat(grp.pool); if(!all.length) return '';
-  const doneN=all.filter(t=>t.done).length;
-  let h='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 6px;"><span>'+icon+'</span><span style="font-size:13px;font-weight:700;">'+title+'</span><span class="t-cap" style="margin-left:auto;">'+doneN+'/'+all.length+'</span></div><div class="card" style="padding:0;overflow:hidden;">';
-  grp.core.forEach(t=>h+=swTaskRow_(t,dailyActive));
-  grp.pool.forEach(t=>h+=swTaskRow_(t,weeklyActive));
+function swSectionHtml_(title,icon,arr){
+  if(!arr||!arr.length) return '';
+  const doneN=arr.filter(t=>t.done).length;
+  let h='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 6px;"><span>'+icon+'</span><span style="font-size:13px;font-weight:700;">'+title+'</span><span class="t-cap" style="margin-left:auto;">'+doneN+'/'+arr.length+'</span></div><div class="card" style="padding:0;overflow:hidden;">';
+  arr.forEach(t=>h+=swTaskRow_(t));
   return h+'</div>';
 }
 function swBoardHtml(d){
@@ -3389,21 +3431,47 @@ function swBoardHtml(d){
   h+='<div style="display:flex;gap:8px;margin-bottom:6px;"><div class="card" style="flex:1;text-align:center;padding:8px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:16px;font-weight:700;color:var(--amber);">'+d.myMonth+'</div><div class="t-cap">เดือนนี้ (#'+d.myMonthRank+')</div></div><div class="card" style="flex:1;text-align:center;padding:8px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:16px;font-weight:700;color:var(--navy);">'+d.myAllTime+'</div><div class="t-cap">สะสม (#'+d.myAllRank+')</div></div></div>';
   if(!d.dailyActive) h+='<div class="alert alert-warn" style="font-size:12px;">รอบวันปิด (เริ่มใหม่ 06:00) — กดทำไม่ได้</div>';
   if(!d.kitchen) h+='<div class="alert alert-info" style="font-size:12px;">ยังไม่ได้ตั้งครัวให้คุณ — แจ้ง owner ตั้งครัวในโปรไฟล์</div>';
-  h+=swSectionHtml_('งานครัว'+(d.kitchen||''),'🟦',d.own,d.dailyActive,d.weeklyActive);
-  h+=swSectionHtml_('งานส่วนกลาง (ทุกคนช่วยกัน)','🤝',d.central,d.dailyActive,d.weeklyActive);
+  h+=swSectionHtml_('งานของฉัน (มอบหมายเฉพาะ)','📌',d.personal);
+  h+=swSectionHtml_('งานครัว'+(d.kitchen||''),'🟦',d.own);
+  h+=swSectionHtml_('งานส่วนกลาง (ทุกคนช่วยกัน)','🤝',d.central);
+  if(!(d.personal&&d.personal.length)&&!(d.own&&d.own.length)&&!(d.central&&d.central.length)) h+='<div class="t-cap" style="text-align:center;padding:18px 0;">วันนี้ไม่มีงาน 🎉</div>';
   h+='<div class="card" style="margin-top:12px;padding:10px 12px;background:var(--info-bg);border:none;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">📲</span><span style="flex:1;font-size:11px;color:var(--info);">ทำเสร็จแล้วแจ้ง owner ทาง LINE ด้วย</span><button class="btn btn-sm btn-blue" onclick="swCopySummary()">คัดลอกสรุป</button></div>';
   return h;
 }
-function swDo(taskId){
+function swDo(taskId,multi){
   if(!currentUser)return;
-  callAPI({action:'submitSidework',empId:currentUser.empId,taskId:taskId}).then(r=>{
-    if(r&&r.ok){toast('✓ +'+r.points+' แต้ม');renderSwBoard();} else toast('⚠ '+((r&&r.error)||'ทำไม่ได้'));
+  if(multi){ swOpenHelpers(taskId); return; }   // 1.4 — เลือกเพื่อนช่วยก่อน
+  swSubmit(taskId,null);
+}
+function swSubmit(taskId,helpers){
+  const payload={action:'submitSidework',empId:currentUser.empId,taskId:taskId};
+  if(helpers&&helpers.length) payload.helpers=JSON.stringify(helpers);
+  toast('กำลังบันทึก...');
+  callAPI(payload).then(r=>{
+    if(r&&r.ok){ const pt=(r.share!=null?r.share:r.points); toast('✓ +'+pt+' แต้ม'+(r.n>1?(' (หาร '+r.n+' คน)'):'')); renderSwBoard(); }
+    else toast('⚠ '+((r&&r.error)||'ทำไม่ได้'));
   }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+}
+function swOpenHelpers(taskId){
+  if(!_swBoard){ swSubmit(taskId,null); return; }
+  _swHelpTask=taskId; const me=String(currentUser.empId), mates=_swBoard.mates||[];
+  let h='';
+  mates.forEach(m=>{ const isMe=String(m.empId)===me;
+    h+='<label style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;"><input type="checkbox" class="sw-help" value="'+m.empId+'"'+(isMe?' checked disabled':'')+'>'+esc_(m.name)+(isMe?' (คุณ)':'')+'</label>'; });
+  const list=document.getElementById('sw-helpers-list'); if(list) list.innerHTML=h||'<div class="t-cap">ไม่มีรายชื่อ</div>';
+  openModal('m-sw-helpers');
+}
+function swConfirmHelpers(){
+  const me=String(currentUser.empId);
+  const picked=[].slice.call(document.querySelectorAll('.sw-help:checked')).map(c=>c.value);
+  const ids=[me].concat(picked).filter((v,i,a)=>a.indexOf(v)===i);
+  closeModal('m-sw-helpers');
+  swSubmit(_swHelpTask, ids);
 }
 function swCopySummary(){
   if(!_swBoard)return; const d=_swBoard; const lines=['Sidework '+(d.kitchen||'')+' · '+todayISO()];
-  const add=g=>{g.core.concat(g.pool).forEach(t=>{ if(t.done) lines.push('✓ '+t.name+(t.mine?' (ฉัน)':' ('+t.doneByName+')')); });};
-  add(d.own); add(d.central);
+  const add=g=>{(g||[]).forEach(t=>{ if(t.done) lines.push('✓ '+t.name+(t.mine?' (ฉัน)':' ('+t.doneByName+')')); });};
+  add(d.personal); add(d.own); add(d.central);
   const txt=lines.join('\n');
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(()=>toast('คัดลอกแล้ว — วางใน LINE ส่ง owner'),()=>toast('คัดลอกไม่ได้'));
   else toast('อุปกรณ์ไม่รองรับคัดลอก');
@@ -3420,7 +3488,7 @@ function swRankList_(arr,myId,giveBtn){
   if(!arr||!arr.length) return '<div class="t-cap" style="text-align:center;padding:12px 0;">— ยังไม่มีแต้ม —</div>';
   const medal=['🥇','🥈','🥉'];
   return arr.map((e,i)=>{ const me=String(e.empId)===String(myId);
-    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(me?'background:#EAF3DE;':'')+'"><span style="width:22px;text-align:center;font-size:13px;">'+(i<3?medal[i]:(i+1))+'</span><span style="flex:1;font-size:13px;font-weight:'+(me?'700':'400')+';">'+esc_(e.name)+(me?' (คุณ)':'')+'</span><span style="font-size:12px;color:var(--ink2);">'+e.points+'</span>'+(giveBtn&&i===0?'<button class="btn btn-sm btn-success" style="margin-left:8px;" onclick="swGiveCredit(\''+esc_(e.name)+'\')">฿500</button>':'')+'</div>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(me?'background:var(--mine-bg);':'')+'"><span style="width:22px;text-align:center;font-size:13px;">'+(i<3?medal[i]:(i+1))+'</span><span style="flex:1;font-size:13px;font-weight:'+(me?'700':'400')+';">'+esc_(e.name)+(me?' (คุณ)':'')+'</span><span style="font-size:12px;color:var(--ink2);">'+e.points+'</span>'+(giveBtn&&i===0?'<button class="btn btn-sm btn-success" style="margin-left:8px;" onclick="swGiveCredit(\''+esc_(e.name)+'\')">฿500</button>':'')+'</div>';
   }).join('');
 }
 function swRankHtml(d,myId,giveBtn){
@@ -3454,8 +3522,11 @@ function swGiveCredit(name){ toast('✅ มอบเครดิตสินค�
 async function renderSwSetup(){
   const el=document.getElementById('swo-setup'); if(!el)return;
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
-  try{ const r=await callAPI({action:'getSideworkTasks',kitchen:_swSetupKitchen});
+  try{
+    if(!_swStaff.length){ const e=await callAPI({action:'getEmployees'}); if(e&&e.ok) _swStaff=(e.data||[]).filter(s=>String(s.position||'').toLowerCase().indexOf('owner')<0); }
+    const r=await callAPI({action:'getSideworkTasks',kitchen:_swSetupKitchen});
     el.innerHTML=swSetupHtml((r&&r.data)||[]);
+    swTierChange(); swAssigneeChange();
   }catch(e){el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>';}
 }
 function swPickKitchen(k){_swSetupKitchen=k;renderSwSetup();}
@@ -3465,19 +3536,44 @@ function swSetupHtml(tasks){
   h+='<div style="font-size:13px;font-weight:600;margin-bottom:8px;">งานของ "'+_swSetupKitchen+'" ('+tasks.length+')</div>';
   if(!tasks.length) h+='<div class="t-cap" style="text-align:center;padding:10px 0;">ยังไม่มีงาน</div>';
   tasks.forEach(t=>{
-    h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(t.name)+'</span><span style="font-size:15px;cursor:pointer;" onclick="swDelTask(\''+t.id+'\','+(t.doneThisCycle?'true':'false')+')">🗑</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;"><span class="chip '+(t.tier==='daily'?'chip-red':'chip-amber')+'" style="font-size:10px;">'+(t.tier==='daily'?'ประจำวัน':'รายสัปดาห์')+'</span>'+(t.category?'<span class="chip chip-gray" style="font-size:10px;">'+esc_(t.category)+'</span>':'')+'<span class="chip chip-gray" style="font-size:10px;">+'+t.points+'</span>'+(t.busyInclude?'<span class="chip chip-amber" style="font-size:10px;">ทำวันยุ่ง</span>':'')+(t.doneThisCycle?'<span class="chip chip-green" style="font-size:10px;">ทำรอบนี้แล้ว · ลบไม่ได้</span>':'')+'</div></div>';
+    const tierChip=t.tier==='weekly'?'<span class="chip chip-amber" style="font-size:10px;">รายสัปดาห์</span>'
+      :t.tier==='once'?'<span class="chip chip-blue" style="font-size:10px;">ครั้งเดียว'+(t.deadline?' · ถึง '+esc_(shortDeadline_(t.deadline)):'')+'</span>'
+      :'<span class="chip chip-red" style="font-size:10px;">ประจำวัน · '+swDaysLabel_(t.days)+'</span>';
+    h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(t.name)+'</span><span style="font-size:15px;cursor:pointer;" onclick="swDelTask(\''+t.id+'\','+(t.doneThisCycle?'true':'false')+')">🗑</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">'+tierChip+(t.assignee?'<span class="chip chip-navy" style="font-size:10px;">👤 '+esc_(t.assigneeName||'')+'</span>':'')+(t.multi?'<span class="chip chip-blue" style="font-size:10px;">👥 ช่วยกัน</span>':'')+(t.category?'<span class="chip chip-gray" style="font-size:10px;">'+esc_(t.category)+'</span>':'')+'<span class="chip chip-gray" style="font-size:10px;">+'+t.points+'</span>'+(t.busyInclude?'<span class="chip chip-amber" style="font-size:10px;">ทำวันยุ่ง</span>':'')+(t.doneThisCycle?'<span class="chip chip-green" style="font-size:10px;">ทำรอบนี้แล้ว · ลบไม่ได้</span>':'')+'</div></div>';
   });
-  h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มงานใหม่ ("'+_swSetupKitchen+'")</div><input type="text" class="fi" id="sw-new-name" placeholder="ชื่องาน" style="margin-bottom:8px;"><div class="fg2" style="margin-bottom:8px;"><select class="fi fi-sel" id="sw-new-tier"><option value="daily">ประจำวัน</option><option value="weekly">รายสัปดาห์</option></select><input type="number" class="fi" id="sw-new-points" value="1" placeholder="แต้ม"></div><input type="text" class="fi" id="sw-new-cat" placeholder="หมวด (สะอาด/บำรุง/พัฒนา)" style="margin-bottom:8px;"><label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;"><input type="checkbox" id="sw-new-busy"> ทำในวันยุ่งด้วย (เสาร์อาทิตย์/วันหยุด)</label><button class="btn btn-success btn-full" onclick="swSaveTask()">บันทึกงาน</button></div>';
+  const dayBoxes=[['1','จ'],['2','อ'],['3','พ'],['4','พฤ'],['5','ศ'],['6','ส'],['0','อา']].map(d=>'<label style="display:inline-flex;align-items:center;gap:3px;font-size:12px;border:1px solid var(--border);border-radius:8px;padding:5px 9px;cursor:pointer;"><input type="checkbox" class="sw-day" value="'+d[0]+'" checked>'+d[1]+'</label>').join('');
+  const staffOpts='<option value="">— ทั้งครัว/ส่วนกลาง —</option>'+_swStaff.map(s=>'<option value="'+esc_(s.id)+'">'+esc_(s.nickname||s.name||s.id)+'</option>').join('');
+  h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มงานใหม่ ("'+_swSetupKitchen+'")</div>'
+    +'<input type="text" class="fi" id="sw-new-name" placeholder="ชื่องาน" style="margin-bottom:8px;">'
+    +'<div class="fg2" style="margin-bottom:8px;"><select class="fi fi-sel" id="sw-new-tier" onchange="swTierChange()"><option value="daily">ประจำวัน</option><option value="weekly">รายสัปดาห์</option><option value="once">ครั้งเดียว</option></select><input type="number" class="fi" id="sw-new-points" value="1" placeholder="แต้ม"></div>'
+    +'<div id="sw-days-row" style="margin-bottom:8px;"><div class="t-label" style="margin-bottom:5px;">ทำวันไหนบ้าง</div><div style="display:flex;gap:5px;flex-wrap:wrap;">'+dayBoxes+'</div></div>'
+    +'<div id="sw-deadline-row" style="margin-bottom:8px;display:none;"><div class="t-label" style="margin-bottom:5px;">หมดเขต (วัน+เวลา)</div><input type="datetime-local" class="fi" id="sw-new-deadline"></div>'
+    +'<div style="margin-bottom:8px;"><div class="t-label" style="margin-bottom:5px;">มอบหมายให้ (ถ้าระบุ = ทำคนเดียว)</div><select class="fi fi-sel" id="sw-new-assignee" onchange="swAssigneeChange()">'+staffOpts+'</select></div>'
+    +'<input type="text" class="fi" id="sw-new-cat" placeholder="หมวด (สะอาด/บำรุง/พัฒนา)" style="margin-bottom:8px;">'
+    +'<label id="sw-busy-row" style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;"><input type="checkbox" id="sw-new-busy"> ทำในวันยุ่งด้วย (เสาร์อาทิตย์/วันหยุด)</label>'
+    +'<label id="sw-multi-row" style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;"><input type="checkbox" id="sw-new-multi"> ทำได้หลายคน — หารแต้มเท่ากัน</label>'
+    +'<button class="btn btn-success btn-full" id="sw-save-btn" onclick="swSaveTask()">บันทึกงาน</button></div>';
   return h;
 }
 function swSaveTask(){
   const name=raw_('sw-new-name'); if(!name){toast('ใส่ชื่องาน');return;}
-  callAPI({action:'saveSideworkTask',kitchen:_swSetupKitchen,name:name,tier:raw_('sw-new-tier'),points:raw_('sw-new-points')||1,category:raw_('sw-new-cat'),busyInclude:(document.getElementById('sw-new-busy')||{}).checked?'true':'false'})
-    .then(r=>{ if(r&&r.ok){toast('เพิ่มงานแล้ว');renderSwSetup();} else toast('⚠ '+((r&&r.error)||'ผิดพลาด')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+  const tier=raw_('sw-new-tier')||'daily';
+  let days='*';
+  if(tier==='daily'){ const ds=[].slice.call(document.querySelectorAll('.sw-day')).filter(c=>c.checked).map(c=>c.value); if(!ds.length){toast('เลือกวันอย่างน้อย 1 วัน');return;} days=ds.join(','); }
+  let deadline='';
+  if(tier==='once'){ const dv=raw_('sw-new-deadline'); if(!dv){toast('ใส่วัน+เวลาหมดเขต');return;} deadline=dv.replace('T',' ').slice(0,16); }
+  const assignee=raw_('sw-new-assignee')||'';
+  const multi=((!assignee)&&(document.getElementById('sw-new-multi')||{}).checked)?'true':'false';
+  const btn=document.getElementById('sw-save-btn'); if(btn){btn.disabled=true;btn.textContent='กำลังบันทึก...';}
+  callAPI({action:'saveSideworkTask',kitchen:_swSetupKitchen,name:name,tier:tier,points:raw_('sw-new-points')||1,category:raw_('sw-new-cat'),
+    busyInclude:(document.getElementById('sw-new-busy')||{}).checked?'true':'false',days:days,deadline:deadline,assignee:assignee,multi:multi})
+    .then(r=>{ if(r&&r.ok){toast('เพิ่มงานแล้ว');renderSwSetup();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));if(btn){btn.disabled=false;btn.textContent='บันทึกงาน';}} })
+    .catch(()=>{toast('เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.textContent='บันทึกงาน';}});
 }
 function swDelTask(id,doneThisCycle){
   if(doneThisCycle){toast('⚠ มีคนทำรอบนี้แล้ว — ลบได้หลังรีเซ็ต');return;}
   if(!confirm('ลบงานนี้?'))return;
+  toast('กำลังลบ...');
   callAPI({action:'deleteSideworkTask',id:id}).then(r=>{ if(r&&r.ok){toast('ลบแล้ว');renderSwSetup();} else toast('⚠ '+((r&&r.error)||'ลบไม่ได้')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
 }
 
@@ -3619,6 +3715,15 @@ function doResetPassword(){
 
 /* ── TOAST ── */
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800);}
+// ── Dark mode toggle (จำค่าใน localStorage · init อยู่ใน <head> กัน flash) ──
+function toggleTheme(){
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  if(dark){document.documentElement.removeAttribute('data-theme');try{localStorage.setItem('kyoto_theme','light');}catch(e){}}
+  else{document.documentElement.setAttribute('data-theme','dark');try{localStorage.setItem('kyoto_theme','dark');}catch(e){}}
+  syncThemeFab();
+}
+function syncThemeFab(){const b=document.getElementById('theme-fab');if(b)b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';}
+document.addEventListener('DOMContentLoaded',syncThemeFab);
 
 /* ════════════════════════════════════
    CALENDAR SCHEDULE
