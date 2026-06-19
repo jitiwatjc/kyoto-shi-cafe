@@ -551,10 +551,22 @@ const SW_HOLIDAYS={'2026-01-01':1,'2026-02-06':1,'2026-04-06':1,'2026-04-13':1,'
 
 function swEnsure_(){
   const ss=openSS();
-  if(!ss.getSheetByName(SW.TASKS)){ const t=ss.insertSheet(SW.TASKS); t.appendRow(['id','kitchen','name','category','tier','points','busyInclude','active','createdAt']); t.setFrozenRows(1); }
+  let t=ss.getSheetByName(SW.TASKS);
+  if(!t){ t=ss.insertSheet(SW.TASKS); t.appendRow(['id','kitchen','name','category','tier','points','busyInclude','active','createdAt','days','deadline','assignee','multi']); t.setFrozenRows(1); }
+  else if(t.getLastColumn()<13){ t.getRange(1,10,1,4).setValues([['days','deadline','assignee','multi']]); }  // upgrade schema: 1.2 days · 1.3 once/deadline/assignee · 1.4 multi
   if(!ss.getSheetByName(SW.LOG)){ const l=ss.insertSheet(SW.LOG); l.appendRow(['id','ts','cycleType','cycleKey','taskId','taskName','kitchen','empId','empName','points']); l.setFrozenRows(1); }
   return ss;
 }
+// 1.2 — daily task มีผลเฉพาะวันที่เลือก (days = CSV ของ dow 0=อา..6=ส · '*'/'' = ทุกวัน)
+function swDayMatch_(days,dow){ if(!days||days==='*') return true; return (','+String(days)+',').indexOf(','+dow+',')>=0; }
+// name lookup empId -> ชื่อเล่น/ชื่อ
+function swNameMap_(){ const d=openSS().getSheetByName(SH.EMPLOYEES).getDataRange().getValues(), m={}; for(let i=1;i<d.length;i++){ if(!d[i][0]) continue; m[String(d[i][0])]=(d[i][4]||d[i][1]||d[i][0]); } return m; }
+// active staff (เว้น owner) สำหรับเลือกเพื่อนช่วยงาน (1.4)
+function swMates_(){ const d=openSS().getSheetByName(SH.EMPLOYEES).getDataRange().getValues(), out=[];
+  for(let i=1;i<d.length;i++){ const r=d[i]; if(!r[0]) continue; if(String(r[10]||'').trim().toLowerCase()==='inactive') continue;
+    if(String(r[5]||'').toLowerCase().indexOf('owner')>=0) continue;
+    out.push({empId:String(r[0]), name:(r[4]||r[1]||r[0])}); }
+  return out; }
 function swAddDays_(dateStr,delta){ const p=dateStr.split('-').map(Number); const d=new Date(p[0],p[1]-1,p[2]); d.setDate(d.getDate()+delta); const z=n=>('0'+n).slice(-2); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
 function swCycle_(){
   const n=new Date();
@@ -573,17 +585,19 @@ function swEmpKitchen_(empId){
 }
 function swReadTasks_(){
   const sh=swEnsure_().getSheetByName(SW.TASKS), last=sh.getLastRow(); if(last<2) return [];
-  const r=sh.getRange(2,1,last-1,9).getValues(), out=[];
+  const r=sh.getRange(2,1,last-1,13).getValues(), out=[];
   for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[0]) continue;
     out.push({id:String(x[0]),kitchen:String(x[1]),name:String(x[2]),category:String(x[3]),tier:String(x[4]),points:Number(x[5])||0,
-      busyInclude:(x[6]===true||x[6]==='TRUE'||x[6]==='true'), active:!(x[7]===false||x[7]==='FALSE'||x[7]==='false'), _row:i+2}); }
+      busyInclude:(x[6]===true||x[6]==='TRUE'||x[6]==='true'), active:!(x[7]===false||x[7]==='FALSE'||x[7]==='false'),
+      days:(String(x[9]||'').trim()||'*'), deadline:String(x[10]||''), assignee:String(x[11]||''), multi:(x[12]===true||x[12]==='TRUE'||x[12]==='true'), _row:i+2}); }
   return out;
 }
 function swCurrentDone_(){
   const cyc=swCycle_(), sh=openSS().getSheetByName(SW.LOG), last=sh.getLastRow(), done={};
-  if(last>=2){ const r=sh.getRange(2,1,last-1,9).getValues();
-    for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[4]) continue; const ct=String(x[2]), ck=String(x[3]);
-      if((ct==='daily'&&ck===cyc.dailyKey)||(ct==='weekly'&&ck===cyc.weeklyKey)) done[String(x[4])]={empName:String(x[8]),empId:String(x[7])}; } }
+  if(last>=2){ const r=sh.getRange(2,1,last-1,10).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[4]) continue; const ct=String(x[2]), ck=String(x[3]), tid=String(x[4]);
+      const match=(ct==='daily'&&ck===cyc.dailyKey)||(ct==='weekly'&&ck===cyc.weeklyKey)||(ct==='once');  // once = ทำครั้งเดียวถาวร
+      if(match){ if(!done[tid]) done[tid]={empName:String(x[8]),empId:String(x[7]),names:[],ids:[]}; done[tid].names.push(String(x[8])); done[tid].ids.push(String(x[7])); } } }
   return done;
 }
 function swLeaderboard_(){
@@ -598,50 +612,87 @@ function swLeaderboard_(){
 }
 
 function getSideworkBoard(empId){
-  swEnsure_(); const cyc=swCycle_(), me=swEmpKitchen_(empId);
-  const tasks=swReadTasks_().filter(t=>t.active && (t.kitchen===me.kitchen || t.kitchen==='ส่วนกลาง'));
-  const done=swCurrentDone_();
-  const pack=function(t){ const dn=done[t.id]; return {id:t.id,name:t.name,category:t.category,tier:t.tier,points:t.points,kitchen:t.kitchen,done:!!dn,doneByName:dn?dn.empName:'',mine:dn?String(dn.empId)===String(empId):false}; };
-  const grp=function(m){ const ts=tasks.filter(m); return { core: ts.filter(t=>t.tier==='daily' && (!cyc.isBusy||t.busyInclude)).map(pack), pool: ts.filter(t=>t.tier==='weekly').map(pack) }; };
+  swEnsure_(); const cyc=swCycle_(), me=swEmpKitchen_(empId), done=swCurrentDone_();
+  const nowStr=Utilities.formatDate(new Date(),'Asia/Bangkok','yyyy-MM-dd HH:mm');
+  // มองเห็น: งานที่มอบหมายให้ฉัน, หรือ (ไม่ได้มอบหมาย และอยู่ครัวฉัน/ส่วนกลาง)
+  const all=swReadTasks_().filter(function(t){ if(!t.active) return false;
+    if(t.assignee) return String(t.assignee)===String(empId);
+    return t.kitchen===me.kitchen || t.kitchen==='ส่วนกลาง'; });
+  const canDo=function(t){
+    if(t.tier==='daily') return cyc.dailyActive && swDayMatch_(t.days,cyc.dow) && (!cyc.isBusy||t.busyInclude);
+    if(t.tier==='weekly') return cyc.weeklyActive;
+    if(t.tier==='once')  return !t.deadline || nowStr<=t.deadline;
+    return false; };
+  const visible=function(t){ const dn=done[t.id];
+    if(t.tier==='daily') return swDayMatch_(t.days,cyc.dow) && (!cyc.isBusy||t.busyInclude);  // วันยุ่งโชว์เฉพาะ busyInclude
+    if(t.tier==='once')  return !dn && (!t.deadline || nowStr<=t.deadline);                   // เสร็จ/เลยเวลา = หายไป
+    return true; };                                                                            // weekly โชว์เสมอ
+  const pack=function(t){ const dn=done[t.id]; return {id:t.id,name:t.name,category:t.category,tier:t.tier,points:t.points,kitchen:t.kitchen,
+    done:!!dn, doneByName:dn?dn.names.join(', '):'', mine:dn?dn.ids.indexOf(String(empId))>=0:false,
+    multi:t.multi, assignee:t.assignee, deadline:t.deadline, days:t.days, busyInclude:t.busyInclude, active:canDo(t) }; };
+  const fil=function(scope){ return all.filter(scope).filter(visible).map(pack); };
   const lb=swLeaderboard_(); const mA=lb.allTime.filter(x=>String(x.empId)===String(empId))[0], mM=lb.month.filter(x=>String(x.empId)===String(empId))[0];
   return { ok:true, data:{ kitchen:me.kitchen, empName:me.name, isBusy:cyc.isBusy, dailyActive:cyc.dailyActive, weeklyActive:cyc.weeklyActive,
-    own:grp(t=>t.kitchen===me.kitchen), central:grp(t=>t.kitchen==='ส่วนกลาง'),
+    personal: fil(function(t){return !!t.assignee;}),
+    own:      fil(function(t){return !t.assignee && t.kitchen===me.kitchen;}),
+    central:  fil(function(t){return !t.assignee && t.kitchen==='ส่วนกลาง';}),
+    mates: swMates_(),
     myAllTime:mA?mA.points:0, myAllRank:mA?mA.rank:'-', myMonth:mM?mM.points:0, myMonthRank:mM?mM.rank:'-' } };
 }
 function submitSidework(p){
   swEnsure_(); const cyc=swCycle_(), me=swEmpKitchen_(p.empId);
   const task=swReadTasks_().filter(t=>t.id===String(p.taskId))[0];
   if(!task||!task.active) return { ok:false, error:'ไม่พบงานนี้' };
-  if(task.tier==='daily' && !cyc.dailyActive) return { ok:false, error:'รอบวันปิดแล้ว เริ่มใหม่ 06:00' };
-  if(task.tier==='weekly' && !cyc.weeklyActive) return { ok:false, error:'รอบสัปดาห์ปิดแล้ว เริ่มใหม่อาทิตย์ 06:00' };
-  const ck=task.tier==='daily'?cyc.dailyKey:cyc.weeklyKey;
+  if(task.assignee && String(task.assignee)!==String(p.empId)) return { ok:false, error:'งานนี้มอบหมายเฉพาะผู้รับผิดชอบ' };
+  const nowStr=Utilities.formatDate(new Date(),'Asia/Bangkok','yyyy-MM-dd HH:mm');
+  if(task.tier==='daily'){ if(!cyc.dailyActive) return { ok:false, error:'รอบวันปิดแล้ว เริ่มใหม่ 06:00' };
+    if(!swDayMatch_(task.days,cyc.dow)) return { ok:false, error:'งานนี้ไม่ใช่ของวันนี้' }; }
+  else if(task.tier==='weekly'){ if(!cyc.weeklyActive) return { ok:false, error:'รอบสัปดาห์ปิดแล้ว เริ่มใหม่อาทิตย์ 06:00' }; }
+  else if(task.tier==='once'){ if(task.deadline && nowStr>task.deadline) return { ok:false, error:'เลยกำหนดเวลาแล้ว' }; }
+  const ck=task.tier==='daily'?cyc.dailyKey:(task.tier==='weekly'?cyc.weeklyKey:task.id);
   const sh=openSS().getSheetByName(SW.LOG), last=sh.getLastRow();
-  if(last>=2){ const r=sh.getRange(2,1,last-1,9).getValues();
+  if(last>=2){ const r=sh.getRange(2,1,last-1,10).getValues();
     for(let i=0;i<r.length;i++){ const x=r[i]; if(String(x[4])===task.id && String(x[2])===task.tier && String(x[3])===ck) return { ok:false, error:(String(x[8])||'มีคน')+' ทำไปแล้ว' }; } }
-  sh.appendRow(['SWL'+Date.now(), fmtDateTime(new Date()), task.tier, ck, task.id, task.name, task.kitchen, String(p.empId), me.name, task.points]);
-  return { ok:true, points:task.points, doneByName:me.name };
+  // 1.4 — งานช่วยกัน (multi & ไม่ระบุผู้รับผิดชอบ): คนแรกเลือกเพื่อน → หารแต้มเท่ากัน, log 1 แถวต่อคน
+  let helpers=[String(p.empId)];
+  if(task.multi && !task.assignee && p.helpers){ try{ const hs=JSON.parse(p.helpers); if(Array.isArray(hs)) helpers=hs.map(String).filter(function(v){return v;}); }catch(e){} }
+  if(helpers.indexOf(String(p.empId))<0) helpers.unshift(String(p.empId));
+  helpers=helpers.filter(function(v,i){return helpers.indexOf(v)===i;});
+  const share=Math.round((task.points/helpers.length)*10)/10, nm=swNameMap_(), ts=fmtDateTime(new Date());
+  helpers.forEach(function(hid){ sh.appendRow(['SWL'+Date.now()+'_'+hid, ts, task.tier, ck, task.id, task.name, task.kitchen, hid, (nm[hid]||hid), share]); });
+  return { ok:true, points:task.points, share:share, n:helpers.length, doneByName:me.name };
 }
 function getSideworkTasks(kitchen){
   swEnsure_(); const done=swCurrentDone_(); let ts=swReadTasks_().filter(t=>t.active); if(kitchen) ts=ts.filter(t=>t.kitchen===kitchen);
-  return { ok:true, data: ts.map(function(t){ return {id:t.id,kitchen:t.kitchen,name:t.name,category:t.category,tier:t.tier,points:t.points,busyInclude:t.busyInclude,doneThisCycle:!!done[t.id]}; }) };
+  const nm=swNameMap_();
+  return { ok:true, data: ts.map(function(t){ return {id:t.id,kitchen:t.kitchen,name:t.name,category:t.category,tier:t.tier,points:t.points,busyInclude:t.busyInclude,
+    days:t.days,deadline:t.deadline,assignee:t.assignee,assigneeName:(t.assignee?(nm[t.assignee]||t.assignee):''),multi:t.multi,doneThisCycle:!!done[t.id]}; }) };
 }
 function saveSideworkTask(p){
   const sh=swEnsure_().getSheetByName(SW.TASKS);
   if(!p.name||!p.kitchen) return { ok:false, error:'กรอกชื่อ+ครัว' };
-  const tier=(p.tier==='weekly')?'weekly':'daily', points=Number(p.points)||1, busy=(p.busyInclude===true||p.busyInclude==='true'||p.busyInclude==='TRUE');
+  const tier=(p.tier==='weekly')?'weekly':((p.tier==='once')?'once':'daily');
+  const points=Number(p.points)||1, busy=(p.busyInclude===true||p.busyInclude==='true'||p.busyInclude==='TRUE');
+  const days=(tier==='daily')?(String(p.days||'*').trim()||'*'):'';
+  const deadline=(tier==='once')?String(p.deadline||''):'';
+  const assignee=String(p.assignee||'');
+  const multi=(!assignee)&&(p.multi===true||p.multi==='true'||p.multi==='TRUE');  // ระบุผู้รับผิดชอบแล้ว = ทำคนเดียว
   if(p.id){ const last=sh.getLastRow(); if(last>=2){ const ids=sh.getRange(2,1,last-1,1).getValues();
-    for(let i=0;i<ids.length;i++){ if(String(ids[i][0])===String(p.id)){ sh.getRange(i+2,2,1,7).setValues([[p.kitchen,p.name,p.category||'',tier,points,busy,true]]); return { ok:true, id:p.id }; } } } }
+    for(let i=0;i<ids.length;i++){ if(String(ids[i][0])===String(p.id)){
+      sh.getRange(i+2,2,1,7).setValues([[p.kitchen,p.name,p.category||'',tier,points,busy,true]]);
+      sh.getRange(i+2,10,1,4).setValues([[days,deadline,assignee,multi]]);  // col 9 createdAt คงเดิม
+      return { ok:true, id:p.id }; } } } }
   const id='SWT'+Date.now();
-  sh.appendRow([id,p.kitchen,p.name,p.category||'',tier,points,busy,true,fmtDateTime(new Date())]);
+  sh.appendRow([id,p.kitchen,p.name,p.category||'',tier,points,busy,true,fmtDateTime(new Date()),days,deadline,assignee,multi]);
   return { ok:true, id:id };
 }
 function deleteSideworkTask(p){
   const ss=swEnsure_(), sh=ss.getSheetByName(SW.TASKS);
   const task=swReadTasks_().filter(t=>t.id===String(p.id))[0];
   if(!task) return { ok:false, error:'ไม่พบงาน' };
-  const cyc=swCycle_(), ck=task.tier==='daily'?cyc.dailyKey:cyc.weeklyKey;
+  const cyc=swCycle_(), ck=task.tier==='daily'?cyc.dailyKey:(task.tier==='weekly'?cyc.weeklyKey:task.id);
   const log=ss.getSheetByName(SW.LOG), last=log.getLastRow();
-  if(last>=2){ const r=log.getRange(2,1,last-1,9).getValues();
+  if(last>=2){ const r=log.getRange(2,1,last-1,10).getValues();
     for(let i=0;i<r.length;i++){ const x=r[i]; if(String(x[4])===task.id && String(x[2])===task.tier && String(x[3])===ck) return { ok:false, blocked:true, error:'มีคนทำรอบนี้แล้ว — ลบได้หลังรีเซ็ต' }; } }
   sh.deleteRow(task._row);
   return { ok:true };
@@ -650,7 +701,7 @@ function getSideworkLeaderboard(){ return { ok:true, data:swLeaderboard_() }; }
 function getSideworkDashboard(){
   swEnsure_(); const cyc=swCycle_(), tasks=swReadTasks_().filter(t=>t.active), done=swCurrentDone_(), kits={};
   SW_KITCHENS.forEach(function(k){ kits[k]={kitchen:k,coreTotal:0,coreDone:0}; });
-  tasks.forEach(function(t){ if(t.tier!=='daily') return; if(cyc.isBusy && !t.busyInclude) return; const k=kits[t.kitchen]; if(!k) return; k.coreTotal++; if(done[t.id]) k.coreDone++; });
+  tasks.forEach(function(t){ if(t.tier!=='daily') return; if(t.assignee) return; if(!swDayMatch_(t.days,cyc.dow)) return; if(cyc.isBusy && !t.busyInclude) return; const k=kits[t.kitchen]; if(!k) return; k.coreTotal++; if(done[t.id]) k.coreDone++; });
   return { ok:true, data:{ isBusy:cyc.isBusy, dailyActive:cyc.dailyActive, kitchens:SW_KITCHENS.map(k=>kits[k]), leaderboard:swLeaderboard_() } };
 }
 
