@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260619-231618">
+<meta name="app-build" content="20260619-234145">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -3755,15 +3755,20 @@ let calEditTarget=null; // { scheduleId, key, start, end, month, year, status, o
 let seEditMode='work';  // โหมดที่กำลังแก้ใน sheet แก้ไขตารางงาน: 'work' | 'off'
 
 function getExistingScheduleForDate(key){
+  // deterministic: คำขอแก้ที่รออนุมัติมาก่อน (โชว์ "รออนุมัติ") แล้วค่อยตารางหลัก
+  let base=null, edit=null;
   for(const s of calExistingSchedules){
-    if(s.dates&&s.dates[key]){
-      const e=s.dates[key];
-      return{scheduleId:s.id,status:(s.status||'').toLowerCase(),off:!!e.off,
-        start:e.start||'08:30',end:e.end||'17:00',
-        month:s.month,year:s.year,isEdit:!!(s.isEdit||s.type==='edit')};
-    }
+    if(!s.dates||!s.dates[key]) continue;
+    const isE=!!(s.isEdit||s.type==='edit'), st=(s.status||'').toLowerCase();
+    if(isE){ if(st==='pending'&&!edit) edit=s; }
+    else if(st!=='rejected') base=s;
   }
-  return null;
+  const pick=edit||base; if(!pick) return null;
+  const e=pick.dates[key], onEdit=(pick===edit);
+  return { scheduleId:(base?base.id:pick.id), status:onEdit?'pending':(pick.status||'').toLowerCase(),
+    off:!!e.off, start:e.start||'08:30', end:e.end||'17:00', specialDay:!!e.specialDay,
+    month:pick.month, year:pick.year, isEdit:onEdit, pendingEdit:onEdit,
+    baseApproved:!!(base&&(base.status||'').toLowerCase()==='approved') };
 }
 
 // รวมวันทำงานเดิมของเดือนที่กำลังดู (จากตารางที่ส่งไปแล้ว ยกเว้น rejected/edit-request)
@@ -4058,7 +4063,8 @@ function buildCalendar(){
     else{
       const exInfo=getExistingScheduleForDate(key);
       if(exInfo){
-        if(exInfo.off)cell.classList.add('cal-off');
+        if(exInfo.pendingEdit)cell.classList.add('cal-sched-pending');
+        else if(exInfo.off)cell.classList.add('cal-off');
         else if(exInfo.status==='approved')cell.classList.add('cal-sched-approved');
         else if(exInfo.status==='pending')cell.classList.add('cal-sched-pending');
       }
@@ -4072,6 +4078,7 @@ function buildCalendar(){
   renderWorkDayList();
   renderHolidayPanel();
   renderDefaultPatternUI();
+  updateSchedBtnLabel();
 }
 
 function renderHolidayPanel(){
@@ -4102,12 +4109,8 @@ function renderHolidayPanel(){
   panel.style.display='block';
 }
 
-// แตะวัน → เปิด sheet เลือกกะ/หยุด (วันที่ส่งแล้ว → แก้ผ่าน panel เดิม)
-function toggleCalDay(key){
-  const existing=getExistingScheduleForDate(key);
-  if(existing){openScheduleEditPanel(key,existing);return;}
-  openDayEdit(key);
-}
+// แตะวันไหนก็แก้ได้ — ตัวแก้ตัวเดียวทุกกรณี (ใหม่/อนุมัติแล้ว/รออนุมัติ)
+function toggleCalDay(key){ openDayEdit(key); }
 
 // สรุปย่อ: วันทำงาน/หยุด + OT วางแผนรวม (รายละเอียดแก้ผ่าน sheet ตอนแตะวัน)
 function renderWorkDayList(){
@@ -4137,8 +4140,9 @@ function removeCalDay(key){delete calSelected[key];buildCalendar();}
 function openDayEdit(key){
   dayEditKey=key;
   const cur=calSelected[key], defSpecial=isSpecialDay_(key);
-  if(cur&&cur.off) dayEditState={mode:'off',start:'',end:'',_custom:false,special:defSpecial};
-  else if(cur) dayEditState={mode:'work',start:cur.start,end:cur.end,_custom:(shiftIdOf_(cur.start,cur.end)==='c'),special:(cur.specialDay!==undefined?cur.specialDay:defSpecial)};
+  const src=cur||getExistingScheduleForDate(key);   // เติมค่าเดิม (รวมคำขอแก้ที่ค้าง) ให้ตัวแก้
+  if(src&&src.off) dayEditState={mode:'off',start:'',end:'',_custom:false,special:defSpecial};
+  else if(src) dayEditState={mode:'work',start:src.start,end:src.end,_custom:(shiftIdOf_(src.start,src.end)==='c'),special:(src.specialDay!==undefined?src.specialDay:defSpecial)};
   else { const sh=SHIFTS.find(s=>s.id===schedDefShift)||SHIFTS[0]; dayEditState={mode:'work',start:sh.start,end:sh.end,_custom:false,special:defSpecial}; }
   const p=key.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]);
   const thaiDay=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dt.getDay()];
@@ -4235,31 +4239,45 @@ function filterCalendar(){
   buildCalendar();
 }
 
+// หาแถวตารางหลัก (ไม่ใช่ edit) ของเดือนที่ดูอยู่ ที่อนุมัติแล้ว
+function approvedBaseOfMonth(){
+  return calExistingSchedules.find(s=>!(s.isEdit||s.type==='edit') && String(s.month)===String(calMonth+1) && String(s.year)===String(calYear) && (s.status||'').toLowerCase()==='approved');
+}
+function updateSchedBtnLabel(){
+  const btn=document.querySelector('#s-emp-sched .btn-navy'); if(!btn||btn.disabled)return;
+  const n=Object.keys(calSelected).length;
+  btn.textContent=approvedBaseOfMonth() ? ('ส่งคำขอแก้ไข'+(n?(' ('+n+' วัน)'):'')) : 'ส่งตารางขออนุมัติ';
+}
 async function submitSchedule(){
-  if(!Object.keys(calSelected).length){toast('กรุณาระบุวันทำงาน/วันหยุดก่อน');return;}
+  if(!Object.keys(calSelected).length){toast('แตะวันในปฏิทินเพื่อเลือก/แก้ก่อน');return;}
   if(!currentUser){toast('กรุณาเข้าสู่ระบบก่อน');return;}
-  // รวมวันเดิมของเดือนนี้ + วันที่เพิ่งระบุ → ส่งครบทั้งชุด (กันวันเดิมหาย)
-  const merged={...existingMonthDates(),...calSelected};
-  const keys=Object.keys(merged);
-  const nWork=keys.filter(k=>!merged[k].off).length, nOff=keys.length-nWork;
+  const approvedBase=approvedBaseOfMonth();
+  const nChange=Object.keys(calSelected).length;
   const schedBtn=document.querySelector('#s-emp-sched .btn-navy');
   if(schedBtn){schedBtn.disabled=true;schedBtn.style.opacity='0.6';schedBtn.textContent='กำลังส่ง...';}
   try{
-    const res=await callAPI({
-      action:'submitSchedule',
-      empId:currentUser.empId,
-      month:calMonth+1,
-      year:calYear,
-      dates:JSON.stringify(merged),
-    });
-    if(res.ok){
-      toast('ส่งตาราง — ทำงาน '+nWork+' · หยุด '+nOff+' วัน สำเร็จ รอ Owner อนุมัติ ✓');
-      calSelected={};
-      await loadExistingSchedules();   // refresh → ปฏิทิน highlight วันที่ส่งแล้วทันที
-    }else{toast('เกิดข้อผิดพลาด: '+res.error);}
+    if(approvedBase){
+      // เดือนอนุมัติแล้ว → ส่งเป็นคำขอแก้ (รวมทุกวันในแถว edit เดียว · เดือนยังคง approved)
+      // กรองวันที่ค่าไม่เปลี่ยนจริงออก (แก้ซ้ำค่าเดิม = เงียบ)
+      const changed={};
+      Object.keys(calSelected).forEach(function(k){ const ex=getExistingScheduleForDate(k), nw=calSelected[k];
+        const same=ex&&(!!ex.off===!!nw.off)&&(nw.off||(ex.start===nw.start&&ex.end===nw.end));
+        if(!same) changed[k]=nw; });
+      if(!Object.keys(changed).length){ toast('ยังไม่มีการเปลี่ยนแปลง'); calSelected={}; await loadExistingSchedules(); return; }
+      const res=await callAPI({action:'editSchedule',empId:currentUser.empId,originalScheduleId:approvedBase.id,month:calMonth+1,year:calYear,dates:JSON.stringify(changed)});
+      if(res.ok){ toast('ส่งคำขอแก้ไข '+Object.keys(changed).length+' วัน — รอ Owner อนุมัติ ✓'); calSelected={}; await loadExistingSchedules(); }
+      else toast('เกิดข้อผิดพลาด: '+(res.error||''));
+    } else {
+      // เดือนใหม่/ยังรออนุมัติ → ส่งทั้งเดือน (รวมวันเดิมกันหาย)
+      const merged={...existingMonthDates(),...calSelected};
+      const keys=Object.keys(merged), nWork=keys.filter(k=>!merged[k].off).length, nOff=keys.length-nWork;
+      const res=await callAPI({action:'submitSchedule',empId:currentUser.empId,month:calMonth+1,year:calYear,dates:JSON.stringify(merged)});
+      if(res.ok){ toast('ส่งตาราง — ทำงาน '+nWork+' · หยุด '+nOff+' วัน สำเร็จ รอ Owner อนุมัติ ✓'); calSelected={}; await loadExistingSchedules(); }
+      else toast('เกิดข้อผิดพลาด: '+(res.error||''));
+    }
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
   finally{
-    if(schedBtn){schedBtn.disabled=false;schedBtn.style.opacity='1';schedBtn.textContent='ส่งตารางขออนุมัติ';}
+    if(schedBtn){schedBtn.disabled=false;schedBtn.style.opacity='1';updateSchedBtnLabel();}
   }
 }
 
