@@ -8,6 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
+<meta name="app-build" content="20260619-231618">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -292,6 +293,8 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+
+<div id="update-bar" onclick="applyUpdate()" role="button" aria-label="อัปเดตเป็นเวอร์ชันใหม่" style="display:none;position:fixed;top:0;left:0;right:0;z-index:70;background:var(--navy);color:#fff;padding:11px 16px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--sh-lg);">🔄 มีเวอร์ชันใหม่ของแอป — แตะเพื่ออัปเดต</div>
 
 <button id="theme-fab" onclick="toggleTheme()" aria-label="สลับโหมดมืด/สว่าง" title="สลับโหมดมืด/สว่าง" style="position:fixed;right:14px;bottom:80px;width:46px;height:46px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);box-shadow:var(--sh-lg);font-size:21px;z-index:60;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink);line-height:1;">🌙</button>
 
@@ -3724,6 +3727,22 @@ function toggleTheme(){
 }
 function syncThemeFab(){const b=document.getElementById('theme-fab');if(b)b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';}
 document.addEventListener('DOMContentLoaded',syncThemeFab);
+
+// ── Auto-update: เทียบ build ที่รันอยู่กับที่ deploy ล่าสุด → เด้งแถบให้ reload (ฆ่าปัญหา cache) ──
+const APP_BUILD=((document.querySelector('meta[name="app-build"]')||{}).content)||'';
+let _updLast=0;
+function checkForUpdate(){
+  if(!APP_BUILD) return; const now=Date.now(); if(now-_updLast<60000) return; _updLast=now;
+  fetch(location.pathname.split('?')[0]+'?_='+now,{cache:'no-store',headers:{'Range':'bytes=0-8191'}})
+    .then(r=>r.text()).then(function(html){
+      const m=html.match(/name="app-build"\s+content="([^"]+)"/);
+      if(m&&m[1]&&m[1]!==APP_BUILD){ const b=document.getElementById('update-bar'); if(b) b.style.display='block'; }
+    }).catch(function(){});
+}
+function applyUpdate(){ location.href=location.pathname.split('?')[0]+'?v='+Date.now(); }
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkForUpdate(); });
+window.addEventListener('focus',checkForUpdate);
+setTimeout(checkForUpdate,4000);
 
 /* ════════════════════════════════════
    CALENDAR SCHEDULE
