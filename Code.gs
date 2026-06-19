@@ -773,15 +773,18 @@ function rejectSchedule(p) {
 }
 
 function editSchedule(p) {
-  if (!p.empId || !p.originalScheduleId || !p.date || !p.dates)
+  if (!p.empId || !p.originalScheduleId || !p.dates)
     return { ok: false, error: 'ข้อมูลไม่ครบถ้วน' };
 
   const ss   = openSS();
   const sh   = ss.getSheetByName(SH.SCHEDULES);
   const data = sh.getDataRange().getValues();
   const now  = fmtDateTime(new Date());
+  let changes = {};
+  try { changes = (typeof p.dates === 'string') ? JSON.parse(p.dates) : p.dates; } catch (e) { changes = {}; }
+  if (!Object.keys(changes).length) return { ok: false, error: 'ไม่มีวันที่จะแก้' };
 
-  // ถ้ามี pending edit request สำหรับวันนี้อยู่แล้ว — อัปเดต row เดิมแทน
+  // คำขอแก้ทั้งเดือน = 1 แถว edit ต่อ (พนักงาน · ตารางต้นฉบับ) — มี pending อยู่แล้ว ให้ merge ทุกวันลงแถวเดิม
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     if (!row[0]) continue;
@@ -790,29 +793,16 @@ function editSchedule(p) {
     if (row[9] !== 'TRUE' && row[9] !== true) continue;
     if (String(row[10]) !== String(p.originalScheduleId)) continue;
     const existingDates = row[4] ? JSON.parse(row[4]) : {};
-    if (existingDates[p.date]) {
-      sh.getRange(i + 1, 5).setValue(JSON.stringify(p.dates));
-      sh.getRange(i + 1, 7).setValue(now);
-      return { ok: true, scheduleId: row[0], updated: true };
-    }
+    Object.keys(changes).forEach(function (k) { existingDates[k] = changes[k]; });
+    sh.getRange(i + 1, 5).setValue(JSON.stringify(existingDates));
+    sh.getRange(i + 1, 7).setValue(now);
+    return { ok: true, scheduleId: row[0], updated: true, days: Object.keys(existingDates).length };
   }
 
-  // สร้าง pending edit request ใหม่
+  // สร้าง pending edit request ใหม่ (รวมทุกวันที่ขอแก้)
   const newId = 'SCH' + Date.now();
-  sh.appendRow([
-    newId,
-    p.empId,
-    p.month,
-    p.year,
-    JSON.stringify(p.dates),
-    'Pending',
-    now,
-    '',
-    '',
-    'TRUE',                  // [9]  isEdit flag
-    p.originalScheduleId,    // [10] originalScheduleId
-  ]);
-  return { ok: true, scheduleId: newId };
+  sh.appendRow([ newId, p.empId, p.month, p.year, JSON.stringify(changes), 'Pending', now, '', '', 'TRUE', p.originalScheduleId ]);
+  return { ok: true, scheduleId: newId, days: Object.keys(changes).length };
 }
 
 function setScheduleStatus(scheduleId, status, approvedBy) {
