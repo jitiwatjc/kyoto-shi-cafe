@@ -1295,21 +1295,22 @@ function getPendingApprovals() {
   const empMap  = {};
   for (let i = 1; i < empData.length; i++) empMap[empData[i][0]] = empData[i][1];
 
-  // Pending schedules
+  // Pending schedules (+ แนบค่า "ก่อนแก้" สำหรับคำขอแก้ไข เพื่อโชว์ ก่อน→หลัง)
   const schData = schSh.getDataRange().getValues();
+  const schById = {};
+  for (let i = 1; i < schData.length; i++) { if (schData[i][0]) { try { schById[String(schData[i][0])] = schData[i][4] ? JSON.parse(schData[i][4]) : {}; } catch (e) { schById[String(schData[i][0])] = {}; } } }
   const pendSch = [];
   for (let i = 1; i < schData.length; i++) {
     if (schData[i][5] === 'Pending') {
+      const isEdit = schData[i][9] === 'TRUE' || schData[i][9] === true;
+      const origId = String(schData[i][10] || '');
+      const editDates = schData[i][4] ? JSON.parse(schData[i][4]) : {};
+      const before = {};
+      if (isEdit && origId && schById[origId]) { const od = schById[origId]; Object.keys(editDates).forEach(function (k) { before[k] = od[k] || null; }); }
       pendSch.push({
-        id:                 schData[i][0],
-        empId:              schData[i][1],
-        name:               empMap[schData[i][1]] || schData[i][1],
-        month:              schData[i][2],
-        year:               schData[i][3],
-        dates:              schData[i][4] ? JSON.parse(schData[i][4]) : {},
-        submittedAt:        schData[i][6],
-        isEdit:             schData[i][9] === 'TRUE' || schData[i][9] === true,
-        originalScheduleId: schData[i][10] || '',
+        id: schData[i][0], empId: schData[i][1], name: empMap[schData[i][1]] || schData[i][1],
+        month: schData[i][2], year: schData[i][3], dates: editDates, submittedAt: schData[i][6],
+        isEdit: isEdit, originalScheduleId: origId, before: before,
       });
     }
   }
