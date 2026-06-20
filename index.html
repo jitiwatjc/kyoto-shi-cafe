@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260620-095449">
+<meta name="app-build" content="20260620-120806">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1071,7 +1071,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         </select>
         <div class="fhint">ใช้กำหนดว่าพนักงานเห็นงาน Sidework ของครัวไหน (+ งานส่วนกลาง)</div></div>
       <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
-        <select class="fi fi-sel" id="edit-type">
+        <select class="fi fi-sel" id="edit-type" onchange="editTypeChanged()">
           <option value="Full-time">Full-time · ประจำ</option>
           <option value="Part-time">Part-time · รายชั่วโมง</option>
           <option value="Probation">ทดลองงาน (Probation)</option>
@@ -1087,7 +1087,14 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="card" style="border-left:3px solid var(--navy);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div class="card-title">ข้อมูลเงินเดือน</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
       <div class="fg"><label class="t-label">ฐานเงินเดือน (บาท/เดือน)</label><input class="fi" type="number" id="edit-salary" placeholder="ฐานเงินเดือน"></div>
-      <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" id="edit-otrate" placeholder="คำนวณอัตโนมัติ"><div class="fhint">ใช้คำนวณค่าล่วงเวลา</div></div>
+      <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" id="edit-otrate" placeholder="คำนวณอัตโนมัติ"><div class="fhint">ใช้คำนวณค่าล่วงเวลา (Full-time)</div></div>
+      <div id="edit-pt-rates" style="display:none;">
+        <div class="fg2">
+          <div class="fg"><label class="t-label">฿/ชม. วันธรรมดา</label><input class="fi" type="number" id="edit-ptRate" placeholder="บาท/ชม."></div>
+          <div class="fg"><label class="t-label">฿/ชม. วันหยุด/พิเศษ</label><input class="fi" type="number" id="edit-ptRateHol" placeholder="บาท/ชม."></div>
+        </div>
+        <div class="fhint">Part-time: ค่าจ้าง = ชั่วโมงทำงาน × อัตรา (เสาร์อาทิตย์/วันหยุด ใช้อัตราวันหยุด)</div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">บัญชีธนาคาร</div>
@@ -2519,13 +2526,15 @@ async function doClockIn(){
 }
 
 /* ── PROFILE EDIT ── */
+// แสดงช่องอัตรา ฿/ชม. เฉพาะเมื่อเลือกประเภท Part-time
+function editTypeChanged(){ const t=(document.getElementById('edit-type')||{}).value; const box=document.getElementById('edit-pt-rates'); if(box)box.style.display=(t==='Part-time')?'block':'none'; }
 async function saveProfile(empId){
   const id=empId||_viewingEmpId||'';
   if(!id){toast('ไม่พบข้อมูลพนักงาน');return;}
   const fname=(document.getElementById('edit-fname')?.value||'').trim();
   const lname=(document.getElementById('edit-lname')?.value||'').trim();
   const fields={empId:id,name:fname&&lname?fname+' '+lname:fname||lname};
-  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName','kitchen'].forEach(f=>{
+  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName','kitchen','ptRate','ptRateHol'].forEach(f=>{
     const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
   });
   const saveBtns=[...document.querySelectorAll('#s-emp-profile-edit .btn-success,#s-emp-profile-edit .topbar-action')];
@@ -2789,6 +2798,20 @@ async function loadAttendanceExport(){
         <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt2.toFixed(2)}</td>
       </tr></tfoot>
     </table></div>`;
+    // ── สรุปชั่วโมง & ค่าจ้าง Part-time (โชว์เฉพาะพนักงาน Part-time) ──
+    const _emp=_empListCache.find(x=>String(x.id)===String(empId));
+    if(_emp && _emp.type==='Part-time'){
+      let ptN=0,ptS=0; rows.forEach(r=>{ const wh=parseFloat(r.workedHours)||0; if((r.specialDay||'ปกติ')!=='ปกติ') ptS+=wh; else ptN+=wh; });
+      ptN=Math.round(ptN*100)/100; ptS=Math.round(ptS*100)/100;
+      const rN=parseFloat(_emp.ptRate)||0, rH=parseFloat(_emp.ptRateHol)||0, pay=Math.round(ptN*rN+ptS*rH);
+      const card='<div class="card" style="border-left:3px solid var(--navy);margin-bottom:12px;">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div class="card-title">Part-time · ชั่วโมง & ค่าจ้าง</div><span class="chip chip-blue" style="font-size:10px;">รายชั่วโมง</span></div>'
+        +'<div style="display:flex;gap:8px;margin-bottom:8px;"><div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--ink);">'+(ptN+ptS).toFixed(1)+'</div><div class="t-cap">ชม. รวม</div></div><div style="flex:1;text-align:center;background:var(--green-bg);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--green);">฿'+pay.toLocaleString()+'</div><div class="t-cap">ค่าจ้างประมาณ</div></div></div>'
+        +'<div style="font-size:12px;color:var(--ink2);line-height:1.7;">วันธรรมดา '+ptN.toFixed(1)+' ชม.'+(rN?(' × ฿'+rN+' = ฿'+Math.round(ptN*rN).toLocaleString()):'')+'<br>วันหยุด/พิเศษ '+ptS.toFixed(1)+' ชม.'+(rH?(' × ฿'+rH+' = ฿'+Math.round(ptS*rH).toLocaleString()):'')+'</div>'
+        +((rN>0||rH>0)?'':'<div class="alert alert-warn" style="font-size:11px;margin-top:8px;">ยังไม่ได้ตั้งอัตรา ฿/ชม. — ไปที่โปรไฟล์พนักงาน → แก้ไข</div>')
+        +'</div>';
+      container.innerHTML=card+container.innerHTML;
+    }
     document.getElementById('export-stat-days').textContent=workDays;
     document.getElementById('export-stat-hours').textContent=totalHrs.toFixed(1);
     document.getElementById('export-stat-ot').textContent=totalOT.toFixed(2);
@@ -3353,6 +3376,8 @@ function viewEmpProfile(empId){
   setVal('edit-addr',e.address||'');
   setVal('edit-startdate',e.startDate||'');
   setVal('edit-salary',e.salary||'');
+  setVal('edit-ptRate',e.ptRate||'');
+  setVal('edit-ptRateHol',e.ptRateHol||'');
   setVal('edit-bankAcc',e.bankAcc||'');
   setVal('edit-bankAccName',e.bankAccName||'');
   ['edit-position','edit-type','edit-status','edit-bank','edit-kitchen'].forEach(id=>{
@@ -3362,6 +3387,7 @@ function viewEmpProfile(empId){
     const val=e[key]||'';
     for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===val){sel.selectedIndex=i;break;}}
   });
+  editTypeChanged();
   go('s-emp-profile-view');
 }
 
