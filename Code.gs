@@ -169,6 +169,8 @@ function getEmployees() {
       otrate:      row[19] || '',
       pdpaConsent: row[20] || '',
       kitchen:     row[21] || '',
+      ptRate:      row[22] || '',   // Part-time บาท/ชม. วันธรรมดา
+      ptRateHol:   row[23] || '',   // Part-time บาท/ชม. วันหยุด/พิเศษ
     });
   }
   return { ok: true, data: employees };
@@ -278,6 +280,8 @@ function updateEmployee(p) {
       if (p.note        !== undefined) sh.getRange(r, 19).setValue(p.note);
       if (p.otrate      !== undefined) sh.getRange(r, 20).setValue(p.otrate);
       if (p.kitchen     !== undefined) sh.getRange(r, 22).setValue(p.kitchen);
+      if (p.ptRate      !== undefined) sh.getRange(r, 23).setValue(p.ptRate);     // [22] PT บาท/ชม. ธรรมดา
+      if (p.ptRateHol   !== undefined) sh.getRange(r, 24).setValue(p.ptRateHol);  // [23] PT บาท/ชม. วันหยุด/พิเศษ
       return { ok: true };
     }
   }
@@ -1018,12 +1022,22 @@ function getAttendance(empId, month, year, limit) {
     const otHours    = r2(ot1 + ot15 + ot2);                  // ชม. OT รวม
     const otWeighted = r2(ot1 * 1 + ot15 * 1.5 + ot2 * 2);    // แรงรวม (สำหรับคิดเงิน)
 
+    // ── ชั่วโมงทำงาน Part-time: max(0, เวลาเลิกตาราง − max(clock-in, เวลาเริ่มตาราง)) ──
+    // มาสาย=หักชั่วโมง · มาก่อน=ไม่เพิ่ม · ไม่อิง clock-out · ไม่หักพัก · ไม่ติดลบ
+    let workedHours = 0;
+    if (clockIn && plannedStart && plannedEnd) {
+      const startMin = Math.max(toMin(clockIn), toMin(plannedStart));
+      workedHours = Math.max(0, (toMin(plannedEnd) - startMin) / 60);
+    }
+    workedHours = r2(workedHours);
+
     records.push({
       date:         dateStr,
       clockIn:      clockIn,
       clockOut:     clockOut,
       plannedStart: plannedStart,
       plannedEnd:   plannedEnd,
+      workedHours:  workedHours,
       specialDay:   isSpecial ? 'พิเศษ' : 'ปกติ',
       isLate:       isLate,
       ot1:          ot1,
