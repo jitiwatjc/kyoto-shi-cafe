@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260619-234145">
+<meta name="app-build" content="20260620-095449">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -2343,17 +2343,58 @@ function apvItemBtns_(type,id){
     +'<button class="btn btn-sm btn-danger" style="flex:1;" onclick="'+fn+'(this,\''+id+'\',\'reject\')">ปฏิเสธ</button>'
     +'<button class="btn btn-sm btn-success" style="flex:1;" onclick="'+fn+'(this,\''+id+'\',\'approve\')">อนุมัติ</button></div>';
 }
+function apvDayLabel_(k){ const p=k.split('-'); return parseInt(p[2],10)+' '+THAI_MONTHS_SHORT[parseInt(p[1],10)-1]; }
+function apvMetric_(v,label,color){ return '<div style="flex:1;text-align:center;background:var(--surface2);border-radius:6px;padding:6px 2px;"><div style="font-size:18px;font-weight:700;color:'+color+';">'+v+'</div><div style="font-size:10px;color:var(--ink3);">'+label+'</div></div>'; }
+function apvMiniCal_(month,year,dd){
+  const y=parseInt(year,10), mo=parseInt(month,10)-1;
+  const lead=(new Date(y,mo,1).getDay()+6)%7, dim=new Date(y,mo+1,0).getDate();
+  let h='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">';
+  DAY_HDRS.forEach(d=>h+='<div style="text-align:center;font-size:9px;color:var(--ink3);">'+d+'</div>');
+  for(let i=0;i<lead;i++) h+='<div></div>';
+  for(let d=1;d<=dim;d++){
+    const key=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'), v=dd[key];
+    let bg='transparent',fg='var(--ink3)',bd='1px dashed var(--border)';
+    if(v){ if(v.off){bg='var(--surface2)';fg='var(--ink3)';bd='none';}
+      else { const ot=plannedOT_(key,v.start,v.end,v.specialDay).hrs; if(ot>0){bg='var(--amber-bg)';fg='var(--amber)';bd='none';} else {bg='var(--green-bg)';fg='var(--green)';bd='none';} } }
+    h+='<div style="height:24px;border-radius:4px;background:'+bg+';color:'+fg+';border:'+bd+';display:flex;align-items:center;justify-content:center;font-size:10px;">'+d+'</div>';
+  }
+  h+='</div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--ink3);margin-top:5px;"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green-bg);vertical-align:-1px;"></span> ทำงาน</span><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--amber-bg);vertical-align:-1px;"></span> +OT</span><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--surface2);vertical-align:-1px;"></span> หยุด</span></div>';
+  return h;
+}
+function apvShiftGroups_(dd){
+  const shifts={}, offDays=[];
+  Object.keys(dd).forEach(k=>{ const v=dd[k], dnum=parseInt(k.slice(8,10),10); if(v.off){offDays.push(dnum);return;} const s=(v.start||'?')+'–'+(v.end||'?'); (shifts[s]=shifts[s]||[]).push(dnum); });
+  let h='';
+  Object.keys(shifts).sort().forEach(s=>{ h+='<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:2px 0;"><span>'+s+' น.</span><span style="color:var(--ink3);">'+shifts[s].length+' วัน</span></div>'; });
+  if(offDays.length){ offDays.sort((a,b)=>a-b); h+='<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:2px 0;"><span>หยุด</span><span style="color:var(--ink3);">'+offDays.length+' วัน ('+offDays.join(', ')+')</span></div>'; }
+  return h;
+}
+function apvRawRows_(allK,dd){ return allK.map(k=>{ const v=dd[k], rng=v.off?'หยุด':((v.start&&v.end)?(v.start+' – '+v.end):'—'); return '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;"><span style="color:var(--ink3);">'+k+'</span><span style="color:'+(v.off?'var(--ink3)':'var(--navy)')+';font-weight:600;">'+rng+'</span></div>'; }).join(''); }
+function apvToggleRaw(el){ const raw=el.parentNode.nextElementSibling; if(!raw)return; const show=raw.style.display==='none'; raw.style.display=show?'block':'none'; el.textContent=show?'ซ่อนรายวัน ▴':'ดูรายวันทั้งหมด ▾'; }
 function apvItemDetail(it){
   const r=it.raw;
   if(it.type==='sched'){
-    const dd=r.dates||{}; const allK=Object.keys(dd).sort(); const ks=allK.slice(0,4);
+    const dd=r.dates||{}, allK=Object.keys(dd).sort(), isEdit=(r.isEdit||r.type==='edit');
     const nW=allK.filter(k=>!dd[k].off).length, nO=allK.length-nW;
     let otP=0; allK.forEach(k=>{if(!dd[k].off)otP+=plannedOT_(k,dd[k].start,dd[k].end,dd[k].specialDay).hrs;}); otP=Math.round(otP*10)/10;
-    const rows=ks.map(k=>{const v=dd[k];const rng=v.off?'หยุด':((v.start&&v.end)?(v.start+' – '+v.end):'—');return '<div class="irow" style="padding:3px 0;"><span class="ilabel">'+k+'</span><span class="ival" style="color:'+(v.off?'var(--ink3)':'var(--navy)')+';font-weight:600;">'+rng+'</span></div>';}).join('');
+    if(isEdit){
+      // คำขอแก้ไข → ก่อน → หลัง ต่อวัน
+      const before=r.before||{}, fmt=v=>!v?'—':(v.off?'หยุด':((v.start&&v.end)?(v.start+'–'+v.end):'—'));
+      const rows=allK.map(k=>'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;"><span style="min-width:58px;font-weight:600;">'+apvDayLabel_(k)+'</span><span style="color:var(--ink3);">'+fmt(before[k])+'</span><span style="color:var(--ink3);">→</span><span style="color:var(--navy);font-weight:600;">'+fmt(dd[k])+'</span></div>').join('');
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:6px;">✏ ขอแก้ตาราง '+r.month+'/'+r.year+' · '+allK.length+' วัน</div>'
+        +'<div style="background:var(--surface2);border-radius:6px;overflow:hidden;">'+rows+'</div>'
+        +apvItemBtns_('sched',r.id)+'</div>';
+    }
+    // ตารางทั้งเดือน → ปฏิทินจิ๋ว + สรุปกลุ่มกะ
     return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">'
-      +'<div style="font-weight:700;font-size:13px;margin-bottom:6px;">📋 ตาราง '+r.month+'/'+r.year+((r.isEdit||r.type==='edit')?' · ✏ แก้ไข':'')+' <span style="font-weight:400;color:var(--ink3);">· ทำงาน '+nW+(nO?(' · หยุด '+nO):'')+'</span></div>'
-      +(otP>0?'<div style="background:var(--amber-bg);border-radius:6px;padding:5px 10px;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--amber);">⏰ มี OT วางแผนรวม '+otP+' ชม. (อนุมัติตาราง = อนุมัติ OT)</div>':'')
-      +'<div style="background:var(--surface2);border-radius:6px;padding:6px 10px;">'+rows+(allK.length>4?'<div class="t-cap" style="text-align:center;padding-top:2px;">+ อีก '+(allK.length-4)+' วัน</div>':'')+'</div>'
+      +'<div style="font-weight:700;font-size:13px;margin-bottom:8px;">📋 ตาราง '+r.month+'/'+r.year+'</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:8px;">'+apvMetric_(nW,'ทำงาน','var(--navy)')+apvMetric_(nO,'หยุด','var(--ink2)')+(otP>0?apvMetric_(otP,'OT ชม.','var(--amber)'):'')+'</div>'
+      +apvMiniCal_(r.month,r.year,dd)
+      +'<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px;">'+apvShiftGroups_(dd)+'</div>'
+      +(otP>0?'<div style="background:var(--amber-bg);border-radius:6px;padding:5px 10px;margin-top:8px;font-size:11px;font-weight:600;color:var(--amber);">⏰ OT วางแผนรวม '+otP+' ชม. (อนุมัติตาราง = อนุมัติ OT)</div>':'')
+      +'<div style="text-align:center;margin-top:6px;"><span onclick="apvToggleRaw(this)" style="color:var(--navy);font-size:12px;cursor:pointer;">ดูรายวันทั้งหมด ▾</span></div>'
+      +'<div style="display:none;margin-top:6px;background:var(--surface2);border-radius:6px;padding:6px 10px;">'+apvRawRows_(allK,dd)+'</div>'
       +apvItemBtns_('sched',r.id)+'</div>';
   }
   if(it.type==='ot'){
