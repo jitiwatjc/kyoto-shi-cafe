@@ -404,6 +404,7 @@ function clockIn(p) {
   const ss   = openSS();
   const sh   = ss.getSheetByName(SH.ATTENDANCE);
   const data = sh.getDataRange().getValues();
+  const rain = (p.rain === true || p.rain === 'true' || p.rain === 'TRUE');   // [8] ฝนตก → grace สาย 15 นาที (ปกติ 3)
   // Update existing row if found
   for (let i = 1; i < data.length; i++) {
     const rowDate = data[i][2] ? fmtDate(new Date(data[i][2])) : '';
@@ -411,13 +412,14 @@ function clockIn(p) {
       const c = sh.getRange(i + 1, 4);
       c.setNumberFormat('@');            // store as TEXT so "08:25" isn't auto-converted to a time value
       c.setValue(p.time);
+      sh.getRange(i + 1, 9).setValue(rain);
       return { ok: true };
     }
   }
   // Create new row — write the time columns as TEXT to avoid Sheets time auto-conversion
   const newRow = sh.getLastRow() + 1;
   const newId  = 'ATT' + Date.now();
-  sh.appendRow([ newId, p.empId, p.date, '', '', '', '', p.specialDay || false ]);
+  sh.appendRow([ newId, p.empId, p.date, '', '', '', '', p.specialDay || false, rain ]);
   sh.getRange(newRow, 4, 1, 4).setNumberFormat('@');   // cols D-G: clockIn, clockOut, plannedStart, plannedEnd
   sh.getRange(newRow, 4).setValue(p.time);
   sh.getRange(newRow, 6).setValue(p.plannedStart || '');
@@ -513,7 +515,7 @@ function getDayRoster(date) {
   for (let i = 1; i < att.length; i++) {
     const r = att[i]; if (!r[0]) continue;
     const rd = r[2] ? fmtDate(new Date(r[2])) : '';
-    if (rd === date) dayAtt[String(r[1])] = { clockIn: fmtTime(r[3]), clockOut: fmtTime(r[4]) };
+    if (rd === date) dayAtt[String(r[1])] = { clockIn: fmtTime(r[3]), clockOut: fmtTime(r[4]), rain: (r[8] === true || r[8] === 'TRUE' || r[8] === 'true') };
   }
   const working = [], off = [];
   Object.keys(empMap).forEach(function (id) {
@@ -531,7 +533,7 @@ function getDayRoster(date) {
     const a = dayAtt[id] || {};
     const start = pl.start || '', end = pl.end || '';
     let status = 'planned', late = false;
-    if (a.clockIn) { late = !!(start && toMinR(a.clockIn) > toMinR(start) + 15); status = late ? 'late' : 'in'; }
+    if (a.clockIn) { late = !!(start && toMinR(a.clockIn) > toMinR(start) + (a.rain ? 15 : 3)); status = late ? 'late' : 'in'; }
     const otHrs = (start && end) ? Math.max(0, (toMinR(end) - toMinR(start)) / 60 - 9) : 0;
     working.push({ empId: id, name: e.name, position: e.position, start: start, end: end,
       specialDay: !!pl.specialDay, otHrs: Math.round(otHrs * 10) / 10,
@@ -984,10 +986,11 @@ function getAttendance(empId, month, year, limit) {
     const dow       = d.getDay();
     const isSpecial = (plan.special === true) || dow === 0 || dow === 6;
 
-    // สาย: clock in เกินแผน 15 นาที
+    // สาย: clock in เกินแผน · ปกติ 3 นาที · ฝนตก 15 นาที
+    const rain = (row[8] === true || row[8] === 'TRUE' || row[8] === 'true');
     let isLate = false;
     if (clockIn && plannedStart) {
-      isLate = toMin(clockIn) > toMin(plannedStart) + 15;
+      isLate = toMin(clockIn) > toMin(plannedStart) + (rain ? 15 : 3);
     }
 
     // ── คำนวณ OT (แยกตามแรง 1 / 1.5 / 2) ──
@@ -1040,6 +1043,7 @@ function getAttendance(empId, month, year, limit) {
       workedHours:  workedHours,
       specialDay:   isSpecial ? 'พิเศษ' : 'ปกติ',
       isLate:       isLate,
+      rain:         rain,
       ot1:          ot1,
       ot15:         ot15,
       ot2:          ot2,
