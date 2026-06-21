@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260620-120806">
+<meta name="app-build" content="20260621-234246">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1086,8 +1086,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     </div>
     <div class="card" style="border-left:3px solid var(--navy);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><div class="card-title">ข้อมูลเงินเดือน</div><span class="chip chip-navy" style="font-size:10px;">Owner Only</span></div>
-      <div class="fg"><label class="t-label">ฐานเงินเดือน (บาท/เดือน)</label><input class="fi" type="number" id="edit-salary" placeholder="ฐานเงินเดือน"></div>
-      <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" id="edit-otrate" placeholder="คำนวณอัตโนมัติ"><div class="fhint">ใช้คำนวณค่าล่วงเวลา (Full-time)</div></div>
+      <div id="edit-ft-rates">
+        <div class="fg"><label class="t-label">ฐานเงินเดือน (บาท/เดือน)</label><input class="fi" type="number" id="edit-salary" placeholder="ฐานเงินเดือน"></div>
+        <div class="fg"><label class="t-label">อัตรา OT (บาท/ชั่วโมง)</label><input class="fi" type="number" id="edit-otrate" placeholder="คำนวณอัตโนมัติ"><div class="fhint">ใช้คำนวณค่าล่วงเวลา (Full-time)</div></div>
+      </div>
       <div id="edit-pt-rates" style="display:none;">
         <div class="fg2">
           <div class="fg"><label class="t-label">฿/ชม. วันธรรมดา</label><input class="fi" type="number" id="edit-ptRate" placeholder="บาท/ชม."></div>
@@ -2526,8 +2528,13 @@ async function doClockIn(){
 }
 
 /* ── PROFILE EDIT ── */
-// แสดงช่องอัตรา ฿/ชม. เฉพาะเมื่อเลือกประเภท Part-time
-function editTypeChanged(){ const t=(document.getElementById('edit-type')||{}).value; const box=document.getElementById('edit-pt-rates'); if(box)box.style.display=(t==='Part-time')?'block':'none'; }
+// Part-time: โชว์ ฿/ชม. ซ่อนฐานเงินเดือน+OT · Full-time/Probation: ตรงกันข้าม
+function editTypeChanged(){
+  const t=(document.getElementById('edit-type')||{}).value, isPT=(t==='Part-time');
+  const pt=document.getElementById('edit-pt-rates'), ft=document.getElementById('edit-ft-rates');
+  if(pt)pt.style.display=isPT?'block':'none';
+  if(ft)ft.style.display=isPT?'none':'block';
+}
 async function saveProfile(empId){
   const id=empId||_viewingEmpId||'';
   if(!id){toast('ไม่พบข้อมูลพนักงาน');return;}
