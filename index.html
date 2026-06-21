@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260621-234246">
+<meta name="app-build" content="20260622-001932">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -891,6 +891,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       </div>
       <div class="card">
         <div class="t-cap" style="margin-bottom:12px;">GPS ต้องยืนยันก่อน Clock In · Timestamp บันทึกเวลาจริง ไม่สามารถแก้ไขได้</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;padding:9px 11px;background:var(--info-bg);border-radius:8px;cursor:pointer;"><input type="checkbox" id="ci-rain" style="accent-color:var(--info);width:16px;height:16px;flex-shrink:0;"> 🌧️ ฝนตกวันนี้ — สายได้ถึง 15 นาที (ปกติ 3 นาที)</label>
         <button id="ci-btn" class="btn btn-navy btn-full" style="padding:15px;font-size:15px;margin-bottom:10px;" onclick="doClockInWithGPS()">Clock In ตอนนี้</button>
         <button id="co-btn" class="btn btn-danger btn-full" style="padding:15px;font-size:15px;" onclick="openModal('m-clockout')">Clock Out ตอนนี้</button>
         <div id="co-btn-msg" style="font-size:12px;color:var(--ink3);text-align:center;margin-top:8px;display:none;"></div>
@@ -2992,9 +2993,9 @@ function renderClockScreen(sched,todayRec){
   // Late flag: show only if not yet clocked in and past 15 min grace
   const lateEl=document.getElementById('clock-late-flag');
   if(lateEl){
-    if(!alreadyIn&&nowMin>sh*60+sm+15&&nowMin<coStart){
+    if(!alreadyIn&&nowMin>sh*60+sm+3&&nowMin<coStart){
       lateEl.style.display='block';
-      lateEl.textContent='⚠ สายเกิน 15 นาที — ระบบบันทึกและแจ้ง Owner อัตโนมัติ';
+      lateEl.textContent='⚠ สายเกิน 3 นาที — ถ้าฝนตกให้ติ๊ก "ฝนตก" ก่อน Clock In (สายได้ถึง 15 นาที)';
     } else lateEl.style.display='none';
   }
 
@@ -3081,11 +3082,12 @@ async function doClockInWithGPS(){
   const gpsEl=document.getElementById('gps-status-text');
   if(gpsEl){gpsEl.textContent=gps.msg;gpsEl.style.color='var(--green)';}
   const t=nowHHMM();
-  // Late flag
+  const rain=!!(document.getElementById('ci-rain')||{}).checked;
+  // Late flag (ปกติสายได้ 3 นาที · ฝนตก 15)
   if(todaySchedule&&todaySchedule.planStart){
     const [ph,pm]=todaySchedule.planStart.split(':').map(Number);
     const now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
-    if(nowMin>ph*60+pm+15)toast('⚠ Clock In สาย '+Math.round(nowMin-(ph*60+pm))+' นาที — แจ้ง Owner แล้ว');
+    if(nowMin>ph*60+pm+(rain?15:3))toast('⚠ Clock In สาย '+Math.round(nowMin-(ph*60+pm))+' นาที — แจ้ง Owner แล้ว');
     else toast('Clock In สำเร็จ · '+t+' น. ✓ GPS OK');
   } else toast('Clock In สำเร็จ · '+t+' น. ✓ GPS OK');
 
@@ -3098,7 +3100,7 @@ async function doClockInWithGPS(){
 
   if(currentUser){
     try{await callAPI({action:'clockIn',empId:currentUser.empId,date:todayISO(),time:t,
-      plannedStart:todaySchedule?.planStart||'',plannedEnd:todaySchedule?.planEnd||''});}
+      rain:rain,plannedStart:todaySchedule?.planStart||'',plannedEnd:todaySchedule?.planEnd||''});}
     catch(e){toast('บันทึกออนไลน์ไม่สำเร็จ — กรุณาแจ้ง Owner');}
   }
 }
