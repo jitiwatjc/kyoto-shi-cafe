@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260622-001932">
+<meta name="app-build" content="20260622-003120">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -2929,7 +2929,8 @@ function initClockScreen(){
   const attProm=currentUser
     ?callAPI({action:'getAttendance',empId:currentUser.empId,limit:10}).catch(()=>({ok:false}))
     :Promise.resolve({ok:false});
-  Promise.all([initTodaySchedule(),attProm]).then(([sched,attRes])=>{
+  const otProm=currentUser?callAPI({action:'getOT',empId:currentUser.empId}).catch(()=>({ok:false})):Promise.resolve({ok:false});
+  Promise.all([initTodaySchedule(),attProm,otProm]).then(([sched,attRes,otRes])=>{
     const today=todayISO();
     const list=attRes.ok&&Array.isArray(attRes.data)?attRes.data:[];
     // Auto clock-out: ปิดทุกวันในอดีตที่มี clockIn แต่ลืม clockOut → ใช้ plannedEnd ตามตารางงาน
@@ -2939,10 +2940,25 @@ function initClockScreen(){
       callAPI({action:'clockOut',empId:currentUser.empId,date:r.date,time:autoTime}).catch(()=>{});
     });
     if(orphans.length)toast('⚠ บันทึก Clock Out อัตโนมัติ '+orphans.length+' วันที่ลืมออก ตามเวลาตารางงาน');
+    computeClockWindow(otRes);   // window = กะ ∪ OT อนุมัติวันนี้ (กรณีต่อเนื่อง 2,4)
     const rec=list.find(r=>r.date===today)||null;
     renderClockScreen(sched,rec);
   });
   renderClockHistory();
+}
+function toMinHM(t){ if(!t||String(t).indexOf(':')<0)return null; const a=String(t).split(':').map(Number); return a[0]*60+a[1]; }
+// หน้าต่าง clock = รวมกะ + OT อนุมัติวันนี้ → winStartMin/winEndMin (กรณีต่อเนื่อง คลุมทั้งช่วง)
+function computeClockWindow(otRes){
+  if(!todaySchedule||!todaySchedule.approved){ if(todaySchedule){todaySchedule.winStartMin=null;todaySchedule.winEndMin=null;} return; }
+  const today=todayISO(), starts=[], ends=[];
+  const ps=toMinHM(todaySchedule.planStart), pe=toMinHM(todaySchedule.planEnd);
+  if(ps!=null)starts.push(ps); if(pe!=null)ends.push(pe);
+  if(otRes&&otRes.ok&&Array.isArray(otRes.data)){
+    otRes.data.forEach(o=>{ if(o.date!==today)return; if(String(o.status||'').toLowerCase()!=='approved')return;
+      const a=toMinHM(o.startTime), b=toMinHM(o.endTime); if(a!=null&&b!=null&&b>a){ starts.push(a); ends.push(b); } });
+  }
+  todaySchedule.winStartMin=starts.length?Math.min.apply(null,starts):ps;
+  todaySchedule.winEndMin=ends.length?Math.max.apply(null,ends):pe;
 }
 
 function renderClockScreen(sched,todayRec){
@@ -2978,8 +2994,10 @@ function renderClockScreen(sched,todayRec){
   const planStart=sched.planStart||'08:30', planEnd=sched.planEnd||'17:00';
   const [sh,sm]=planStart.split(':').map(Number);
   const [eh,em]=planEnd.split(':').map(Number);
-  const ciStart=sh*60+sm-120, ciEnd=sh*60+sm+120;
-  const coStart=eh*60+em-120, coEnd=eh*60+em+120;
+  const winS=(sched.winStartMin!=null)?sched.winStartMin:(sh*60+sm);   // กะ ∪ OT
+  const winE=(sched.winEndMin!=null)?sched.winEndMin:(eh*60+em);
+  const ciStart=winS-30, ciEnd=winS+120;     // clock-in เปิด 30 นาทีก่อนช่วงแรก (รวม OT)
+  const coStart=winE-120, coEnd=winE+120;    // clock-out ถึง 2 ชม.หลังช่วงสุดท้าย (รวม OT)
 
   // Update planned times display
   const psEl=document.getElementById('planned-start-display');
@@ -3062,12 +3080,14 @@ async function requestEarlyClockOut(){
 
 /* ── CLOCK IN WITH GPS ── */
 async function doClockInWithGPS(){
-  // กันกด Clock In ก่อนถึงเวลา (เปิดได้ 2 ชม. ก่อนตาราง)
-  if(todaySchedule&&todaySchedule.planStart){
-    const [ph,pm]=todaySchedule.planStart.split(':').map(Number);
-    const now=new Date(),nm=now.getHours()*60+now.getMinutes();
-    const ciOpen=ph*60+pm-120;
-    if(nm<ciOpen){toast('🔒 ยังไม่ถึงเวลา Clock In — เปิด '+fmtMin(ciOpen)+' น.');return;}
+  // กันกด Clock In ก่อนถึงเวลา — เปิด 30 นาทีก่อนช่วงแรก (รวม OT)
+  if(todaySchedule&&todaySchedule.approved){
+    const winS=(todaySchedule.winStartMin!=null)?todaySchedule.winStartMin:toMinHM(todaySchedule.planStart);
+    if(winS!=null){
+      const now=new Date(),nm=now.getHours()*60+now.getMinutes();
+      const ciOpen=winS-30;
+      if(nm<ciOpen){toast('🔒 ยังไม่ถึงเวลา Clock In — เปิด '+fmtMin(ciOpen)+' น.');return;}
+    }
   }
   const ciBtn=document.getElementById('ci-btn');
   if(ciBtn){ciBtn.disabled=true;ciBtn.textContent='กำลังตรวจสอบ GPS...';}
