@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260622-003120">
+<meta name="app-build" content="20260623-230921">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1588,7 +1588,7 @@ async function genBreakPdf(id){
   toast('กำลังสร้างใบ...');
   const d={customer:x.customer,amount:x.amount,pickup:x.pickupShow||'',moneyIn:x.moneyIn,status:x.status,ext:x.ext||{}};
   let host=document.getElementById('pdf-host'); if(!host){host=document.createElement('div');host.id='pdf-host';host.style.cssText='position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;';document.body.appendChild(host);}
-  host.innerHTML=breakWorkOrderHtml(d);
+  host.innerHTML=breakOrderFormHtml(d);   // ดีไซน์ใหม่ตาม PDF
   try{
     const canvas=await html2canvas(host.querySelector('.wo-sheet'),{scale:2,backgroundColor:'#fff'});
     const img=canvas.toDataURL('image/jpeg',0.92), {jsPDF}=window.jspdf, pdf=new jsPDF('p','pt','a4');
@@ -1614,6 +1614,55 @@ function breakWorkOrderHtml(d){
     <div style="display:flex;gap:12px;margin-top:12px;"><div style="flex:1;"><div style="background:${NV};color:#fff;text-align:center;font-weight:700;padding:6px;border-radius:8px 8px 0 0;">ติดต่อ</div><div style="border:1px solid #D7DCE5;border-top:none;border-radius:0 0 8px 8px;padding:10px 12px;font-size:13px;"><div>${esc_(ct.name||'')}</div><div>${esc_(ct.phone||'')}</div></div></div><div style="flex:1;"><div style="background:${NV};color:#fff;text-align:center;font-weight:700;padding:6px;border-radius:8px 8px 0 0;">สรุปยอด</div><div style="border:1px solid #D7DCE5;border-top:none;border-radius:0 0 8px 8px;padding:10px 12px;font-size:13px;">${vat}<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #eee;font-weight:800;"><span>รวมทั้งสิ้น</span><span style="color:${GR};">฿ ${rnd_(m.grandTotal||d.amount)}</span></div>${m.deposit?`<div style="font-size:11px;color:#6E7682;">มัดจำ ฿${rnd_(m.deposit)} · คงเหลือ ฿${rnd_(m.balance)}</div>`:''}</div></div></div>
     ${e.noteCustomer?`<div style="margin-top:12px;border:1px solid #D7DCE5;border-radius:8px;padding:10px;font-size:12px;"><b>หมายเหตุ:</b> ${esc_(e.noteCustomer)}</div>`:''}
     <div style="background:${GR};color:#fff;text-align:center;font-weight:800;font-size:16px;padding:11px;border-radius:9px;margin-top:12px;">✓ ตรวจเช็กจำนวนสินค้าให้ครบก่อนส่งมอบ</div>
+  </div>`;
+}
+// ── ใบสั่งงานออเดอร์เบรก (ดีไซน์ตาม PDF: กรอบลายมุม navy/เขียว/ทอง · 4 section · เติมจากข้อมูลออเดอร์) ──
+function breakOrderFormHtml(d){
+  const e=d.ext||{}, m=e.money||{}, co=e.company||{}, ct=e.contact||{}, items=e.items||[];
+  const NV='#16315C', GR='#1F5A37', AM='#C18F33', CREAM='#FBF8F1', INK='#1B2430', LINE='#C9BBA0';
+  const grand=Number(m.grandTotal||d.amount||0);
+  const dep=Number(m.deposit||0);
+  const bal=(m.balance!=null)?Number(m.balance):(d.moneyIn?Math.max(0,grand-Number(d.moneyIn)):grand);
+  const paid=bal<=0.5;
+  const totalQty=e.totalQty||items.reduce((s,it)=>s+(Number(it.qty)||0),0);
+  const pickMethod=(e.pickup&&e.pickup.method)||e.pickupMethod||'';
+  const packType=(e.pickup&&e.pickup.packType)||e.packType||'';
+  const isTax=e.docType==='ใบกำกับภาษี';
+  const note=e.noteCustomer||e.note||'';
+  const cbox=(on,label)=>`<div style="display:flex;align-items:center;gap:7px;font-size:13px;color:${INK};margin:5px 0;"><span style="width:15px;height:15px;border:1.5px solid ${NV};border-radius:3px;display:inline-flex;align-items:center;justify-content:center;color:${GR};font-weight:800;font-size:12px;">${on?'✓':''}</span>${label}</div>`;
+  const field=(label,val)=>`<div style="display:flex;align-items:baseline;gap:8px;font-size:13px;margin:7px 0;"><span style="color:${NV};font-weight:600;white-space:nowrap;">${label}</span><span style="flex:1;border-bottom:1px dotted ${LINE};color:${INK};font-weight:600;padding:0 4px 2px;min-height:15px;">${val||''}</span></div>`;
+  const itemLine=(n,it)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px dashed ${LINE};"><span style="width:19px;height:19px;border-radius:50%;background:${GR};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</span><span style="flex:1;font-size:13px;color:${INK};">${esc_(it.name||'')}</span><span style="font-size:13px;color:${GR};font-weight:800;white-space:nowrap;">× ${it.qty||0}</span></div>`;
+  const half=Math.ceil(items.length/2);
+  const col1=items.slice(0,half).map((it,i)=>itemLine(i+1,it)).join('');
+  const col2=items.slice(half).map((it,i)=>itemLine(half+i+1,it)).join('');
+  const bar=(num,title,color)=>`<div style="display:flex;align-items:center;gap:10px;background:${color};border-radius:8px;padding:8px 12px;margin:14px 0 10px;"><span style="width:24px;height:24px;border-radius:50%;background:${AM};color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${num}</span><span style="color:#fff;font-weight:700;font-size:15px;font-family:'Noto Serif Thai',serif;">${title}</span></div>`;
+  return `<div class="wo-sheet" style="width:794px;background:${CREAM};font-family:'Noto Sans Thai',sans-serif;color:${INK};box-sizing:border-box;border:7px solid ${NV};padding:6px;">
+    <div style="border:1.5px solid ${AM};padding:20px 26px 14px;position:relative;">
+      <div style="position:absolute;top:7px;left:11px;color:${AM};font-size:15px;">&#10070;</div><div style="position:absolute;top:7px;right:11px;color:${AM};font-size:15px;">&#10070;</div><div style="position:absolute;bottom:7px;left:11px;color:${AM};font-size:15px;">&#10070;</div><div style="position:absolute;bottom:7px;right:11px;color:${AM};font-size:15px;">&#10070;</div>
+      <div style="text-align:center;">
+        <svg width="52" height="52" viewBox="0 0 64 64" style="display:inline-block;"><circle cx="32" cy="32" r="30" fill="none" stroke="${NV}" stroke-width="2"/><path d="M15 31 L32 17 L49 31 Z" fill="${AM}"/><rect x="23" y="31" width="18" height="13" fill="${NV}"/><path d="M18 44 L46 44 L42 50 L22 50 Z" fill="${AM}"/><rect x="30" y="35" width="4" height="9" fill="${AM}"/></svg>
+        <div style="font-family:'Noto Serif Thai',serif;font-weight:800;color:${NV};font-size:17px;letter-spacing:2px;margin-top:2px;">KYOTO SHI</div>
+        <div style="color:${AM};font-size:11px;letter-spacing:4px;">CAFÉ RAYONG</div>
+        <div style="font-family:'Noto Serif Thai',serif;font-weight:800;color:${NV};font-size:31px;margin-top:8px;line-height:1.1;">ใบสั่งงานออเดอร์เบรก</div>
+        <div style="color:${GR};font-size:13px;font-weight:600;">สรุปรายการโดนัทสำหรับเตรียมผลิต</div>
+      </div>
+      ${bar('1','ข้อมูลออเดอร์',NV)}
+      <div style="display:flex;gap:24px;">
+        <div style="flex:1.15;">${field('วันรับสินค้า :',esc_(d.pickup||''))}${field('เวลารับสินค้า :',esc_(e.pickupTime||''))}${field('วิธีรับสินค้า :',esc_(pickMethod))}${field('รูปแบบการแพ็ก :',esc_(packType))}${field('จำนวนรวม :',totalQty+' ชิ้น')}</div>
+        <div style="flex:1;"><div style="color:${NV};font-weight:700;font-size:13px;margin-bottom:4px;">สถานะชำระเงิน</div>${cbox(paid,'ชำระแล้ว')}${cbox(dep>0&&!paid,'มัดจำ')}${cbox(bal>0.5,'ค้างชำระ')}<div style="margin-top:8px;font-size:12px;color:${INK};"><span style="color:${NV};font-weight:600;">หมายเหตุ :</span> ${esc_(note)}</div></div>
+      </div>
+      ${bar('2','รายการโดนัทที่สั่ง',GR)}
+      <div style="display:flex;gap:24px;"><div style="flex:1;">${col1||'<div style="font-size:12px;color:#9a8f7c;padding:6px 0;">— ไม่มีรายการ —</div>'}</div><div style="flex:1;">${col2}</div></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:${GR};border-radius:8px;padding:9px;margin-top:12px;color:#fff;font-weight:800;font-size:15px;">รวมทั้งหมด <span style="color:#FFE6A8;font-size:18px;">${totalQty}</span> ชิ้น</div>
+      ${bar('3','ข้อมูลลูกค้า / การชำระเงิน',NV)}
+      <div style="display:flex;gap:24px;">
+        <div style="flex:1;">${field('ผู้ติดต่อ :',esc_(ct.name||d.customer||''))}${field('เบอร์โทร :',esc_(ct.phone||''))}${field('ยอดรวมสุทธิ :','฿ '+rnd_(grand))}</div>
+        <div style="flex:1;">${field('ใบกำกับภาษี :',isTax?'ขอใบกำกับภาษี':(e.docType==='ไม่รับเอกสาร'?'ไม่รับเอกสาร':(e.docType||'-')))}${field('การชำระเงิน :',paid?'ชำระครบแล้ว':(dep>0?('มัดจำ ฿'+rnd_(dep)+' · ค้าง ฿'+rnd_(bal)):('ค้าง ฿'+rnd_(bal))))}</div>
+      </div>
+      ${bar('4','หมายเหตุภายใน',NV)}
+      <div style="border:1px solid ${LINE};border-radius:8px;padding:10px 12px;font-size:13px;min-height:44px;color:${INK};">${esc_(e.noteInternal||note||'')}</div>
+      <div style="text-align:center;color:${AM};font-weight:700;font-size:13px;margin-top:14px;border-top:1.5px solid ${AM};padding-top:10px;">&#10070; ขอบคุณที่ไว้วางใจ KYOTO SHI CAFÉ RAYONG &#10070;</div>
+    </div>
   </div>`;
 }
 let exEditingBill=null, exBills=[];
