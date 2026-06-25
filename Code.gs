@@ -189,8 +189,10 @@ function registerEmployee(p) {
       }
     }
   }
-  const lastRow = sh.getLastRow();
-  const newId   = 'EMP' + String(lastRow).padStart(3, '0');
+  // รหัสไม่ซ้ำ = EMPnnn สูงสุดที่มี + 1 (เดิมใช้ lastRow → ชนกันเมื่อเคยลบแถวพนักงาน)
+  let maxN = 0;
+  for (let i = 1; i < data.length; i++) { const mm = String(data[i][0] || '').match(/^EMP(\d+)$/); if (mm) maxN = Math.max(maxN, parseInt(mm[1], 10)); }
+  const newId = 'EMP' + String(maxN + 1).padStart(3, '0');
   sh.appendRow([
     newId,
     p.name        || '',
