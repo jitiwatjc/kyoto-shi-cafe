@@ -83,7 +83,7 @@ function doGet(e) {
       case 'approveLeave':    return res(approveLeave({ leaveId: p.leaveId, approve: p.approve === 'true', approvedBy: p.approvedBy }));
       case 'approveOT':       return res(approveOT({ otId: p.otId, approve: p.approve === 'true', approvedBy: p.approvedBy }));
       case 'registerEmployee':return res(registerEmployee(JSON.parse(decodeURIComponent(p.data || '{}'))));
-      case 'approveEmployee': return res(approveEmployee({ empId: p.empId, approve: p.approve === 'true', salary: p.salary, type: p.type, note: p.note }));
+      case 'approveEmployee': return res(approveEmployee({ empId: p.empId, approve: p.approve === 'true', salary: p.salary, type: p.type, note: p.note, ptRate: p.ptRate, ptRateHol: p.ptRateHol }));
       case 'updateEmployee':  return res(updateEmployee(JSON.parse(decodeURIComponent(p.data || '{}'))));
 
       default:                return res({ ok: false, error: 'Unknown action: ' + p.action });
@@ -228,6 +228,8 @@ function approveEmployee(p) {
         // Save the account settings the Owner entered on the approval screen
         if (p.type   !== undefined && p.type   !== '') sh.getRange(r, 7).setValue(p.type);    // [6] type
         if (p.salary !== undefined && p.salary !== '') sh.getRange(r, 8).setValue(p.salary);  // [7] salary
+        if (p.ptRate    !== undefined && p.ptRate    !== '') sh.getRange(r, 23).setValue(p.ptRate);    // [22] PT ฿/ชม ธรรมดา
+        if (p.ptRateHol !== undefined && p.ptRateHol !== '') sh.getRange(r, 24).setValue(p.ptRateHol); // [23] PT ฿/ชม วันหยุด
         if (p.note   !== undefined && p.note   !== '') sh.getRange(r, 19).setValue(p.note);   // [18] note
         sh.getRange(r, 11).setValue('Active');   // [10] status
       } else {
