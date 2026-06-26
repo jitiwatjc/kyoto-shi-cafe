@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260626-143912">
+<meta name="app-build" content="20260627-000955">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -512,6 +512,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       <div id="owner-roster-home"><div class="t-cap">กำลังโหลด...</div></div>
     </div>
     <div id="owner-sidework" style="margin-bottom:4px;"></div>
+    <div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;margin-bottom:4px;" onclick="go('s-prep-setup')">
+      <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🍳</div>
+      <div class="lcol"><div class="ltitle">ของเตรียมขาย</div><div class="lsub">ตั้งรายการ · วัตถุดิบหมดทุกครัว</div></div>
+      <span style="color:var(--ink3);">›</span>
+    </div>
 
     <div class="t-sect" style="margin-top:4px;">Clock In วันนี้</div>
     <div class="stat-grid">
@@ -714,6 +719,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="scroll-x">
       <div class="qcard" onclick="openStore()" style="border:1.5px solid var(--navy);"><div class="qcard-icon">🧾</div><div class="qcard-title">บัญชี</div><div class="qcard-sub">รายได้/เบรค/รายจ่าย</div></div>
       <div class="qcard" onclick="go('s-sidework')"><div class="qcard-icon">🧹</div><div class="qcard-title">Sidework</div><div class="qcard-sub" id="qcard-sw-sub">งานประจำร้าน</div></div>
+      <div class="qcard" onclick="go('s-prep-morning')"><div class="qcard-icon">🍳</div><div class="qcard-title">ของเตรียม</div><div class="qcard-sub">เตรียมขายพรุ่งนี้</div></div>
       <div class="qcard" onclick="go('s-emp-profile-self')"><div class="qcard-icon">👤</div><div class="qcard-title">โปรไฟล์</div><div class="qcard-sub">ข้อมูลของฉัน</div></div>
       <div class="qcard" onclick="go('s-emp-sched')"><div class="qcard-icon">📋</div><div class="qcard-title">ตารางงาน</div><div class="qcard-sub" id="qcard-sched-sub">—</div></div>
       <div class="qcard" onclick="go('s-emp-clockin')"><div class="qcard-icon">🕐</div><div class="qcard-title">Clock In/Out</div><div class="qcard-sub">GPS Verified</div></div>
@@ -1396,6 +1402,24 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   </div>
 </div>
 
+<!-- ════ PREP STOCK · ของเตรียมขาย ════ -->
+<div id="s-prep-setup" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">รายการของเตรียม</div></div>
+  <div class="page"><div id="prep-setup-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
+<div id="s-prep-log" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ลงของเตรียม · ปิดร้าน</div></div>
+  <div class="page"><div id="prep-log-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
+<div id="s-prep-morning" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ของเตรียมวันนี้</div></div>
+  <div class="page"><div id="prep-morning-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
+<div id="s-prep-shortage" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">วัตถุดิบหมด · ทุกครัว</div></div>
+  <div class="page"><div id="prep-shortage-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1414,6 +1438,10 @@ function go(id){
   if(id==='s-owner-roster'){initRoster();}
   if(id==='s-sidework'){swkTab('board');}
   if(id==='s-sw-owner'){swoTab('dash');}
+  if(id==='s-prep-setup'){renderPrepSetup();}
+  if(id==='s-prep-log'){renderPrepLog();}
+  if(id==='s-prep-morning'){renderPrepMorning();}
+  if(id==='s-prep-shortage'){renderPrepShortage();}
   if(id==='s-owner-approve'){renderApprovalTabs();}
   if(id==='s-owner-emps'){renderEmpList();}
   if(id==='s-owner-export'){renderAttendanceExport();}
@@ -2569,6 +2597,7 @@ async function doClockOut(){
   document.getElementById('co-display').style.color='var(--green)';
   const b=document.getElementById('co-btn');b.disabled=true;b.textContent='Clock Out แล้ว · '+t+' น.';b.style.background='var(--ink3)';
   toast('Clock Out สำเร็จ · '+t+' น.');
+  if(currentUser&&currentUser.kitchen){ if(confirm('Clock Out แล้ว — ลงบันทึกของเตรียมสำหรับพรุ่งนี้เลยไหม?')) go('s-prep-log'); }
 }
 
 async function doClockIn(){
@@ -3789,6 +3818,117 @@ function swDelTask(id,doneThisCycle){
   if(!confirm('ลบงานนี้?'))return;
   toast('กำลังลบ...');
   callAPI({action:'deleteSideworkTask',id:id}).then(r=>{ if(r&&r.ok){toast('ลบแล้ว');renderSwSetup();} else toast('⚠ '+((r&&r.error)||'ลบไม่ได้')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+}
+
+/* ── PREP STOCK · ของเตรียมขาย (Phase A) ── */
+const PREP_KITCHENS=['บาร์น้ำ','เบเกอรี่','ครัวอาหาร'];
+const PREP_UNITS=['ลิตร','ถาด','ขวด','ชิ้น','กก.','กรัม','แพ็ค','อัน'];
+let _prepSetupKitchen='บาร์น้ำ';
+async function renderPrepSetup(){
+  const el=document.getElementById('prep-setup-body'); if(!el)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{
+    const r=await callAPI({action:'getPrepList'});
+    const all=(r&&r.data)||[];
+    const chips=PREP_KITCHENS.map(k=>'<span class="chip '+(_prepSetupKitchen===k?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;" onclick="prepPickKitchen(\''+k+'\')">'+k+'</span>').join('');
+    const items=all.filter(it=>it.kitchen===_prepSetupKitchen);
+    let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+chips+'</div>';
+    h+='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:11px 14px;margin-bottom:12px;" onclick="go(\'s-prep-shortage\')"><div style="font-size:18px;flex-shrink:0;">⚠️</div><div class="lcol"><div class="ltitle" style="font-size:13px;">วัตถุดิบหมดทุกครัว</div></div><span style="color:var(--ink3);">›</span></div>';
+    h+='<div style="font-size:13px;font-weight:600;margin-bottom:8px;">ของเตรียม · '+esc_(_prepSetupKitchen)+' ('+items.length+')</div>';
+    if(!items.length) h+='<div class="t-cap" style="text-align:center;padding:10px 0;">ยังไม่มีรายการ</div>';
+    items.forEach(it=>{ h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">'+esc_(it.name)+' <span class="t-cap">· '+esc_(it.unit||'')+'</span></span><span style="font-size:15px;cursor:pointer;" onclick="prepDelItem(\''+it.id+'\')">🗑</span></div></div>'; });
+    const unitOpts=PREP_UNITS.map(u=>'<option>'+u+'</option>').join('');
+    h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มของเตรียม ("'+esc_(_prepSetupKitchen)+'")</div>'
+      +'<input type="text" class="fi" id="prep-new-name" placeholder="ชื่อของเตรียม" style="margin-bottom:8px;">'
+      +'<div style="display:flex;gap:6px;"><select class="fi fi-sel" id="prep-new-unit" style="flex:1;">'+unitOpts+'</select><button class="btn btn-success" style="padding:8px 18px;" onclick="prepAddItem()">เพิ่ม</button></div></div>';
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+function prepPickKitchen(k){ _prepSetupKitchen=k; renderPrepSetup(); }
+function prepAddItem(){
+  const name=raw_('prep-new-name'); if(!name){toast('ใส่ชื่อ');return;}
+  toast('กำลังบันทึก...');
+  callAPI({action:'savePrepItem',kitchen:_prepSetupKitchen,name:name,unit:raw_('prep-new-unit')||''}).then(r=>{ if(r&&r.ok){toast('เพิ่มแล้ว');renderPrepSetup();} else toast('⚠ '+((r&&r.error)||'ผิดพลาด')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+}
+function prepDelItem(id){ if(!confirm('ลบรายการนี้?'))return; callAPI({action:'deletePrepItem',id:id}).then(r=>{ if(r&&r.ok){toast('ลบแล้ว');renderPrepSetup();} else toast('⚠ ลบไม่ได้'); }).catch(()=>toast('เชื่อมต่อไม่ได้')); }
+async function renderPrepLog(){
+  const el=document.getElementById('prep-log-body'); if(!el||!currentUser)return;
+  const kitchen=currentUser.kitchen||'';
+  if(!kitchen){ el.innerHTML='<div class="alert alert-info" style="font-size:13px;">ยังไม่ได้ตั้งครัวให้คุณ — แจ้ง owner</div>'; return; }
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{
+    const lr=await callAPI({action:'getPrepList',kitchen:kitchen});
+    const gr=await callAPI({action:'getPrepLog',kitchen:kitchen});
+    const list=(lr&&lr.data)||[];
+    const prev=((gr&&gr.data)||{}).items||{};
+    const shorts=((gr&&gr.data)||{}).shortages||[];
+    let h='<div class="t-cap" style="margin-bottom:10px;">'+esc_(kitchen)+' · '+todayISO()+'</div>';
+    if(!list.length) h+='<div class="alert alert-info" style="font-size:13px;">ยังไม่มีรายการของเตรียม — ให้ owner/staff ตั้งก่อน</div>';
+    list.forEach(it=>{ const p=prev[it.id]||{};
+      h+='<div class="card" style="padding:11px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);" data-pid="'+it.id+'" data-pname="'+esc_(it.name)+'">'
+        +'<div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:600;">'+esc_(it.name)+'</span><span class="t-cap">'+esc_(it.unit||'')+'</span></div>'
+        +'<div style="display:flex;gap:6px;margin-top:7px;">'
+          +'<div style="flex:1;text-align:center;"><div class="t-cap" style="font-size:10px;">ผลิต</div><input type="number" inputmode="decimal" class="fi pl-prod" value="'+(p.produced!=null?p.produced:'')+'" style="text-align:center;padding:6px;"></div>'
+          +'<div style="flex:1;text-align:center;"><div class="t-cap" style="font-size:10px;">ใช้</div><input type="number" inputmode="decimal" class="fi pl-used" value="'+(p.used!=null?p.used:'')+'" style="text-align:center;padding:6px;"></div>'
+          +'<div style="flex:1;text-align:center;"><div class="t-cap" style="font-size:10px;">เหลือ</div><input type="number" inputmode="decimal" class="fi pl-left" value="'+(p.left!=null?p.left:'')+'" style="text-align:center;padding:6px;"></div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;margin-top:8px;">'
+          +'<span class="pl-ho chip '+(p.handover?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:11px;padding:4px 10px;" data-on="'+(p.handover?'1':'0')+'" onclick="prepToggleHO(this)">ผลิตพรุ่งนี้</span>'
+          +'<span class="pl-rd chip '+(p.ready===false?'':'chip-navy')+'" style="cursor:pointer;font-size:11px;padding:4px 10px;color:'+(p.ready===false?'var(--red)':'')+';" data-on="'+(p.ready===false?'0':'1')+'" onclick="prepToggleRD(this)">'+(p.ready===false?'ไม่พร้อมขาย':'พร้อมขาย')+'</span>'
+        +'</div></div>';
+    });
+    h+='<div class="t-sect">วัตถุดิบหมด</div><div id="prep-short-list">';
+    shorts.forEach(s=>{ h+=prepShortRow_(s.material); });
+    h+='</div><div style="display:flex;gap:6px;margin-top:6px;"><input type="text" class="fi" id="prep-short-input" placeholder="ชื่อวัตถุดิบที่หมด" style="flex:1;"><button class="btn btn-outline" style="padding:8px 16px;" onclick="prepAddShort()">+</button></div>';
+    h+='<button class="btn btn-tan btn-full" style="margin-top:14px;" onclick="prepSaveLog()">บันทึกของเตรียม</button>';
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+function prepShortRow_(m){ return '<div class="pl-short" style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);"><span style="font-size:12.5px;" class="pl-short-name">'+esc_(m)+'</span><span style="cursor:pointer;color:var(--ink3);" onclick="this.parentNode.remove()">✕</span></div>'; }
+function prepAddShort(){ const v=raw_('prep-short-input'); if(!v)return; const list=document.getElementById('prep-short-list'); if(list) list.insertAdjacentHTML('beforeend', prepShortRow_(v)); const i=document.getElementById('prep-short-input'); if(i)i.value=''; }
+function prepToggleHO(el){ const on=el.getAttribute('data-on')==='1'; el.setAttribute('data-on',on?'0':'1'); el.classList.toggle('chip-navy',!on); el.classList.toggle('chip-gray',on); }
+function prepToggleRD(el){ const nv=el.getAttribute('data-on')==='1'?'0':'1'; el.setAttribute('data-on',nv); el.classList.toggle('chip-navy',nv==='1'); el.textContent=nv==='1'?'พร้อมขาย':'ไม่พร้อมขาย'; el.style.color=nv==='1'?'':'var(--red)'; }
+function prepSaveLog(){
+  const kitchen=currentUser&&currentUser.kitchen||''; if(!kitchen){toast('ไม่มีครัว');return;}
+  const items=[];
+  document.querySelectorAll('#prep-log-body [data-pid]').forEach(c=>{
+    items.push({ itemId:c.getAttribute('data-pid'), itemName:c.getAttribute('data-pname'),
+      produced:c.querySelector('.pl-prod').value||0, used:c.querySelector('.pl-used').value||0, left:c.querySelector('.pl-left').value||0,
+      handover:c.querySelector('.pl-ho').getAttribute('data-on')==='1', ready:c.querySelector('.pl-rd').getAttribute('data-on')==='1' });
+  });
+  const shortages=[]; document.querySelectorAll('#prep-log-body .pl-short-name').forEach(s=>shortages.push({material:s.textContent}));
+  toast('กำลังบันทึก...');
+  callAPIPost({action:'savePrepLog',empId:currentUser.empId,kitchen:kitchen,items:JSON.stringify(items),shortages:JSON.stringify(shortages)})
+    .then(r=>{ if(r&&r.ok){toast('บันทึกของเตรียมแล้ว ✓'); back();} else toast('⚠ '+((r&&r.error)||'ผิดพลาด')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+}
+async function renderPrepMorning(){
+  const el=document.getElementById('prep-morning-body'); if(!el||!currentUser)return;
+  const kitchen=currentUser.kitchen||'';
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{
+    const r=await callAPI({action:'getMorningPrep',kitchen:kitchen});
+    const d=(r&&r.data)||{}; const toPrep=d.toPrep||[];
+    let h='<div class="t-cap" style="margin-bottom:10px;">'+esc_(kitchen||'-')+(d.fromDate?(' · จากปิดร้าน '+esc_(d.fromDate)):'')+'</div>';
+    if(!toPrep.length){ h+='<div class="t-cap" style="text-align:center;padding:18px 0;">ไม่มีของต้องเตรียมวันนี้ 🎉</div>'; }
+    else { toPrep.forEach(it=>{ const remake=!it.ready; h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(it.itemName)+'</span><span class="chip '+(remake?'chip-amber':'chip-blue')+'" style="font-size:10px;">'+(remake?'ทำใหม่':'ต้องผลิต')+'</span></div><div class="t-cap" style="margin-top:3px;">'+(remake?'เมื่อวานไม่พร้อมขาย':('เหลือเมื่อวาน '+it.left))+'</div></div>'; }); }
+    h+='<div class="alert alert-info" style="font-size:11px;margin-top:8px;">จำนวนใช้ดุลพินิจ · Phase 2 จะแนะนำ min ให้</div>';
+    h+='<button class="btn btn-tan btn-full" style="margin-top:12px;" onclick="go(\'s-prep-log\')">ลงของเตรียม (ตอนปิดร้าน)</button>';
+    h+='<button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="go(\'s-prep-shortage\')">วัตถุดิบหมดทุกครัว</button>';
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+async function renderPrepShortage(){
+  const el=document.getElementById('prep-shortage-body'); if(!el)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
+  try{
+    const r=await callAPI({action:'getShortages'});
+    const arr=(r&&r.data)||[];
+    let h='<div class="t-cap" style="margin-bottom:10px;">'+todayISO()+' · วัตถุดิบที่แต่ละครัวแจ้งหมด</div>';
+    if(!arr.length){ h+='<div class="t-cap" style="text-align:center;padding:18px 0;">วันนี้ยังไม่มีของหมด 🎉</div>'; el.innerHTML=h; return; }
+    const byK={}; arr.forEach(s=>{ (byK[s.kitchen]=byK[s.kitchen]||[]).push(s); });
+    Object.keys(byK).forEach(k=>{ h+='<div class="t-sect">'+esc_(k)+'</div><div class="card" style="padding:0;overflow:hidden;">'; byK[k].forEach(s=>{ h+='<div style="padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;">'+esc_(s.material)+(s.note?(' <span class="t-cap">· '+esc_(s.note)+'</span>'):'')+'</div>'; }); h+='</div>'; });
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
 
 async function renderOwnerHome(){
