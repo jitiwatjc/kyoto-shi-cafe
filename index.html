@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260625-214618">
+<meta name="app-build" content="20260626-143912">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -511,11 +511,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="card" id="owner-roster-card" style="cursor:pointer;border:1.5px solid var(--blue);" onclick="go('s-owner-roster')">
       <div id="owner-roster-home"><div class="t-cap">กำลังโหลด...</div></div>
     </div>
-    <div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;margin-bottom:4px;" onclick="go('s-sw-owner')">
-      <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧹</div>
-      <div class="lcol"><div class="ltitle">Sidework · ความเรียบร้อยร้าน</div><div class="lsub">ตั้งงาน · ดูงานเสร็จ · อันดับ</div></div>
-      <span style="color:var(--ink3);">›</span>
-    </div>
+    <div id="owner-sidework" style="margin-bottom:4px;"></div>
 
     <div class="t-sect" style="margin-top:4px;">Clock In วันนี้</div>
     <div class="stat-grid">
@@ -713,6 +709,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     </div>
     <div id="home-next-shift" style="margin-top:16px;"></div>
     <div id="home-breaks" style="margin-top:14px;"></div>
+    <div id="home-sidework" style="margin-top:14px;"></div>
     <div class="t-sect">เมนูหลัก</div>
     <div class="scroll-x">
       <div class="qcard" onclick="openStore()" style="border:1.5px solid var(--navy);"><div class="qcard-icon">🧾</div><div class="qcard-title">บัญชี</div><div class="qcard-sub">รายได้/เบรค/รายจ่าย</div></div>
@@ -2204,6 +2201,7 @@ async function renderEmpHome(){
   // กะถัดไป + เบรคที่ต้องส่ง (สรุปบนหน้า home)
   renderHomeNextShift();
   renderHomePendingBreaks();
+  renderHomeSidework();
 }
 
 // กะถัดไป — วันทำงานถัดไป ≥ วันนี้ จากตารางที่อนุมัติแล้ว
@@ -3557,10 +3555,9 @@ let _swBoard=null, _swSetupKitchen='บาร์น้ำ', _swStaff=[], _swHelp
 const SW_DOW_TH={'0':'อา','1':'จ','2':'อ','3':'พ','4':'พฤ','5':'ศ','6':'ส'};
 function swDaysLabel_(days){ if(!days||days==='*') return 'ทุกวัน'; return String(days).split(',').map(d=>SW_DOW_TH[d.trim()]||'').filter(Boolean).join(' '); }
 function shortDeadline_(s){ if(!s) return ''; const p=String(s).split(' '); const d=(p[0]||'').split('-'); return (d[2]||'')+'/'+(d[1]||'')+(p[1]?' '+p[1]:''); }
-function swTierChange(){ const tier=(document.getElementById('sw-new-tier')||{}).value||'daily';
-  const show=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'':'none';};
-  show('sw-days-row',tier==='daily'); show('sw-busy-row',tier==='daily'); show('sw-deadline-row',tier==='once'); }
-function swAssigneeChange(){ const a=(document.getElementById('sw-new-assignee')||{}).value||''; const m=document.getElementById('sw-multi-row'); if(m) m.style.display=a?'none':'flex'; }
+function swPickCat(el,cat){ const h=document.getElementById('sw-new-cat'); if(h)h.value=cat; document.querySelectorAll('#sw-cat-chips .chip').forEach(c=>{c.classList.toggle('chip-navy',c===el);c.classList.toggle('chip-gray',c!==el);}); }
+function swPickWhen(el,mode){ const h=document.getElementById('sw-new-when'); if(h)h.value=mode; document.querySelectorAll('[data-when]').forEach(c=>{c.classList.toggle('chip-navy',c===el);c.classList.toggle('chip-gray',c!==el);}); const sh=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'':'none';}; sh('sw-days-row',mode==='somedays'); sh('sw-deadline-row',mode==='once'); }
+function swPickWho(el,mode){ const h=document.getElementById('sw-new-who'); if(h)h.value=mode; document.querySelectorAll('.sw-who-opt').forEach(o=>{const on=o===el;o.style.borderColor=on?'var(--navy)':'var(--border)';const r=o.querySelector('.sw-radio');if(r){r.style.background=on?'var(--navy)':'transparent';r.style.borderColor=on?'var(--navy)':'var(--border)';}}); const a=document.getElementById('sw-assignee-row'); if(a)a.style.display=mode==='person'?'':'none'; }
 function swkTab(which){
   const b=document.getElementById('swk-board'), rk=document.getElementById('swk-rank'); if(!b)return;
   b.style.display=which==='board'?'block':'none'; rk.style.display=which==='rank'?'block':'none';
@@ -3578,9 +3575,9 @@ async function renderSwBoard(){
 }
 function swTaskRow_(t){
   const tierTxt=t.tier==='weekly'?'สัปดาห์':(t.tier==='once'?('ครั้งเดียว'+(t.deadline?' · ถึง '+shortDeadline_(t.deadline):'')):'วัน');
-  const multiTag=t.multi?' <span style="font-size:10px;color:var(--blue);font-weight:600;">👥</span>':'';
+  const multiTag=t.multi?' <span style="font-size:10px;color:var(--blue);font-weight:600;">👥 ช่วยกัน</span>':'';
   if(t.done) return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);'+(t.mine?'background:var(--mine-bg);':'opacity:.7;')+'"><span style="color:var(--green);font-size:16px;">✓</span><span style="flex:1;font-size:13px;text-decoration:line-through;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+tierTxt+'</span></span><span style="font-size:11px;color:'+(t.mine?'var(--green)':'var(--ink3)')+';font-weight:'+(t.mine?'600':'400')+';">โดย '+(t.mine?'คุณ':esc_(t.doneByName))+'</span></div>';
-  const btn=t.active?('<button class="btn btn-sm btn-navy" onclick="swDo(\''+t.id+'\','+(t.multi?'true':'false')+')">'+(t.tier==='weekly'?'หยิบ':'ทำ')+' +'+t.points+'</button>'):'<span class="chip chip-gray" style="font-size:10px;">'+(t.tier==='once'?'หมดเขต':'รอบปิด')+'</span>';
+  const btn=t.active?('<button class="btn btn-sm btn-navy" onclick="swDo(\''+t.id+'\','+(t.multi?'true':'false')+')">'+'ทำ'+' +'+t.points+'</button>'):'<span class="chip chip-gray" style="font-size:10px;">'+(t.tier==='once'?'หมดเขต':'รอบปิด')+'</span>';
   return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);"><span style="width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;"></span><span style="flex:1;font-size:13px;">'+esc_(t.name)+' <span style="font-size:10px;color:var(--ink3);">· '+tierTxt+'</span>'+multiTag+'</span>'+btn+'</div>';
 }
 function swSectionHtml_(title,icon,arr){
@@ -3591,7 +3588,7 @@ function swSectionHtml_(title,icon,arr){
   return h+'</div>';
 }
 function swBoardHtml(d){
-  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div style="font-size:15px;font-weight:700;">ครัว'+esc_(d.kitchen||'—')+'</div>'+(d.isBusy?'<span class="chip chip-amber" style="font-size:10px;">โหมดเบา (วันยุ่ง)</span>':'<span class="chip chip-blue" style="font-size:10px;">โหมดเต็ม</span>')+'</div>';
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div style="font-size:15px;font-weight:700;">ครัว'+esc_(d.kitchen||'—')+'</div></div>';
   h+='<div style="display:flex;gap:8px;margin-bottom:6px;"><div class="card" style="flex:1;text-align:center;padding:8px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:16px;font-weight:700;color:var(--amber);">'+d.myMonth+'</div><div class="t-cap">เดือนนี้ (#'+d.myMonthRank+')</div></div><div class="card" style="flex:1;text-align:center;padding:8px;margin:0;box-shadow:none;border:1px solid var(--border);"><div style="font-size:16px;font-weight:700;color:var(--navy);">'+d.myAllTime+'</div><div class="t-cap">สะสม (#'+d.myAllRank+')</div></div></div>';
   if(!d.dailyActive) h+='<div class="alert alert-warn" style="font-size:12px;">รอบวันปิด (เริ่มใหม่ 06:00) — กดทำไม่ได้</div>';
   if(!d.kitchen) h+='<div class="alert alert-info" style="font-size:12px;">ยังไม่ได้ตั้งครัวให้คุณ — แจ้ง owner ตั้งครัวในโปรไฟล์</div>';
@@ -3612,7 +3609,7 @@ function swSubmit(taskId,helpers){
   if(helpers&&helpers.length) payload.helpers=JSON.stringify(helpers);
   toast('กำลังบันทึก...');
   callAPI(payload).then(r=>{
-    if(r&&r.ok){ const pt=(r.share!=null?r.share:r.points); toast('✓ +'+pt+' แต้ม'+(r.n>1?(' (หาร '+r.n+' คน)'):'')); renderSwBoard(); }
+    if(r&&r.ok){ const pt=(r.share!=null?r.share:r.points); toast('✓ +'+pt+' แต้ม'+(r.n>1?(' (หาร '+r.n+' คน)'):'')); renderSwBoard(); renderHomeSidework(); }
     else toast('⚠ '+((r&&r.error)||'ทำไม่ได้'));
   }).catch(()=>toast('เชื่อมต่อไม่ได้'));
 }
@@ -3674,7 +3671,6 @@ async function renderSwDash(){
   try{ const r=await callAPI({action:'getSideworkDashboard'});
     if(!r||!r.ok){el.innerHTML='<div class="alert alert-warn" style="font-size:13px;">โหลดไม่ได้ — '+((r&&r.error)||'อัปเดต backend ก่อน')+'</div>';return;}
     const d=r.data; let h='';
-    if(d.isBusy) h+='<div class="card" style="padding:9px 12px;background:var(--amber-bg);border:none;box-shadow:none;font-size:12px;color:var(--amber);margin-bottom:10px;">🔥 วันนี้วันยุ่ง (โหมดเบา) — งานน้อยเป็นปกติ</div>';
     h+='<div class="t-sect" style="margin-top:0;">งานประจำวันเสร็จ · แยกครัว</div><div class="card" style="padding:10px 14px;">';
     (d.kitchens||[]).forEach(k=>{const pct=k.coreTotal?Math.round(k.coreDone/k.coreTotal*100):0;const col=pct>=100?'var(--green)':(pct>=60?'var(--blue)':'var(--amber)');
       h+='<div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><span style="width:64px;font-size:12px;">'+esc_(k.kitchen)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:99px;"><div style="width:'+pct+'%;height:7px;background:'+col+';border-radius:99px;"></div></div><span style="font-size:11px;width:36px;text-align:right;">'+k.coreDone+'/'+k.coreTotal+'</span></div>';});
@@ -3683,6 +3679,42 @@ async function renderSwDash(){
   }catch(e){el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>';}
 }
 function swGiveCredit(name){ toast('✅ มอบเครดิตสินค้า ฿500 ให้ '+name+' (บันทึก/แจ้งนอกระบบ)'); }
+async function renderHomeSidework(){
+  const el=document.getElementById('home-sidework'); if(!el||!currentUser)return;
+  try{
+    const r=await callAPI({action:'getSideworkBoard',empId:currentUser.empId});
+    if(!r||!r.ok){ el.innerHTML=''; return; }
+    const d=r.data; _swBoard=d;
+    (d.personal||[]).forEach(t=>t.__sec='📌'); (d.own||[]).forEach(t=>t.__sec='🟦'); (d.central||[]).forEach(t=>t.__sec='🤝');
+    const all=[].concat(d.personal||[],d.own||[],d.central||[]);
+    if(!all.length){ el.innerHTML=''; return; }
+    const doneN=all.filter(t=>t.done).length;
+    const open=all.filter(t=>t.active&&!t.done);
+    let h='<div class="card" style="padding:13px 15px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:14px;font-weight:700;">🧹 Sidework วันนี้</div><span class="t-cap" style="color:var(--info);cursor:pointer;" onclick="go(\'s-sidework\')">ดูบอร์ด ›</span></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:'+(open.length?'4px':'0')+';"><span class="chip chip-gray" style="font-size:11px;">เสร็จ '+doneN+'/'+all.length+'</span><span class="chip chip-amber" style="font-size:11px;">อันดับ #'+(d.myMonthRank||'-')+' · '+(d.myMonth||0)+' แต้ม</span></div>';
+    if(open.length){
+      h+=open.slice(0,3).map(t=>'<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-size:14px;">'+(t.__sec||'•')+'</span><span style="flex:1;font-size:13px;">'+esc_(t.name)+(t.multi?' <span style="font-size:10px;color:var(--blue);font-weight:600;">👥</span>':'')+'</span><button class="btn btn-sm btn-navy" onclick="swDo(\''+t.id+'\','+(t.multi?'true':'false')+')">ทำ +'+t.points+'</button></div>').join('');
+      if(open.length>3) h+='<div class="t-cap" style="text-align:center;margin-top:6px;">+ อีก '+(open.length-3)+' งาน — ดูบอร์ด</div>';
+    } else { h+='<div class="t-cap" style="text-align:center;padding:10px 0;">ทำครบแล้ววันนี้ 🎉</div>'; }
+    h+='</div>';
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML=''; }
+}
+async function renderOwnerSidework(){
+  const el=document.getElementById('owner-sidework'); if(!el)return;
+  const fb='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;" onclick="go(\'s-sw-owner\')"><div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧹</div><div class="lcol"><div class="ltitle">Sidework · ความเรียบร้อยร้าน</div><div class="lsub">ตั้งงาน · ดูงานเสร็จ · อันดับ</div></div><span style="color:var(--ink3);">›</span></div>';
+  try{
+    const r=await callAPI({action:'getSideworkDashboard'});
+    if(!r||!r.ok||!r.data){ el.innerHTML=fb; return; }
+    const d=r.data;
+    const bars=(d.kitchens||[]).map(k=>{const pct=k.coreTotal?Math.round(k.coreDone/k.coreTotal*100):0;const col=pct>=100?'var(--green)':(pct>=60?'var(--blue)':'var(--amber)');return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><span style="width:64px;font-size:12px;">'+esc_(k.kitchen)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:99px;"><div style="width:'+pct+'%;height:7px;background:'+col+';border-radius:99px;"></div></div><span style="font-size:11px;width:34px;text-align:right;">'+k.coreDone+'/'+k.coreTotal+'</span></div>';}).join('');
+    const lb=(d.leaderboard&&d.leaderboard.month)||[];
+    const top=lb.slice(0,2).map((e,i)=>'<div style="display:flex;align-items:center;gap:9px;padding:5px 0;"><span style="width:18px;text-align:center;">'+(i===0?'🥇':'2')+'</span><span style="flex:1;font-size:12.5px;font-weight:'+(i===0?'600':'400')+';">'+esc_(e.name)+'</span><span class="t-cap">'+e.points+'</span></div>').join('');
+    if(!bars&&!top){ el.innerHTML=fb; return; }
+    el.innerHTML='<div class="card" style="cursor:pointer;" onclick="go(\'s-sw-owner\')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:14px;font-weight:700;">🧹 Sidework · ความเรียบร้อย</div><span class="t-cap" style="color:var(--info);">ดูทั้งหมด ›</span></div>'+(bars||'')+(top?('<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:6px;"><div class="t-cap" style="margin-bottom:2px;">อันดับเดือนนี้ · #1 ได้ ฿500</div>'+top+'</div>'):'')+'</div>';
+  }catch(e){ el.innerHTML=fb; }
+}
 async function renderSwSetup(){
   const el=document.getElementById('swo-setup'); if(!el)return;
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
@@ -3690,7 +3722,8 @@ async function renderSwSetup(){
     if(!_swStaff.length){ const e=await callAPI({action:'getEmployees'}); if(e&&e.ok) _swStaff=(e.data||[]).filter(s=>String(s.position||'').toLowerCase().indexOf('owner')<0); }
     const r=await callAPI({action:'getSideworkTasks',kitchen:_swSetupKitchen});
     el.innerHTML=swSetupHtml((r&&r.data)||[]);
-    swTierChange(); swAssigneeChange();
+    const _we=document.querySelector('[data-when="everyday"]'); if(_we) swPickWhen(_we,'everyday');
+    const _wo=document.querySelector('.sw-who-opt[data-who="none"]'); if(_wo) swPickWho(_wo,'none');
   }catch(e){el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>';}
 }
 function swPickKitchen(k){_swSetupKitchen=k;renderSwSetup();}
@@ -3703,34 +3736,51 @@ function swSetupHtml(tasks){
     const tierChip=t.tier==='weekly'?'<span class="chip chip-amber" style="font-size:10px;">รายสัปดาห์</span>'
       :t.tier==='once'?'<span class="chip chip-blue" style="font-size:10px;">ครั้งเดียว'+(t.deadline?' · ถึง '+esc_(shortDeadline_(t.deadline)):'')+'</span>'
       :'<span class="chip chip-red" style="font-size:10px;">ประจำวัน · '+swDaysLabel_(t.days)+'</span>';
-    h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(t.name)+'</span><span style="font-size:15px;cursor:pointer;" onclick="swDelTask(\''+t.id+'\','+(t.doneThisCycle?'true':'false')+')">🗑</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">'+tierChip+(t.assignee?'<span class="chip chip-navy" style="font-size:10px;">👤 '+esc_(t.assigneeName||'')+'</span>':'')+(t.multi?'<span class="chip chip-blue" style="font-size:10px;">👥 ช่วยกัน</span>':'')+(t.category?'<span class="chip chip-gray" style="font-size:10px;">'+esc_(t.category)+'</span>':'')+'<span class="chip chip-gray" style="font-size:10px;">+'+t.points+'</span>'+(t.busyInclude?'<span class="chip chip-amber" style="font-size:10px;">ทำวันยุ่ง</span>':'')+(t.doneThisCycle?'<span class="chip chip-green" style="font-size:10px;">ทำรอบนี้แล้ว · ลบไม่ได้</span>':'')+'</div></div>';
+    h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(t.name)+'</span><span style="font-size:15px;cursor:pointer;" onclick="swDelTask(\''+t.id+'\','+(t.doneThisCycle?'true':'false')+')">🗑</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">'+tierChip+(t.assignee?'<span class="chip chip-navy" style="font-size:10px;">👤 '+esc_(t.assigneeName||'')+'</span>':'')+(t.multi?'<span class="chip chip-blue" style="font-size:10px;">👥 ช่วยกัน</span>':'')+(t.category?'<span class="chip chip-gray" style="font-size:10px;">'+esc_(t.category)+'</span>':'')+'<span class="chip chip-gray" style="font-size:10px;">+'+t.points+'</span>'+(t.doneThisCycle?'<span class="chip chip-green" style="font-size:10px;">ทำรอบนี้แล้ว · ลบไม่ได้</span>':'')+'</div></div>';
   });
   const dayBoxes=[['1','จ'],['2','อ'],['3','พ'],['4','พฤ'],['5','ศ'],['6','ส'],['0','อา']].map(d=>'<label style="display:inline-flex;align-items:center;gap:3px;font-size:12px;border:1px solid var(--border);border-radius:8px;padding:5px 9px;cursor:pointer;"><input type="checkbox" class="sw-day" value="'+d[0]+'" checked>'+d[1]+'</label>').join('');
-  const staffOpts='<option value="">— ทั้งครัว/ส่วนกลาง —</option>'+_swStaff.map(s=>'<option value="'+esc_(s.id)+'">'+esc_(s.nickname||s.name||s.id)+'</option>').join('');
-  h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มงานใหม่ ("'+_swSetupKitchen+'")</div>'
-    +'<input type="text" class="fi" id="sw-new-name" placeholder="ชื่องาน" style="margin-bottom:8px;">'
-    +'<div class="fg2" style="margin-bottom:8px;"><select class="fi fi-sel" id="sw-new-tier" onchange="swTierChange()"><option value="daily">ประจำวัน</option><option value="weekly">รายสัปดาห์</option><option value="once">ครั้งเดียว</option></select><input type="number" class="fi" id="sw-new-points" value="1" placeholder="แต้ม"></div>'
-    +'<div id="sw-days-row" style="margin-bottom:8px;"><div class="t-label" style="margin-bottom:5px;">ทำวันไหนบ้าง</div><div style="display:flex;gap:5px;flex-wrap:wrap;">'+dayBoxes+'</div></div>'
-    +'<div id="sw-deadline-row" style="margin-bottom:8px;display:none;"><div class="t-label" style="margin-bottom:5px;">หมดเขต (วัน+เวลา)</div><input type="datetime-local" class="fi" id="sw-new-deadline"></div>'
-    +'<div style="margin-bottom:8px;"><div class="t-label" style="margin-bottom:5px;">มอบหมายให้ (ถ้าระบุ = ทำคนเดียว)</div><select class="fi fi-sel" id="sw-new-assignee" onchange="swAssigneeChange()">'+staffOpts+'</select></div>'
-    +'<input type="text" class="fi" id="sw-new-cat" placeholder="หมวด (สะอาด/บำรุง/พัฒนา)" style="margin-bottom:8px;">'
-    +'<label id="sw-busy-row" style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;"><input type="checkbox" id="sw-new-busy"> ทำในวันยุ่งด้วย (เสาร์อาทิตย์/วันหยุด)</label>'
-    +'<label id="sw-multi-row" style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;"><input type="checkbox" id="sw-new-multi"> ทำได้หลายคน — หารแต้มเท่ากัน</label>'
-    +'<button class="btn btn-success btn-full" id="sw-save-btn" onclick="swSaveTask()">บันทึกงาน</button></div>';
+  const isCentral=_swSetupKitchen==='ส่วนกลาง';
+  const kStaff=isCentral?[]:_swStaff.filter(s=>String(s.kitchen||'')===_swSetupKitchen);
+  const staffOpts='<option value="">— เลือกคน —</option>'+kStaff.map(s=>'<option value="'+esc_(s.id)+'">'+esc_(s.nickname||s.name||s.id)+'</option>').join('');
+  const catChips=['สะอาด','บำรุง','พัฒนา'].map((c,i)=>'<span class="chip '+(i===0?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;" onclick="swPickCat(this,\''+c+'\')">'+c+'</span>').join('');
+  const whenChip=(m,l)=>'<span class="chip '+(m==='everyday'?'chip-navy':'chip-gray')+'" data-when="'+m+'" style="cursor:pointer;font-size:12px;padding:6px 12px;" onclick="swPickWhen(this,\''+m+'\')">'+l+'</span>';
+  const whoRow=(m,l,extra)=>'<div class="sw-who-opt" data-who="'+m+'" onclick="swPickWho(this,\''+m+'\')" style="display:flex;align-items:center;gap:9px;border:1px solid var(--border);border-radius:8px;padding:10px 11px;margin-bottom:7px;cursor:pointer;font-size:12.5px;"><span class="sw-radio" style="width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;box-sizing:border-box;"></span><span style="flex:1;">'+l+'</span>'+(extra||'')+'</div>';
+  h+='<div class="card" style="padding:14px;border:1.5px solid var(--blue);margin-top:6px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-size:13px;font-weight:700;color:var(--navy);">เพิ่มงานใหม่</div><span class="chip chip-navy" style="font-size:11px;">'+esc_(_swSetupKitchen)+'</span></div>'
+    +'<div class="t-label" style="margin-bottom:5px;">1 · ชื่องาน</div>'
+    +'<input type="text" class="fi" id="sw-new-name" placeholder="เช่น ล้างถังน้ำเครื่องชง" style="margin-bottom:12px;">'
+    +'<div class="t-label" style="margin-bottom:5px;">2 · หมวด + แต้ม</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;"><div id="sw-cat-chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;">'+catChips+'</div><input type="number" class="fi" id="sw-new-points" value="1" style="width:62px;flex-shrink:0;" placeholder="แต้ม"></div>'
+    +'<input type="hidden" id="sw-new-cat" value="สะอาด">'
+    +'<div class="t-label" style="margin-bottom:5px;">3 · เมื่อไหร่</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+whenChip('everyday','ทุกวัน')+whenChip('somedays','บางวัน')+whenChip('weekly','รายสัปดาห์')+whenChip('once','ครั้งเดียว')+'</div>'
+    +'<input type="hidden" id="sw-new-when" value="everyday">'
+    +'<div id="sw-days-row" style="margin-bottom:12px;display:none;"><div style="display:flex;gap:5px;flex-wrap:wrap;">'+dayBoxes+'</div></div>'
+    +'<div id="sw-deadline-row" style="margin-bottom:12px;display:none;"><input type="datetime-local" class="fi" id="sw-new-deadline"></div>'
+    +'<div class="t-label" style="margin-bottom:5px;">4 · ใครทำ</div>'
+    +whoRow('none','ไม่ระบุคน')
+    +(isCentral?'':whoRow('person','ระบุคน','<span style="color:var(--ink3);font-size:14px;">▾</span>'))
+    +'<div id="sw-assignee-row" style="margin:-3px 0 8px;display:none;"><select class="fi fi-sel" id="sw-new-assignee">'+staffOpts+'</select></div>'
+    +whoRow('multi','ทำได้หลายคน · หารแต้ม')
+    +'<input type="hidden" id="sw-new-who" value="none">'
+    +'<button class="btn btn-success btn-full" id="sw-save-btn" style="margin-top:8px;" onclick="swSaveTask()">บันทึกงาน</button></div>';
   return h;
 }
 function swSaveTask(){
   const name=raw_('sw-new-name'); if(!name){toast('ใส่ชื่องาน');return;}
-  const tier=raw_('sw-new-tier')||'daily';
-  let days='*';
-  if(tier==='daily'){ const ds=[].slice.call(document.querySelectorAll('.sw-day')).filter(c=>c.checked).map(c=>c.value); if(!ds.length){toast('เลือกวันอย่างน้อย 1 วัน');return;} days=ds.join(','); }
-  let deadline='';
-  if(tier==='once'){ const dv=raw_('sw-new-deadline'); if(!dv){toast('ใส่วัน+เวลาหมดเขต');return;} deadline=dv.replace('T',' ').slice(0,16); }
-  const assignee=raw_('sw-new-assignee')||'';
-  const multi=((!assignee)&&(document.getElementById('sw-new-multi')||{}).checked)?'true':'false';
+  const when=raw_('sw-new-when')||'everyday';
+  let tier='daily', days='*', deadline='';
+  if(when==='everyday'){ tier='daily'; days='1,2,3,4,5,6,0'; }
+  else if(when==='somedays'){ tier='daily'; const ds=[].slice.call(document.querySelectorAll('.sw-day')).filter(c=>c.checked).map(c=>c.value); if(!ds.length){toast('เลือกวันอย่างน้อย 1 วัน');return;} days=ds.join(','); }
+  else if(when==='weekly'){ tier='weekly'; }
+  else if(when==='once'){ const dv=raw_('sw-new-deadline'); if(!dv){toast('ใส่วัน+เวลาหมดเขต');return;} deadline=dv.replace('T',' ').slice(0,16); }
+  const who=raw_('sw-new-who')||'none';
+  let assignee='', multi='false';
+  if(who==='person'){ assignee=raw_('sw-new-assignee')||''; if(!assignee){toast('เลือกคนที่มอบหมาย');return;} }
+  else if(who==='multi'){ multi='true'; }
   const btn=document.getElementById('sw-save-btn'); if(btn){btn.disabled=true;btn.textContent='กำลังบันทึก...';}
   callAPI({action:'saveSideworkTask',kitchen:_swSetupKitchen,name:name,tier:tier,points:raw_('sw-new-points')||1,category:raw_('sw-new-cat'),
-    busyInclude:(document.getElementById('sw-new-busy')||{}).checked?'true':'false',days:days,deadline:deadline,assignee:assignee,multi:multi})
+    days:days,deadline:deadline,assignee:assignee,multi:multi})
     .then(r=>{ if(r&&r.ok){toast('เพิ่มงานแล้ว');renderSwSetup();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));if(btn){btn.disabled=false;btn.textContent='บันทึกงาน';}} })
     .catch(()=>{toast('เชื่อมต่อไม่ได้');if(btn){btn.disabled=false;btn.textContent='บันทึกงาน';}});
 }
@@ -3754,6 +3804,7 @@ async function renderOwnerHome(){
   if(avatarEl)avatarEl.textContent=nick.charAt(0).toUpperCase();
 
   renderOwnerRosterHome();
+  renderOwnerSidework();
 
   // Reset pending badges
   ['emp','sched','leave','ot'].forEach(k=>{
