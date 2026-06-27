@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260627-084957">
+<meta name="app-build" content="20260627-135241">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -3879,7 +3879,9 @@ async function renderPrepLog(){
         +'<div style="display:flex;gap:6px;margin-top:8px;">'
           +'<span class="pl-ho chip '+(p.handover?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:11px;padding:4px 10px;" data-on="'+(p.handover?'1':'0')+'" onclick="prepToggleHO(this)">ผลิตพรุ่งนี้</span>'
           +'<span class="pl-rd chip '+(p.ready===false?'':'chip-navy')+'" style="cursor:pointer;font-size:11px;padding:4px 10px;color:'+(p.ready===false?'var(--red)':'')+';" data-on="'+(p.ready===false?'0':'1')+'" onclick="prepToggleRD(this)">'+(p.ready===false?'ไม่พร้อมขาย':'พร้อมขาย')+'</span>'
-        +'</div></div>';
+        +'</div>'
+        +'<input type="text" class="fi pl-note" value="'+esc_(p.note||'')+'" placeholder="โน้ตส่งต่อกะถัดไป (ถ้ามี)" style="margin-top:8px;font-size:12px;padding:8px;">'
+        +'</div>';
     });
     h+='<div class="t-sect">วัตถุดิบหมด</div><div id="prep-short-list">';
     shorts.forEach(s=>{ h+=prepShortRow_(s.material); });
@@ -3898,7 +3900,7 @@ function prepSaveLog(btn){
   document.querySelectorAll('#prep-log-body [data-pid]').forEach(c=>{
     items.push({ itemId:c.getAttribute('data-pid'), itemName:c.getAttribute('data-pname'),
       produced:c.querySelector('.pl-prod').value||0, used:c.querySelector('.pl-used').value||0, left:c.querySelector('.pl-left').value||0,
-      handover:c.querySelector('.pl-ho').getAttribute('data-on')==='1', ready:c.querySelector('.pl-rd').getAttribute('data-on')==='1' });
+      handover:c.querySelector('.pl-ho').getAttribute('data-on')==='1', ready:c.querySelector('.pl-rd').getAttribute('data-on')==='1', note:(c.querySelector('.pl-note')||{}).value||'' });
   });
   const shortages=[]; document.querySelectorAll('#prep-log-body .pl-short-name').forEach(s=>shortages.push({material:s.textContent}));
   const done=btnBusy_(btn,'กำลังบันทึก…');
@@ -3914,7 +3916,7 @@ async function renderPrepMorning(){
     const d=(r&&r.data)||{}; const toPrep=d.toPrep||[];
     let h='<div class="t-cap" style="margin-bottom:10px;">'+esc_(kitchen||'-')+(d.fromDate?(' · จากปิดร้าน '+esc_(d.fromDate)):'')+'</div>';
     if(!toPrep.length){ h+='<div class="t-cap" style="text-align:center;padding:18px 0;">ไม่มีของต้องเตรียมวันนี้ 🎉</div>'; }
-    else { toPrep.forEach(it=>{ const remake=!it.ready; h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(it.itemName)+'</span><span class="chip '+(remake?'chip-amber':'chip-blue')+'" style="font-size:10px;">'+(remake?'ทำใหม่':'ต้องผลิต')+'</span></div><div class="t-cap" style="margin-top:3px;">'+(remake?'เมื่อวานไม่พร้อมขาย':('เหลือเมื่อวาน '+it.left))+'</div></div>'; }); }
+    else { toPrep.forEach(it=>{ const remake=!it.ready; h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(it.itemName)+'</span><span class="chip '+(remake?'chip-amber':'chip-blue')+'" style="font-size:10px;">'+(remake?'ทำใหม่':'ต้องผลิต')+'</span></div><div class="t-cap" style="margin-top:3px;">'+(remake?'เมื่อวานไม่พร้อมขาย':('เหลือเมื่อวาน '+it.left))+'</div>'+(it.note?('<div class="t-cap" style="margin-top:3px;color:var(--navy);">📝 '+esc_(it.note)+'</div>'):'')+'</div>'; }); }
     h+='<div class="alert alert-info" style="font-size:11px;margin-top:8px;">จำนวนใช้ดุลพินิจ · Phase 2 จะแนะนำ min ให้</div>';
     h+='<button class="btn btn-tan btn-full" style="margin-top:12px;" onclick="go(\'s-prep-log\')">ลงของเตรียม (ตอนปิดร้าน)</button>';
     h+='<button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="go(\'s-prep-shortage\')">วัตถุดิบหมดทุกครัว</button>';
