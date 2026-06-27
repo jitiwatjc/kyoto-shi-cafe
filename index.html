@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260627-000955">
+<meta name="app-build" content="20260627-082923">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -175,6 +175,9 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 .clock-gps{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;opacity:.75;position:relative;z-index:1;}
 .gps-pulse{width:7px;height:7px;border-radius:50%;background:#6EC97A;animation:gpsp 1.5s infinite;}
 @keyframes gpsp{0%,100%{opacity:1}50%{opacity:.3;transform:scale(1.3)}}
+@keyframes kspin{to{transform:rotate(360deg)}}
+.btn-spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:kspin .6s linear infinite;vertical-align:-2px;}
+.btn:disabled{cursor:default;opacity:.65;}
 
 .gps-map{background:linear-gradient(140deg,#D4E8D4,#BCDABC);border-radius:var(--r);height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;position:relative;overflow:hidden;}
 .gps-ring{position:absolute;width:72px;height:72px;border-radius:50%;border:2px dashed rgba(31,107,66,.5);background:rgba(31,107,66,.08);}
@@ -3824,6 +3827,7 @@ function swDelTask(id,doneThisCycle){
 const PREP_KITCHENS=['บาร์น้ำ','เบเกอรี่','ครัวอาหาร'];
 const PREP_UNITS=['ลิตร','ถาด','ขวด','ชิ้น','กก.','กรัม','แพ็ค','อัน'];
 let _prepSetupKitchen='บาร์น้ำ';
+function btnBusy_(btn,txt){ if(!btn) return function(){}; const oh=btn.innerHTML, od=btn.disabled; btn.disabled=true; btn.style.opacity='.65'; btn.innerHTML='<span class="btn-spin"></span> '+(txt||'กำลังบันทึก…'); return function(){ try{btn.disabled=od;btn.style.opacity='';btn.innerHTML=oh;}catch(e){} }; }
 async function renderPrepSetup(){
   const el=document.getElementById('prep-setup-body'); if(!el)return;
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:18px 0;">กำลังโหลด...</div>';
@@ -3840,15 +3844,15 @@ async function renderPrepSetup(){
     const unitOpts=PREP_UNITS.map(u=>'<option>'+u+'</option>').join('');
     h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มของเตรียม ("'+esc_(_prepSetupKitchen)+'")</div>'
       +'<input type="text" class="fi" id="prep-new-name" placeholder="ชื่อของเตรียม" style="margin-bottom:8px;">'
-      +'<div style="display:flex;gap:6px;"><select class="fi fi-sel" id="prep-new-unit" style="flex:1;">'+unitOpts+'</select><button class="btn btn-success" style="padding:8px 18px;" onclick="prepAddItem()">เพิ่ม</button></div></div>';
+      +'<div style="display:flex;gap:6px;"><select class="fi fi-sel" id="prep-new-unit" style="flex:1;">'+unitOpts+'</select><button class="btn btn-success" style="padding:8px 18px;" onclick="prepAddItem(this)">เพิ่ม</button></div></div>';
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
 function prepPickKitchen(k){ _prepSetupKitchen=k; renderPrepSetup(); }
-function prepAddItem(){
+function prepAddItem(btn){
   const name=raw_('prep-new-name'); if(!name){toast('ใส่ชื่อ');return;}
-  toast('กำลังบันทึก...');
-  callAPI({action:'savePrepItem',kitchen:_prepSetupKitchen,name:name,unit:raw_('prep-new-unit')||''}).then(r=>{ if(r&&r.ok){toast('เพิ่มแล้ว');renderPrepSetup();} else toast('⚠ '+((r&&r.error)||'ผิดพลาด')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+  const done=btnBusy_(btn,'กำลังเพิ่ม…');
+  callAPI({action:'savePrepItem',kitchen:_prepSetupKitchen,name:name,unit:raw_('prep-new-unit')||''}).then(r=>{ if(r&&r.ok){toast('เพิ่มแล้ว');renderPrepSetup();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));done();} }).catch(()=>{toast('เชื่อมต่อไม่ได้');done();});
 }
 function prepDelItem(id){ if(!confirm('ลบรายการนี้?'))return; callAPI({action:'deletePrepItem',id:id}).then(r=>{ if(r&&r.ok){toast('ลบแล้ว');renderPrepSetup();} else toast('⚠ ลบไม่ได้'); }).catch(()=>toast('เชื่อมต่อไม่ได้')); }
 async function renderPrepLog(){
@@ -3880,15 +3884,15 @@ async function renderPrepLog(){
     h+='<div class="t-sect">วัตถุดิบหมด</div><div id="prep-short-list">';
     shorts.forEach(s=>{ h+=prepShortRow_(s.material); });
     h+='</div><div style="display:flex;gap:6px;margin-top:6px;"><input type="text" class="fi" id="prep-short-input" placeholder="ชื่อวัตถุดิบที่หมด" style="flex:1;"><button class="btn btn-outline" style="padding:8px 16px;" onclick="prepAddShort()">+</button></div>';
-    h+='<button class="btn btn-tan btn-full" style="margin-top:14px;" onclick="prepSaveLog()">บันทึกของเตรียม</button>';
+    h+='<button class="btn btn-tan btn-full" style="margin-top:14px;" onclick="prepSaveLog(this)">บันทึกของเตรียม</button>';
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
 function prepShortRow_(m){ return '<div class="pl-short" style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);"><span style="font-size:12.5px;" class="pl-short-name">'+esc_(m)+'</span><span style="cursor:pointer;color:var(--ink3);" onclick="this.parentNode.remove()">✕</span></div>'; }
-function prepAddShort(){ const v=raw_('prep-short-input'); if(!v)return; const list=document.getElementById('prep-short-list'); if(list) list.insertAdjacentHTML('beforeend', prepShortRow_(v)); const i=document.getElementById('prep-short-input'); if(i)i.value=''; }
+function prepAddShort(){ const v=(raw_('prep-short-input')||'').trim(); if(!v)return; let dup=false; document.querySelectorAll('#prep-log-body .pl-short-name').forEach(s=>{ if(s.textContent===v) dup=true; }); if(dup){toast('มีอยู่แล้ว');} else { const list=document.getElementById('prep-short-list'); if(list) list.insertAdjacentHTML('beforeend', prepShortRow_(v)); } const i=document.getElementById('prep-short-input'); if(i)i.value=''; }
 function prepToggleHO(el){ const on=el.getAttribute('data-on')==='1'; el.setAttribute('data-on',on?'0':'1'); el.classList.toggle('chip-navy',!on); el.classList.toggle('chip-gray',on); }
 function prepToggleRD(el){ const nv=el.getAttribute('data-on')==='1'?'0':'1'; el.setAttribute('data-on',nv); el.classList.toggle('chip-navy',nv==='1'); el.textContent=nv==='1'?'พร้อมขาย':'ไม่พร้อมขาย'; el.style.color=nv==='1'?'':'var(--red)'; }
-function prepSaveLog(){
+function prepSaveLog(btn){
   const kitchen=currentUser&&currentUser.kitchen||''; if(!kitchen){toast('ไม่มีครัว');return;}
   const items=[];
   document.querySelectorAll('#prep-log-body [data-pid]').forEach(c=>{
@@ -3897,9 +3901,9 @@ function prepSaveLog(){
       handover:c.querySelector('.pl-ho').getAttribute('data-on')==='1', ready:c.querySelector('.pl-rd').getAttribute('data-on')==='1' });
   });
   const shortages=[]; document.querySelectorAll('#prep-log-body .pl-short-name').forEach(s=>shortages.push({material:s.textContent}));
-  toast('กำลังบันทึก...');
+  const done=btnBusy_(btn,'กำลังบันทึก…');
   callAPIPost({action:'savePrepLog',empId:currentUser.empId,kitchen:kitchen,items:JSON.stringify(items),shortages:JSON.stringify(shortages)})
-    .then(r=>{ if(r&&r.ok){toast('บันทึกของเตรียมแล้ว ✓'); back();} else toast('⚠ '+((r&&r.error)||'ผิดพลาด')); }).catch(()=>toast('เชื่อมต่อไม่ได้'));
+    .then(r=>{ if(r&&r.ok){toast('บันทึกของเตรียมแล้ว ✓'); back();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));done();} }).catch(()=>{toast('เชื่อมต่อไม่ได้');done();});
 }
 async function renderPrepMorning(){
   const el=document.getElementById('prep-morning-body'); if(!el||!currentUser)return;
