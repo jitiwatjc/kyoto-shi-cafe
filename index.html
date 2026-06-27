@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260627-082923">
+<meta name="app-build" content="20260627-084957">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -3805,7 +3805,7 @@ function swSaveTask(){
   if(when==='everyday'){ tier='daily'; days='1,2,3,4,5,6,0'; }
   else if(when==='somedays'){ tier='daily'; const ds=[].slice.call(document.querySelectorAll('.sw-day')).filter(c=>c.checked).map(c=>c.value); if(!ds.length){toast('เลือกวันอย่างน้อย 1 วัน');return;} days=ds.join(','); }
   else if(when==='weekly'){ tier='weekly'; }
-  else if(when==='once'){ const dv=raw_('sw-new-deadline'); if(!dv){toast('ใส่วัน+เวลาหมดเขต');return;} deadline=dv.replace('T',' ').slice(0,16); }
+  else if(when==='once'){ tier='once'; const dv=raw_('sw-new-deadline'); if(!dv){toast('ใส่วัน+เวลาหมดเขต');return;} deadline=dv.replace('T',' ').slice(0,16); }
   const who=raw_('sw-new-who')||'none';
   let assignee='', multi='false';
   if(who==='person'){ assignee=raw_('sw-new-assignee')||''; if(!assignee){toast('เลือกคนที่มอบหมาย');return;} }
