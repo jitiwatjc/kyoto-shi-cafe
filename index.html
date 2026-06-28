@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260628-175751">
+<meta name="app-build" content="20260628-181212">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -247,6 +247,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 .qcard-sub{font-size:11px;color:var(--ink3);margin-top:3px;}
 
 #toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:rgba(28,24,20,.92);backdrop-filter:blur(8px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;z-index:999;display:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+#inv-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(28,24,20,.32);backdrop-filter:blur(2px);align-items:center;justify-content:center;}
+.inv-spin-box{background:rgba(43,43,43,.94);border-radius:16px;padding:22px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.inv-spin{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:#E0563B;border-radius:50%;animation:invspin .75s linear infinite;}
+.inv-spin-box span{color:#fff;font-size:13px;font-weight:500;}
+@keyframes invspin{to{transform:rotate(360deg);}}
 
 /* ── CALENDAR ── */
 .cal-filter{display:flex;gap:8px;margin-bottom:14px;}
@@ -1450,6 +1455,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 </div>
 
 <div id="toast"></div>
+<div id="inv-overlay"><div class="inv-spin-box"><div class="inv-spin"></div><span id="inv-overlay-msg">กำลังโหลด...</span></div></div>
 
 <script>
 /* ── NAV ── */
@@ -4702,8 +4708,21 @@ const INV_FREQ={fresh:1,mid:3,dry:7};
 
 async function callInv(params){const url=new URL(INVENTORY_URL);Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));url.searchParams.set('_',Date.now());const r=await fetch(url.toString(),{cache:'no-store'});return r.json();}
 async function callInvPost(params){const body=new URLSearchParams();Object.keys(params).forEach(k=>body.set(k,params[k]==null?'':params[k]));const r=await fetch(INVENTORY_URL,{method:'POST',body});return r.json();}
-async function invGet(action,extra){ if(INV_MOCK) return invMock(action,extra||{}); return callInv(Object.assign({action,empId:currentUser?.empId||'',role:currentUser?.role||''},extra||{})); }
-async function invSubmit(action,form){ if(INV_MOCK) return invMock(action,form||{}); return callInvPost({action,payload:JSON.stringify(form||{}),empId:currentUser?.empId||'',role:currentUser?.role||''}); }
+// loading overlay (กันกดซ้ำ): ref-counted + หน่วง 150ms กัน flash ตอน cache/เร็ว
+let _invBusyN=0, _invBusyTimer=null;
+function invBusyStart(msg){ _invBusyN++; if(_invBusyN===1 && !_invBusyTimer){ _invBusyTimer=setTimeout(function(){ const o=document.getElementById('inv-overlay'); const m=document.getElementById('inv-overlay-msg'); if(m&&msg)m.textContent=msg; if(o)o.style.display='flex'; _invBusyTimer=null; },150); } }
+function invBusyEnd(){ _invBusyN=Math.max(0,_invBusyN-1); if(_invBusyN===0){ if(_invBusyTimer){clearTimeout(_invBusyTimer);_invBusyTimer=null;} const o=document.getElementById('inv-overlay'); if(o)o.style.display='none'; } }
+async function invGet(action,extra,opts){
+  opts=opts||{};
+  const run=()=> INV_MOCK ? invMock(action,extra||{}) : callInv(Object.assign({action,empId:currentUser?.empId||'',role:currentUser?.role||''},extra||{}));
+  if(opts.silent) return run();
+  invBusyStart(); try{ return await run(); } finally{ invBusyEnd(); }
+}
+async function invSubmit(action,form){
+  invBusyStart('กำลังบันทึก...');
+  try{ return INV_MOCK ? invMock(action,form||{}) : await callInvPost({action,payload:JSON.stringify(form||{}),empId:currentUser?.empId||'',role:currentUser?.role||''}); }
+  finally{ invBusyEnd(); }
+}
 
 /* ── MOCK layer (localStorage) — ใช้ก่อนต่อ backend จริง ── */
 function _invLoad(){try{return JSON.parse(localStorage.getItem('kyoto_inv_items')||'null');}catch(e){return null;}}
@@ -4776,7 +4795,7 @@ function _invFreqShort(c){ return c==='fresh'?'ทุกวัน':(c==='mid'?'2
 function _invReasonChip(r){ const m={low:['chip-red','ใกล้หมด'],'new':['chip-blue','ยังไม่นับ'],overdue:['chip-amber','เกินรอบ'],due:['chip-gray','ถึงรอบ']}; const x=m[r]||m.due; return '<span class="chip '+x[0]+'" style="font-size:10px;">'+x[1]+'</span>'; }
 function _invEss(it){ const v=it&&it.weekend_essential; return v===true||v===1||v==='1'||v==='Y'||v==='y'||v==='true'; }
 let _invCfgCache=null;
-async function _invLoadCfg(){ if(_invCfgCache)return _invCfgCache; try{ const r=await invGet('inv_config'); _invCfgCache=(r&&r.config)||{}; }catch(e){ _invCfgCache={}; } return _invCfgCache; }
+async function _invLoadCfg(){ if(_invCfgCache)return _invCfgCache; try{ const r=await invGet('inv_config',{},{silent:true}); _invCfgCache=(r&&r.config)||{}; }catch(e){ _invCfgCache={}; } return _invCfgCache; }
 function _invWeekendDays(){ const s=(_invCfgCache&&_invCfgCache.weekend_days); if(s===undefined||s===null)return [0,6]; if(String(s).trim()==='')return []; return String(s).split(',').map(x=>parseInt(x,10)).filter(x=>!isNaN(x)); }
 function _invIsWeekendToday(){ return _invWeekendDays().indexOf(new Date().getDay())>=0; }
 // บนวันหยุด: เหลือเฉพาะของจำเป็น (ติดธง) + ของใกล้หมด — เลื่อนที่เหลือไปวันธรรมดา
@@ -4787,7 +4806,7 @@ async function renderHomeStock(){
   const el=document.getElementById('home-stock'); if(!el||!currentUser)return;
   try{
     await _invLoadCfg();
-    const allItems=await _invFetchWorklist(); let wl=allItems.slice(); const weekend=_invIsWeekendToday(); if(weekend) wl=_invApplyWeekend(wl);
+    const allItems=await _invFetchWorklist(false,true); let wl=allItems.slice(); const weekend=_invIsWeekendToday(); if(weekend) wl=_invApplyWeekend(wl);
     if(!wl.length){ el.innerHTML=''; return; }
     const lowN=allItems.filter(_invIsLow).length;
     let h='<div class="card" style="padding:13px 15px;border:1.5px solid var(--amber);cursor:pointer;" onclick="go(\'s-stock-check\')">';
@@ -4801,7 +4820,7 @@ async function renderOwnerStock(){
   const el=document.getElementById('owner-stock'); if(!el)return;
   const fb='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;" onclick="go(\'s-stock\')"><div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div><div class="lcol"><div class="ltitle">สต๊อกวัตถุดิบ</div><div class="lsub">รายการ · ใกล้หมด · มูลค่า</div></div><span style="color:var(--ink3);">›</span></div>';
   try{
-    const items=await _invFetchItems(); if(!items.length){ el.innerHTML=fb; return; }
+    const items=await _invFetchItems(false,true); if(!items.length){ el.innerHTML=fb; return; }
     const low=items.filter(_invIsLow).length; const val=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
     el.innerHTML='<div class="card" style="cursor:pointer;" onclick="go(\'s-stock\')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:14px;font-weight:700;">📦 สต๊อกวัตถุดิบ</div><span class="t-cap" style="color:var(--info);">ดูทั้งหมด ›</span></div><div style="display:flex;gap:8px;"><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;">'+items.length+'</div><div class="t-cap">รายการ</div></div><div style="flex:1;background:var(--red-bg);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">'+low+'</div><div class="t-cap">ใกล้หมด</div></div><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:700;">฿'+rnd_(val)+'</div><div class="t-cap">มูลค่า</div></div></div></div>';
   }catch(e){ el.innerHTML=fb; }
@@ -4863,8 +4882,8 @@ async function invArchiveItem(id){ if(!confirm('เก็บรายการ�
 let _invChkDone=0, _invChkTotal=0, _invPending={}, _invWlMap={};
 let _invItemsCache=null, _invWlCache=null;
 const INV_CHECK_CAP=50; // จำกัดต่อรอบ กัน render หนักตอนของเยอะ (Day-0 332 ตัว)
-async function _invFetchItems(force){ if(!force && _invItemsCache) return _invItemsCache; const r=await invGet('inv_items',{status:'active'}); _invItemsCache=(r&&r.ok)?(r.items||[]):[]; return _invItemsCache; }
-async function _invFetchWorklist(force){ if(!force && _invWlCache) return _invWlCache; const r=await invGet('inv_worklist'); _invWlCache=(r&&r.ok)?(r.items||[]):[]; return _invWlCache; }
+async function _invFetchItems(force,silent){ if(!force && _invItemsCache) return _invItemsCache; const r=await invGet('inv_items',{status:'active'},{silent:!!silent}); _invItemsCache=(r&&r.ok)?(r.items||[]):[]; return _invItemsCache; }
+async function _invFetchWorklist(force,silent){ if(!force && _invWlCache) return _invWlCache; const r=await invGet('inv_worklist',{},{silent:!!silent}); _invWlCache=(r&&r.ok)?(r.items||[]):[]; return _invWlCache; }
 function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; }
 async function renderStockCheck(){
   const el=document.getElementById('stock-check-body'); if(!el)return; _invChkDone=0; _invPending={}; _invWlMap={};
