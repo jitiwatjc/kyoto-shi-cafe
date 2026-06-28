@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260628-181212">
+<meta name="app-build" content="20260628-224701">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1453,6 +1453,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ประวัติการแก้ไข</div></div>
   <div class="page"><div id="stock-audit-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
 </div>
+<div id="s-stock-dash" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ภาพรวมสต๊อก</div><button class="topbar-action" onclick="go('s-stock')">รายการ</button></div>
+  <div class="page"><div id="stock-dash-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
 
 <div id="toast"></div>
 <div id="inv-overlay"><div class="inv-spin-box"><div class="inv-spin"></div><span id="inv-overlay-msg">กำลังโหลด...</span></div></div>
@@ -1481,6 +1485,7 @@ function go(id){
   if(id==='s-stock-check'){renderStockCheck();}
   if(id==='s-stock-config'){renderStockConfig();}
   if(id==='s-stock-audit'){renderStockAudit();}
+  if(id==='s-stock-dash'){renderStockDash();}
   if(id==='s-owner-approve'){renderApprovalTabs();}
   if(id==='s-owner-emps'){renderEmpList();}
   if(id==='s-owner-export'){renderAttendanceExport();}
@@ -4818,31 +4823,38 @@ async function renderHomeStock(){
 }
 async function renderOwnerStock(){
   const el=document.getElementById('owner-stock'); if(!el)return;
-  const fb='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;" onclick="go(\'s-stock\')"><div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div><div class="lcol"><div class="ltitle">สต๊อกวัตถุดิบ</div><div class="lsub">รายการ · ใกล้หมด · มูลค่า</div></div><span style="color:var(--ink3);">›</span></div>';
+  const fb='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;" onclick="go(\'s-stock-dash\')"><div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div><div class="lcol"><div class="ltitle">สต๊อกวัตถุดิบ</div><div class="lsub">รายการ · ใกล้หมด · มูลค่า</div></div><span style="color:var(--ink3);">›</span></div>';
   try{
     const items=await _invFetchItems(false,true); if(!items.length){ el.innerHTML=fb; return; }
     const low=items.filter(_invIsLow).length; const val=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
-    el.innerHTML='<div class="card" style="cursor:pointer;" onclick="go(\'s-stock\')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:14px;font-weight:700;">📦 สต๊อกวัตถุดิบ</div><span class="t-cap" style="color:var(--info);">ดูทั้งหมด ›</span></div><div style="display:flex;gap:8px;"><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;">'+items.length+'</div><div class="t-cap">รายการ</div></div><div style="flex:1;background:var(--red-bg);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">'+low+'</div><div class="t-cap">ใกล้หมด</div></div><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:700;">฿'+rnd_(val)+'</div><div class="t-cap">มูลค่า</div></div></div></div>';
+    el.innerHTML='<div class="card" style="cursor:pointer;" onclick="go(\'s-stock-dash\')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:14px;font-weight:700;">📦 สต๊อกวัตถุดิบ</div><span class="t-cap" style="color:var(--info);">ดูภาพรวม ›</span></div><div style="display:flex;gap:8px;"><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;">'+items.length+'</div><div class="t-cap">รายการ</div></div><div style="flex:1;background:var(--red-bg);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">'+low+'</div><div class="t-cap">ใกล้หมด</div></div><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:700;">฿'+rnd_(val)+'</div><div class="t-cap">มูลค่า</div></div></div></div>';
   }catch(e){ el.innerHTML=fb; }
 }
 
 /* ── STOCK LIST ── */
-let _invFilter='all';
+let _invFilter='all', _invStationFilter='all';
 function stockSetFilter(f){ _invFilter=f; renderStockList(); }
+function stockSetStation(s){ _invStationFilter=s; renderStockList(); }
 async function renderStockList(){
   const el=document.getElementById('stock-list-body'); if(!el)return;
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     let items=await _invFetchItems();
+    const stations=[...new Set(items.map(i=>i.category).filter(Boolean))];
+    let h='';
+    if(stations.length>1){ h+='<div class="scroll-x" style="margin-bottom:8px;">'+[['all','ทุกครัว']].concat(stations.map(s=>[s,s])).map(s=>'<span onclick="stockSetStation(\''+esc_(s[0])+'\')" class="chip '+(_invStationFilter===s[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+esc_(s[1])+'</span>').join('')+'</div>'; }
     const filters=[['all','ทั้งหมด'],['low','ใกล้หมด'],['fresh','สด'],['mid','กลาง'],['dry','แห้ง']];
-    let h='<div class="scroll-x" style="margin-bottom:12px;">'+filters.map(f=>'<span onclick="stockSetFilter(\''+f[0]+'\')" class="chip '+(_invFilter===f[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+f[1]+'</span>').join('')+'</div>';
-    if(currentUser&&currentUser.role==='owner'){ h+='<div style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-config\')">⚙ ตั้งค่า</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-audit\')">ประวัติแก้ไข</button></div>'; }
-    let fil=items; if(_invFilter==='low')fil=items.filter(_invIsLow); else if(_invFilter!=='all')fil=items.filter(i=>i.freq_class===_invFilter);
-    if(!fil.length){ h+='<div style="text-align:center;padding:24px 0;"><div class="t-cap">ยังไม่มีรายการในกลุ่มนี้</div><button class="btn btn-navy btn-sm" style="margin-top:12px;" onclick="stockOpenAdd()">+ เพิ่มวัตถุดิบ</button></div>'; el.innerHTML=h; return; }
+    h+='<div class="scroll-x" style="margin-bottom:12px;">'+filters.map(f=>'<span onclick="stockSetFilter(\''+f[0]+'\')" class="chip '+(_invFilter===f[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+f[1]+'</span>').join('')+'</div>';
+    if(currentUser&&currentUser.role==='owner'){ h+='<div style="display:flex;gap:6px;margin-bottom:12px;"><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-dash\')">📊 ภาพรวม</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-config\')">⚙ ตั้งค่า</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-audit\')">ประวัติ</button></div>'; }
+    let fil=items;
+    if(_invStationFilter!=='all') fil=fil.filter(i=>i.category===_invStationFilter);
+    if(_invFilter==='low')fil=fil.filter(_invIsLow); else if(_invFilter!=='all')fil=fil.filter(i=>i.freq_class===_invFilter);
+    if(!fil.length){ h+='<div style="text-align:center;padding:24px 0;"><div class="t-cap">ไม่มีรายการในกลุ่มนี้</div><button class="btn btn-navy btn-sm" style="margin-top:12px;" onclick="stockOpenAdd()">+ เพิ่มวัตถุดิบ</button></div>'; el.innerHTML=h; return; }
     fil.sort((a,b)=>(_invIsLow(a)?0:1)-(_invIsLow(b)?0:1));
-    h+=fil.map(it=>{ const low=_invIsLow(it); const dc=_invDaysCover(it);
-      return '<div class="card" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'cursor:pointer;" onclick="stockOpenDetail(\''+it.item_id+'\')"><div style="display:flex;align-items:center;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">'+esc_(it.category||'-')+' · เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)+' · par '+rnd_(it.par)+(dc!=null?' · ~'+Math.round(dc)+' วัน':'')+'</div></div>'+(low?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':'<span class="t-cap" style="font-size:11px;">'+_invFreqShort(it.freq_class)+'</span>')+'</div></div>';
+    h+=fil.map(it=>{ const low=_invIsLow(it); const dc=_invDaysCover(it); const counted=!!it.last_count_at;
+      return '<div class="card" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'cursor:pointer;" onclick="stockOpenDetail(\''+it.item_id+'\')"><div style="display:flex;align-items:center;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">'+esc_(it.category||'-')+' · '+(counted?('เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)):'ยังไม่นับ')+(Number(it.par)>0?' · par '+rnd_(it.par):'')+(dc!=null?' · ~'+Math.round(dc)+' วัน':'')+'</div></div>'+(low?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':'<span class="t-cap" style="font-size:11px;">'+_invFreqShort(it.freq_class)+'</span>')+'</div></div>';
     }).join('');
+    h+='<div class="t-cap" style="text-align:center;padding:8px;">'+fil.length+' รายการ</div>';
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
@@ -4949,7 +4961,20 @@ function _invShortDate(iso){ if(!iso)return''; const d=new Date(iso); const p=n=
 
 /* ── ITEM DETAIL + ledger ── */
 let _invDetailId='';
-async function stockOpenDetail(id){ _invDetailId=id; go('s-stock-item'); _invLoadDetail(id); }
+function _invUpdateCacheItem(it){ if(!it)return; if(_invItemsCache){ const i=_invItemsCache.findIndex(x=>x.item_id===it.item_id); if(i>=0)_invItemsCache[i]=Object.assign({},_invItemsCache[i],it); } if(_invWlMap&&_invWlMap[it.item_id])_invWlMap[it.item_id]=Object.assign({},_invWlMap[it.item_id],it); }
+// เปิดทันทีจาก cache (ไม่รอ) แล้ว refresh เงียบๆ เบื้องหลัง → สลับ item ไม่ต้องโหลด แต่ข้อมูลสด
+async function stockOpenDetail(id){ const cached=(_invItemsCache||[]).find(x=>x.item_id===id)||(_invWlMap&&_invWlMap[id]); go('s-stock-item'); _invOpenDetail(id, cached); }
+async function _invOpenDetail(id, hint){
+  _invDetailId=id;
+  if(hint){ renderStockDetail(hint, undefined); }
+  else { const el=document.getElementById('stock-item-body'); if(el)el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>'; }
+  try{
+    const r=await invGet('inv_item',{item_id:id},{silent:!!hint});
+    if(_invDetailId!==id) return;
+    if(r&&r.ok){ _invUpdateCacheItem(r.item); renderStockDetail(r.item, r.ledger||[]); }
+    else if(!hint){ const el=document.getElementById('stock-item-body'); if(el)el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">ไม่พบรายการ</div>'; }
+  }catch(e){ if(!hint){ const el=document.getElementById('stock-item-body'); if(el)el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; } }
+}
 async function _invLoadDetail(id){ const el=document.getElementById('stock-item-body'); if(el)el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>'; try{ const r=await invGet('inv_item',{item_id:id}); if(!r.ok){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">ไม่พบรายการ</div>'; return; } renderStockDetail(r.item, r.ledger||[]); }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; } }
 function renderStockDetail(it, ledger){
   const el=document.getElementById('stock-item-body'); const low=_invIsLow(it); const dc=_invDaysCover(it); const u=_invUsage(it);
@@ -4959,14 +4984,23 @@ function renderStockDetail(it, ledger){
   h+='<div style="display:flex;gap:8px;margin-bottom:6px;"><button class="btn btn-navy btn-sm" style="flex:1;" onclick="invQuickCount(\''+it.item_id+'\')">นับตอนนี้</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="invQuickAdjust(\''+it.item_id+'\')">ปรับยอด</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="stockOpenEdit(\''+it.item_id+'\')">แก้ไข</button></div>';
   h+='<div id="inv-quick"></div>';
   h+='<div class="t-sect" style="margin-top:14px;">ประวัติการเคลื่อนไหว</div>';
-  if(!ledger||!ledger.length){ h+='<div class="t-cap" style="text-align:center;padding:16px 0;">ยังไม่มีประวัติ</div>'; }
-  else { h+='<div class="card" style="padding:0;overflow:hidden;">'+ledger.slice(0,30).map(l=>{ const ty={COUNT:['นับ','chip-blue'],OPENING:['ตั้งต้น','chip-gray'],ADJUST:['ปรับยอด','chip-amber'],WASTE:['ของเสีย','chip-red'],IN:['รับเข้า','chip-green']}[l.type]||[l.type,'chip-gray']; const hasAfter=l.qty_after!==''&&l.qty_after!=null; const val=hasAfter?('= '+rnd_(l.qty_after)):((Number(l.qty_delta)>0?'+':'')+rnd_(l.qty_delta)); return '<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span class="chip '+ty[1]+'" style="font-size:10px;">'+ty[0]+'</span><span style="flex:1;font-size:13px;">'+val+' '+esc_(it.unit)+(l.reason?(' <span class="t-cap">· '+esc_(l.reason)+'</span>'):'')+'</span><span class="t-cap">'+_invShortDate(l.ts)+'</span></div>'; }).join('')+'</div>'; }
+  h+='<div id="inv-ledger-box">'+_invLedgerBoxHtml(it, ledger)+'</div>';
   el.innerHTML=h;
 }
+function _invLedgerBoxHtml(it, ledger){
+  if(ledger===undefined) return '<div class="t-cap" style="text-align:center;padding:12px 0;">กำลังโหลดประวัติ...</div>';
+  if(!ledger||!ledger.length) return '<div class="t-cap" style="text-align:center;padding:16px 0;">ยังไม่มีประวัติ</div>';
+  return '<div class="card" style="padding:0;overflow:hidden;">'+ledger.slice(0,30).map(l=>{ const ty={COUNT:['นับ','chip-blue'],OPENING:['ตั้งต้น','chip-gray'],ADJUST:['ปรับยอด','chip-amber'],WASTE:['ของเสีย','chip-red'],IN:['รับเข้า','chip-green']}[l.type]||[l.type,'chip-gray']; const hasAfter=l.qty_after!==''&&l.qty_after!=null; const val=hasAfter?('= '+rnd_(l.qty_after)):((Number(l.qty_delta)>0?'+':'')+rnd_(l.qty_delta)); return '<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span class="chip '+ty[1]+'" style="font-size:10px;">'+ty[0]+'</span><span style="flex:1;font-size:13px;">'+val+' '+esc_(it.unit)+(l.reason?(' <span class="t-cap">· '+esc_(l.reason)+'</span>'):'')+'</span><span class="t-cap">'+_invShortDate(l.ts)+'</span></div>'; }).join('')+'</div>';
+}
+async function invLoadLedger(id){
+  const box=document.getElementById('inv-ledger-box'); if(box)box.innerHTML='<div class="t-cap" style="text-align:center;padding:12px 0;">กำลังโหลด...</div>';
+  try{ const r=await invGet('inv_item',{item_id:id},{silent:true}); if(_invDetailId!==id)return; if(box){ if(r&&r.ok) box.innerHTML=_invLedgerBoxHtml(r.item, r.ledger||[]); else box.innerHTML='<div class="t-cap" style="text-align:center;padding:12px 0;color:var(--red);">โหลดประวัติไม่ได้</div>'; } }
+  catch(e){ if(box)box.innerHTML='<div class="t-cap" style="text-align:center;padding:12px 0;color:var(--red);">โหลดประวัติไม่ได้</div>'; }
+}
 function invQuickCount(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--navy);"><label class="t-label">นับได้เท่าไร (เหลือจริง)</label><div style="display:flex;gap:8px;"><input class="fi" type="number" id="inv-quick-val" placeholder="จำนวน" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="invQuickCountSave(\''+id+'\')">บันทึก</button></div></div>'; const f=document.getElementById('inv-quick-val'); if(f)f.focus(); }
-async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('นับแล้ว ✓'); _invLoadDetail(id); } else toast('ผิดพลาด'); }
+async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('นับแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
 function invQuickAdjust(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--amber);"><label class="t-label">ปรับยอด (+เพิ่ม / −ลด)</label><div style="display:flex;gap:8px;margin-bottom:8px;"><input class="fi" type="number" id="inv-adj-val" placeholder="+/- จำนวน" style="flex:1;"><input class="fi" id="inv-adj-reason" placeholder="เหตุผล" style="flex:1.4;"></div><button class="btn btn-navy btn-sm" style="width:100%;" onclick="invAdjustSave(\''+id+'\')">บันทึกการปรับ</button></div>'; const f=document.getElementById('inv-adj-val'); if(f)f.focus(); }
-async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('ปรับยอดแล้ว ✓'); _invLoadDetail(id); } else toast('ผิดพลาด'); }
+async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('ปรับยอดแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
 
 /* ── CONFIG (owner) ── */
 async function renderStockConfig(){
@@ -4992,6 +5026,42 @@ async function renderStockAudit(){
     h+=log.map(a=>{ const act={create:['เพิ่ม','chip-green'],update:['แก้ไข','chip-amber'],archive:['เก็บเข้าคลัง','chip-gray']}[a.action]||[a.action,'chip-gray'];
       let chg=''; try{ const o=JSON.parse(a.changes||'{}'); const ks=Object.keys(o); if(ks.length)chg=ks.map(k=>k+(o[k]&&o[k].from!==undefined?(': '+o[k].from+'→'+o[k].to):'')).join(', '); }catch(e){}
       return '<div class="card" style="padding:10px 14px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;"><span class="chip '+act[1]+'" style="font-size:10px;">'+act[0]+'</span><span style="flex:1;font-size:13px;font-weight:600;">'+esc_(a.entity_id)+'</span><span class="t-cap">'+_invShortDate(a.ts)+'</span></div>'+(chg?'<div class="t-cap" style="margin-top:4px;">'+esc_(chg)+'</div>':'')+'<div class="t-cap" style="margin-top:2px;">โดย '+esc_(a.staff||'-')+'</div></div>'; }).join('');
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+
+/* ── OWNER DASHBOARD (ภาพรวม + วันนี้ตรวจอะไร) — คำนวณจาก inv_items, ไม่ต้องแตะ backend ── */
+async function renderStockDash(){
+  const el=document.getElementById('stock-dash-body'); if(!el)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
+  try{
+    const items=await _invFetchItems(); const wl=await _invFetchWorklist();
+    const isToday=iso=>{ if(!iso)return false; const d=new Date(iso),n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate(); };
+    const total=items.length;
+    const everCounted=items.filter(i=>i.last_count_at);
+    const todayCounted=items.filter(i=>isToday(i.last_count_at));
+    const never=total-everCounted.length;
+    const low=items.filter(_invIsLow).length;
+    const value=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
+    const basePct=total?Math.round(everCounted.length/total*100):0;
+    const dueNow=wl.length;
+    const stations={};
+    items.forEach(i=>{ const k=i.category||'อื่นๆ'; (stations[k]=stations[k]||{total:0,today:0,ever:0}); stations[k].total++; if(isToday(i.last_count_at))stations[k].today++; if(i.last_count_at)stations[k].ever++; });
+    let h='';
+    h+='<div class="card" style="background:var(--ink2);color:#fff;"><div style="font-size:12px;opacity:.7;">ตรวจวันนี้</div><div style="font-size:30px;font-weight:800;color:#fff;">'+todayCounted.length+' <span style="font-size:14px;font-weight:500;opacity:.7;">รายการ</span></div><div style="font-size:12px;opacity:.7;margin-top:2px;">ค้างตรวจวันนี้ '+dueNow+' · ใกล้หมด '+low+'</div></div>';
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;">ความคืบหน้าตั้งต้น (นับครั้งแรก)</span><span class="t-cap">'+everCounted.length+'/'+total+'</span></div><div style="height:8px;background:var(--surface2);border-radius:4px;"><div style="height:8px;width:'+basePct+'%;background:var(--green);border-radius:4px;"></div></div><div class="t-cap" style="margin-top:4px;">'+basePct+'% · ยังไม่เคยนับ '+never+' รายการ</div></div>';
+    h+='<div class="t-sect">ภาพรวม Stock Health</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
+    h+='<div class="card" style="margin:0;padding:12px;"><div class="t-cap">รายการทั้งหมด</div><div style="font-size:22px;font-weight:700;">'+total+'</div></div>';
+    h+='<div class="card" style="margin:0;padding:12px;'+(low?'border:1px solid var(--red);':'')+'"><div class="t-cap">ใกล้หมด</div><div style="font-size:22px;font-weight:700;color:'+(low?'var(--red)':'var(--ink)')+';">'+low+'</div></div>';
+    h+='<div class="card" style="margin:0;padding:12px;"><div class="t-cap">ยังไม่เคยนับ</div><div style="font-size:22px;font-weight:700;color:var(--amber);">'+never+'</div></div>';
+    h+='<div class="card" style="margin:0;padding:12px;"><div class="t-cap">มูลค่าสต๊อก</div><div style="font-size:20px;font-weight:700;">฿'+rnd_(value)+'</div></div>';
+    h+='</div>';
+    if(!value) h+='<div class="t-cap" style="margin:-4px 0 10px;font-style:italic;">มูลค่า ฿0 — ยังไม่ได้ใส่ทุน/par จะคำนวณได้เมื่อเริ่มนับ+ตั้งทุน</div>';
+    h+='<div class="t-sect">แยกตามครัว (ตรวจวันนี้)</div>';
+    Object.keys(stations).forEach(k=>{ const s=stations[k]; const pct=s.total?Math.round(s.today/s.total*100):0; h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><span style="width:70px;font-size:12.5px;">'+esc_(k)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;"><div style="height:7px;width:'+pct+'%;background:var(--navy);border-radius:4px;"></div></div><span class="t-cap" style="width:48px;text-align:right;">'+s.today+'/'+s.total+'</span></div>'; });
+    h+='<div class="t-sect">รายการที่ตรวจวันนี้</div>';
+    if(!todayCounted.length){ h+='<div class="t-cap" style="text-align:center;padding:14px 0;">ยังไม่มีการตรวจวันนี้</div>'; }
+    else { h+='<div class="card" style="padding:0;overflow:hidden;">'+todayCounted.sort((a,b)=>new Date(b.last_count_at)-new Date(a.last_count_at)).slice(0,40).map(i=>'<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span style="width:8px;height:8px;border-radius:50%;background:'+_invClassColor(i)+';flex-shrink:0;"></span><span style="flex:1;font-size:13px;">'+esc_(i.name)+'</span><span class="t-cap">'+rnd_(i.last_count_value)+' '+esc_(i.unit)+' · '+_invShortDate(i.last_count_at)+'</span></div>').join('')+'</div>'; }
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
