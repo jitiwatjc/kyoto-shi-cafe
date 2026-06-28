@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260628-132952">
+<meta name="app-build" content="20260628-174553">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1075,15 +1075,12 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">ข้อมูลงาน</div>
       <div class="fg"><label class="t-label">ตำแหน่ง *</label>
-        <select class="fi fi-sel" id="edit-position">
+        <select class="fi fi-sel" id="edit-position" onchange="updateKitchenDerived()">
           <option value="บาร์หน้า (Barista)">บาร์หน้า (Barista)</option><option value="เบเกอรี่ (Bakery)">เบเกอรี่ (Bakery)</option><option value="ครัว (Kitchen)">ครัว (Kitchen)</option><option value="แม่บ้าน (Housekeeper)">แม่บ้าน (Housekeeper)</option>
         </select></div>
-      <div class="fg"><label class="t-label">ครัว (Sidework) *</label>
-        <select class="fi fi-sel" id="edit-kitchen">
-          <option value="">— ไม่ระบุ —</option>
-          <option value="บาร์น้ำ">บาร์น้ำ</option><option value="เบเกอรี่">เบเกอรี่</option><option value="ครัวอาหาร">ครัวอาหาร</option>
-        </select>
-        <div class="fhint">ใช้กำหนดว่าพนักงานเห็นงาน Sidework ของครัวไหน (+ งานส่วนกลาง)</div></div>
+      <div class="fg"><label class="t-label">ครัว (Sidework / ของเตรียม)</label>
+        <div class="fi fi-sel" id="edit-kitchen-derived" style="background:var(--surface2);color:var(--ink2);display:flex;align-items:center;">— กำหนดอัตโนมัติจากตำแหน่ง —</div>
+        <div class="fhint">กำหนดให้อัตโนมัติจากตำแหน่ง — ใช้กรองงาน Sidework + ของเตรียมของครัวนั้น</div></div>
       <div class="fg"><label class="t-label">ประเภทพนักงาน *</label>
         <select class="fi fi-sel" id="edit-type" onchange="editTypeChanged()">
           <option value="Full-time">Full-time · ประจำ</option>
@@ -2065,6 +2062,14 @@ async function revSubmit(action,form){
 
 /* ── SESSION ── */
 let currentUser=null; // { ok, role, empId, name, nickname, position }
+// ── ตำแหน่งเป็นแหล่งข้อมูลเดียว → map เป็น "ครัว" (ใช้กรอง Sidework + ของเตรียม) อัตโนมัติ ─
+const POS_TO_KITCHEN={
+  'บาร์หน้า (Barista)':'บาร์น้ำ',
+  'เบเกอรี่ (Bakery)':'เบเกอรี่',
+  'ครัว (Kitchen)':'ครัวอาหาร',
+  'แม่บ้าน (Housekeeper)':'ส่วนกลาง'
+};
+function kitchenFromPosition(pos){ return POS_TO_KITCHEN[(pos||'').trim()]||''; }
 
 /* ── LOGIN ── */
 let role=null;
@@ -2090,6 +2095,8 @@ async function doLogin(){
     // The account's real role is decided server-side and must match the selected tab
     if(res.role!==role){errEl.style.display='block';return;}
     currentUser=res;
+    // ครัวมาจากตำแหน่งเป็นหลัก (single source) — ถ้า map ไม่ได้ค่อยใช้ค่าที่เก็บไว้เดิม
+    currentUser.kitchen=kitchenFromPosition(res.position)||res.kitchen||'';
     role=res.role;
     errEl.style.display='none';
     hist=[];
@@ -2661,15 +2668,23 @@ function editTypeChanged(){
   if(pt)pt.style.display=isPT?'block':'none';
   if(ft)ft.style.display=isPT?'none':'block';
 }
+function updateKitchenDerived(){
+  const pos=(document.getElementById('edit-position')?.value)||'';
+  const k=kitchenFromPosition(pos);
+  const el=document.getElementById('edit-kitchen-derived');
+  if(el) el.textContent=k?('🍳 '+k):'— ไม่มีครัว (งานส่วนกลาง) —';
+}
 async function saveProfile(empId){
   const id=empId||_viewingEmpId||'';
   if(!id){toast('ไม่พบข้อมูลพนักงาน');return;}
   const fname=(document.getElementById('edit-fname')?.value||'').trim();
   const lname=(document.getElementById('edit-lname')?.value||'').trim();
   const fields={empId:id,name:fname&&lname?fname+' '+lname:fname||lname};
-  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName','kitchen','ptRate','ptRateHol'].forEach(f=>{
+  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName','ptRate','ptRateHol'].forEach(f=>{
     const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
   });
+  // ครัวกำหนดอัตโนมัติจากตำแหน่ง (ไม่มีฟิลด์ให้ตั้งมือแล้ว)
+  fields.kitchen=kitchenFromPosition(fields.position);
   const saveBtns=[...document.querySelectorAll('#s-emp-profile-edit .btn-success,#s-emp-profile-edit .topbar-action')];
   saveBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';b.textContent='กำลังบันทึก...';});
   try{
@@ -2713,7 +2728,7 @@ async function submitRegistration(){
     const res=await callAPI({action:'registerEmployee',data:JSON.stringify({
       name:fname+' '+lname, username:user, password:pass,
       phone, idcard, dob, address:addr,
-      position:pos, type, startDate,
+      position:pos, kitchen:kitchenFromPosition(pos), type, startDate,
       bank:bankBrand, bankAcc:bank, bankAccName:bankName,
       pdpaConsent:'v1.0'
     })});
@@ -3538,7 +3553,7 @@ function viewEmpProfile(empId){
   setVal('edit-ptRateHol',e.ptRateHol||'');
   setVal('edit-bankAcc',e.bankAcc||'');
   setVal('edit-bankAccName',e.bankAccName||'');
-  ['edit-position','edit-type','edit-status','edit-bank','edit-kitchen'].forEach(id=>{
+  ['edit-position','edit-type','edit-status','edit-bank'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
     const key=id.replace('edit-','');
@@ -3546,6 +3561,7 @@ function viewEmpProfile(empId){
     for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===val){sel.selectedIndex=i;break;}}
   });
   editTypeChanged();
+  updateKitchenDerived();
   go('s-emp-profile-view');
 }
 
