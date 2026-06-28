@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260628-224701">
+<meta name="app-build" content="20260628-230718">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -3888,6 +3888,7 @@ function swDelTask(id,doneThisCycle){
 const PREP_KITCHENS=['บาร์น้ำ','เบเกอรี่','ครัวอาหาร'];
 const PREP_UNITS=['ลิตร','ถาด','ขวด','ชิ้น','กก.','กรัม','แพ็ค','อัน'];
 let _prepSetupKitchen='บาร์น้ำ';
+let _prepEditId=null;
 function btnBusy_(btn,txt){ if(!btn) return function(){}; const oh=btn.innerHTML, od=btn.disabled; btn.disabled=true; btn.style.opacity='.65'; btn.innerHTML='<span class="btn-spin"></span> '+(txt||'กำลังบันทึก…'); return function(){ try{btn.disabled=od;btn.style.opacity='';btn.innerHTML=oh;}catch(e){} }; }
 async function renderPrepSetup(){
   const el=document.getElementById('prep-setup-body'); if(!el)return;
@@ -3901,7 +3902,19 @@ async function renderPrepSetup(){
     h+='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:11px 14px;margin-bottom:12px;" onclick="go(\'s-prep-shortage\')"><div style="font-size:18px;flex-shrink:0;">⚠️</div><div class="lcol"><div class="ltitle" style="font-size:13px;">วัตถุดิบหมดทุกครัว</div></div><span style="color:var(--ink3);">›</span></div>';
     h+='<div style="font-size:13px;font-weight:600;margin-bottom:8px;">ของเตรียม · '+esc_(_prepSetupKitchen)+' ('+items.length+')</div>';
     if(!items.length) h+='<div class="t-cap" style="text-align:center;padding:10px 0;">ยังไม่มีรายการ</div>';
-    items.forEach(it=>{ h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">'+esc_(it.name)+' <span class="t-cap">· '+esc_(it.unit||'')+'</span></span><span style="font-size:15px;cursor:pointer;" onclick="prepDelItem(\''+it.id+'\')">🗑</span></div></div>'; });
+    items.forEach(it=>{
+      if(it.id===_prepEditId){
+        let ulist=PREP_UNITS.slice(); if(it.unit&&ulist.indexOf(it.unit)<0)ulist.unshift(it.unit);
+        const uopts=ulist.map(u=>'<option'+(u===(it.unit||'')?' selected':'')+'>'+esc_(u)+'</option>').join('');
+        h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--blue);">'
+          +'<input type="text" class="fi" id="prep-edit-name" value="'+esc_(it.name)+'" style="margin-bottom:8px;">'
+          +'<div style="display:flex;gap:6px;"><select class="fi fi-sel" id="prep-edit-unit" style="flex:1;">'+uopts+'</select>'
+          +'<button class="btn btn-success" style="padding:8px 14px;" onclick="prepSaveEdit(this,\''+it.id+'\')">บันทึก</button>'
+          +'<button class="btn btn-outline" style="padding:8px 14px;" onclick="prepCancelEdit()">ยกเลิก</button></div></div>';
+      } else {
+        h+='<div class="card" style="padding:10px 12px;margin-bottom:8px;box-shadow:none;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">'+esc_(it.name)+' <span class="t-cap">· '+esc_(it.unit||'')+'</span></span><span style="display:flex;gap:14px;align-items:center;"><span style="font-size:14px;cursor:pointer;" onclick="prepEditItem(\''+it.id+'\')">✏️</span><span style="font-size:15px;cursor:pointer;" onclick="prepDelItem(\''+it.id+'\')">🗑</span></span></div></div>';
+      }
+    });
     const unitOpts=PREP_UNITS.map(u=>'<option>'+u+'</option>').join('');
     h+='<div class="card" style="padding:12px;border:1.5px solid var(--blue);margin-top:6px;"><div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">+ เพิ่มของเตรียม ("'+esc_(_prepSetupKitchen)+'")</div>'
       +'<input type="text" class="fi" id="prep-new-name" placeholder="ชื่อของเตรียม" style="margin-bottom:8px;">'
@@ -3909,13 +3922,20 @@ async function renderPrepSetup(){
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
-function prepPickKitchen(k){ _prepSetupKitchen=k; renderPrepSetup(); }
+function prepPickKitchen(k){ _prepEditId=null; _prepSetupKitchen=k; renderPrepSetup(); }
 function prepAddItem(btn){
   const name=raw_('prep-new-name'); if(!name){toast('ใส่ชื่อ');return;}
   const done=btnBusy_(btn,'กำลังเพิ่ม…');
   callAPI({action:'savePrepItem',kitchen:_prepSetupKitchen,name:name,unit:raw_('prep-new-unit')||''}).then(r=>{ if(r&&r.ok){toast('เพิ่มแล้ว');renderPrepSetup();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));done();} }).catch(()=>{toast('เชื่อมต่อไม่ได้');done();});
 }
 function prepDelItem(id){ if(!confirm('ลบรายการนี้?'))return; callAPI({action:'deletePrepItem',id:id}).then(r=>{ if(r&&r.ok){toast('ลบแล้ว');renderPrepSetup();} else toast('⚠ ลบไม่ได้'); }).catch(()=>toast('เชื่อมต่อไม่ได้')); }
+function prepEditItem(id){ _prepEditId=id; renderPrepSetup(); }
+function prepCancelEdit(){ _prepEditId=null; renderPrepSetup(); }
+function prepSaveEdit(btn,id){
+  const name=raw_('prep-edit-name'); if(!name){toast('ใส่ชื่อ');return;}
+  const done=btnBusy_(btn,'กำลังบันทึก…');
+  callAPI({action:'savePrepItem',id:id,kitchen:_prepSetupKitchen,name:name,unit:raw_('prep-edit-unit')||''}).then(r=>{ if(r&&r.ok){toast('แก้ไขแล้ว ✓');_prepEditId=null;renderPrepSetup();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));done();} }).catch(()=>{toast('เชื่อมต่อไม่ได้');done();});
+}
 async function renderPrepLog(){
   const el=document.getElementById('prep-log-body'); if(!el||!currentUser)return;
   const kitchen=currentUser.kitchen||'';
