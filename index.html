@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260628-174553">
+<meta name="app-build" content="20260628-175751">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -4787,9 +4787,7 @@ async function renderHomeStock(){
   const el=document.getElementById('home-stock'); if(!el||!currentUser)return;
   try{
     await _invLoadCfg();
-    const r=await invGet('inv_worklist');
-    if(!r.ok){ el.innerHTML=''; return; }
-    const allItems=r.items||[]; let wl=allItems.slice(); const weekend=_invIsWeekendToday(); if(weekend) wl=_invApplyWeekend(wl);
+    const allItems=await _invFetchWorklist(); let wl=allItems.slice(); const weekend=_invIsWeekendToday(); if(weekend) wl=_invApplyWeekend(wl);
     if(!wl.length){ el.innerHTML=''; return; }
     const lowN=allItems.filter(_invIsLow).length;
     let h='<div class="card" style="padding:13px 15px;border:1.5px solid var(--amber);cursor:pointer;" onclick="go(\'s-stock-check\')">';
@@ -4803,8 +4801,8 @@ async function renderOwnerStock(){
   const el=document.getElementById('owner-stock'); if(!el)return;
   const fb='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;" onclick="go(\'s-stock\')"><div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div><div class="lcol"><div class="ltitle">สต๊อกวัตถุดิบ</div><div class="lsub">รายการ · ใกล้หมด · มูลค่า</div></div><span style="color:var(--ink3);">›</span></div>';
   try{
-    const r=await invGet('inv_items',{status:'active'}); if(!r.ok){ el.innerHTML=fb; return; }
-    const items=r.items||[]; const low=items.filter(_invIsLow).length; const val=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
+    const items=await _invFetchItems(); if(!items.length){ el.innerHTML=fb; return; }
+    const low=items.filter(_invIsLow).length; const val=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
     el.innerHTML='<div class="card" style="cursor:pointer;" onclick="go(\'s-stock\')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:14px;font-weight:700;">📦 สต๊อกวัตถุดิบ</div><span class="t-cap" style="color:var(--info);">ดูทั้งหมด ›</span></div><div style="display:flex;gap:8px;"><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;">'+items.length+'</div><div class="t-cap">รายการ</div></div><div style="flex:1;background:var(--red-bg);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">'+low+'</div><div class="t-cap">ใกล้หมด</div></div><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:700;">฿'+rnd_(val)+'</div><div class="t-cap">มูลค่า</div></div></div></div>';
   }catch(e){ el.innerHTML=fb; }
 }
@@ -4816,7 +4814,7 @@ async function renderStockList(){
   const el=document.getElementById('stock-list-body'); if(!el)return;
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
-    const r=await invGet('inv_items',{status:'active'}); let items=r.items||[];
+    let items=await _invFetchItems();
     const filters=[['all','ทั้งหมด'],['low','ใกล้หมด'],['fresh','สด'],['mid','กลาง'],['dry','แห้ง']];
     let h='<div class="scroll-x" style="margin-bottom:12px;">'+filters.map(f=>'<span onclick="stockSetFilter(\''+f[0]+'\')" class="chip '+(_invFilter===f[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+f[1]+'</span>').join('')+'</div>';
     if(currentUser&&currentUser.role==='owner'){ h+='<div style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-config\')">⚙ ตั้งค่า</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-audit\')">ประวัติแก้ไข</button></div>'; }
@@ -4857,24 +4855,34 @@ async function invSaveItemForm(){
   const form={ name, category:raw_('inv-f-cat').trim(), freq_class:raw_('inv-f-fc'), unit:raw_('inv-f-unit').trim(), par:raw_('inv-f-par'), reorder_point:raw_('inv-f-reorder'), cost_per_unit:raw_('inv-f-cost'), supplier:raw_('inv-f-sup').trim(), weekend_essential:(raw_('inv-f-wk')==='1'?'Y':'') };
   if(_invEditId) form.item_id=_invEditId;
   const r=await invSubmit('inv_item_save',form);
-  if(r.ok){ const wasEdit=!!_invEditId; toast(wasEdit?'แก้ไขแล้ว ✓':'เพิ่มแล้ว ✓'); back(); if(wasEdit){ _invLoadDetail(_invEditId); } else { renderStockList(); } } else toast('ผิดพลาด: '+(r.error||''));
+  if(r.ok){ _invInvalidate(); const wasEdit=!!_invEditId; toast(wasEdit?'แก้ไขแล้ว ✓':'เพิ่มแล้ว ✓'); back(); if(wasEdit){ _invLoadDetail(_invEditId); } else { renderStockList(); } } else toast('ผิดพลาด: '+(r.error||''));
 }
-async function invArchiveItem(id){ if(!confirm('เก็บรายการนี้เข้าคลัง (ซ่อนจากรายการ)?'))return; const r=await invSubmit('inv_item_archive',{item_id:id}); if(r.ok){ toast('เก็บเข้าคลังแล้ว'); back(); back(); renderStockList(); } }
+async function invArchiveItem(id){ if(!confirm('เก็บรายการนี้เข้าคลัง (ซ่อนจากรายการ)?'))return; const r=await invSubmit('inv_item_archive',{item_id:id}); if(r.ok){ _invInvalidate(); toast('เก็บเข้าคลังแล้ว'); back(); back(); renderStockList(); } }
 
 /* ── WORKLIST (ตรวจวันนี้) ── */
-let _invChkDone=0, _invChkTotal=0;
+let _invChkDone=0, _invChkTotal=0, _invPending={}, _invWlMap={};
+let _invItemsCache=null, _invWlCache=null;
+const INV_CHECK_CAP=50; // จำกัดต่อรอบ กัน render หนักตอนของเยอะ (Day-0 332 ตัว)
+async function _invFetchItems(force){ if(!force && _invItemsCache) return _invItemsCache; const r=await invGet('inv_items',{status:'active'}); _invItemsCache=(r&&r.ok)?(r.items||[]):[]; return _invItemsCache; }
+async function _invFetchWorklist(force){ if(!force && _invWlCache) return _invWlCache; const r=await invGet('inv_worklist'); _invWlCache=(r&&r.ok)?(r.items||[]):[]; return _invWlCache; }
+function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; }
 async function renderStockCheck(){
-  const el=document.getElementById('stock-check-body'); if(!el)return; _invChkDone=0;
+  const el=document.getElementById('stock-check-body'); if(!el)return; _invChkDone=0; _invPending={}; _invWlMap={};
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     await _invLoadCfg();
-    const r=await invGet('inv_worklist'); let wl=r.items||[]; const weekend=_invIsWeekendToday();
-    if(weekend) wl=_invApplyWeekend(wl); _invChkTotal=wl.length;
-    if(!wl.length){ el.innerHTML='<div style="text-align:center;padding:44px 0;"><div style="font-size:42px;">✅</div><div style="font-weight:700;margin-top:8px;">ไม่มีรายการต้องตรวจ'+(weekend?'ตอนนี้':'วันนี้')+'</div><div class="t-cap" style="margin-top:4px;">'+(weekend?'โหมดวันหยุด — เช็คเฉพาะที่จำเป็น':'นับครบทุกอย่างแล้ว')+'</div></div>'; return; }
-    let h='';
-    if(weekend) h+='<div style="background:var(--info-bg);border-radius:var(--rsm);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--info);display:flex;align-items:center;gap:8px;"><span>🗓️</span><div><b>โหมดวันหยุด</b> — แสดงเฉพาะของจำเป็น + ใกล้หมด ('+_invChkTotal+' รายการ) · ของแห้ง/ทั่วไปเลื่อนไปวันธรรมดา</div></div>';
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;"><div id="inv-chk-bar" style="height:6px;width:0%;background:var(--green);border-radius:3px;transition:width .3s;"></div></div><span class="t-cap" id="inv-chk-count">เสร็จ 0 / '+_invChkTotal+'</span></div>';
-    h+='<div class="t-cap" style="margin-bottom:10px;">นับของจริงที่เหลืออยู่ (รวมเศษ เช่น 2.5 ขวด)</div>';
+    let wl=(await _invFetchWorklist()).slice(); const weekend=_invIsWeekendToday();
+    if(weekend) wl=_invApplyWeekend(wl);
+    const totalDue=wl.length; let capped=false;
+    if(wl.length>INV_CHECK_CAP){ wl=wl.slice(0,INV_CHECK_CAP); capped=true; }
+    _invChkTotal=wl.length;
+    if(!totalDue){ el.innerHTML='<div style="text-align:center;padding:44px 0;"><div style="font-size:42px;">✅</div><div style="font-weight:700;margin-top:8px;">ไม่มีรายการต้องตรวจ'+(weekend?'ตอนนี้':'วันนี้')+'</div><div class="t-cap" style="margin-top:4px;">'+(weekend?'โหมดวันหยุด — เช็คเฉพาะที่จำเป็น':'นับครบทุกอย่างแล้ว')+'</div></div>'; return; }
+    wl.forEach(it=>{ _invWlMap[it.item_id]=it; });
+    let h='<div id="inv-savebar" style="display:none;position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:10px;box-shadow:var(--sh);"><span style="font-size:13px;font-weight:600;">นับแล้ว <span id="inv-pending-n">0</span> รายการ · ยังไม่บันทึก</span><button id="inv-savebtn" class="btn btn-sm" style="background:#fff;color:var(--navy);" onclick="invSaveAllCounts()">บันทึกทั้งหมด</button></div>';
+    if(weekend) h+='<div style="background:var(--info-bg);border-radius:var(--rsm);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--info);display:flex;align-items:center;gap:8px;"><span>🗓️</span><div><b>โหมดวันหยุด</b> — แสดงเฉพาะของจำเป็น + ใกล้หมด · ของแห้ง/ทั่วไปเลื่อนไปวันธรรมดา</div></div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;"><div id="inv-chk-bar" style="height:6px;width:0%;background:var(--green);border-radius:3px;transition:width .3s;"></div></div><span class="t-cap" id="inv-chk-count">นับแล้ว 0 / '+_invChkTotal+'</span></div>';
+    h+='<div class="t-cap" style="margin-bottom:10px;">นับของจริงที่เหลืออยู่ (รวมเศษ เช่น 2.5 ขวด) → กด "บันทึกทั้งหมด" ครั้งเดียวตอนจบ</div>';
+    if(capped) h+='<div class="alert alert-info" style="font-size:12px;margin-bottom:10px;">แสดง '+INV_CHECK_CAP+' จาก '+totalDue+' รายการ · นับชุดนี้ก่อน ที่เหลือจะขึ้นรอบถัดไป</div>';
     const groups=[['low','⚠ ใกล้หมด / ด่วน'],['new','ยังไม่เคยนับ'],['overdue','เกินรอบนับ'],['due','ถึงรอบนับ']];
     groups.forEach(g=>{ const items=wl.filter(x=>x.reason===g[0]); if(!items.length)return; h+='<div class="t-sect" style="'+(g[0]==='low'?'color:var(--red);':'')+'">'+g[1]+' ('+items.length+')</div>'; items.forEach(it=>{ h+=_invCheckRow(it); }); });
     el.innerHTML=h;
@@ -4884,17 +4892,37 @@ function _invCheckRow(it){
   const low=_invIsLow(it);
   const lastTxt=it.last_count_at?('นับล่าสุด '+rnd_(it.last_count_value)+' '+esc_(it.unit)+' · '+_invDaysSince(it.last_count_at)+' วันก่อน'):'ยังไม่เคยนับ — ตั้งยอดตั้งต้น';
   const frac=/ขวด|กระป๋อง|แกลลอน|ถุง|กล่อง|หลอด|แพ็ค/.test(it.unit||'')?'<div style="display:flex;gap:5px;margin-bottom:7px;">'+[['เต็ม',1],['¾',0.75],['½',0.5],['¼',0.25]].map(f=>'<button class="btn btn-sm" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);background:var(--surface2);color:var(--ink2);" onclick="invFillFrac(\''+it.item_id+'\','+(Math.round(Number(it.par)*f[1]*100)/100)+')">'+f[0]+'</button>').join('')+'</div>':'';
-  return '<div class="card" id="invc-'+it.item_id+'" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'"><div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><span style="flex:1;font-size:14px;font-weight:600;">'+esc_(it.name)+'</span>'+_invReasonChip(it.reason)+'</div><div class="t-cap" style="margin:0 0 8px 18px;">'+lastTxt+'</div>'+frac+'<div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="invq-'+it.item_id+'" placeholder="นับได้ ('+esc_(it.unit)+')" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="invDoCount(\''+it.item_id+'\')">บันทึก</button></div></div>';
+  return '<div class="card" id="invc-'+it.item_id+'" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'"><div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><span style="flex:1;font-size:14px;font-weight:600;">'+esc_(it.name)+'</span>'+_invReasonChip(it.reason)+'</div><div class="t-cap" style="margin:0 0 8px 18px;">'+lastTxt+'</div>'+frac+'<div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="invq-'+it.item_id+'" placeholder="นับได้ ('+esc_(it.unit)+')" style="flex:1;" onkeydown="if(event.key===\'Enter\')invMarkCount(\''+it.item_id+'\')"><button class="btn btn-navy btn-sm" onclick="invMarkCount(\''+it.item_id+'\')">นับ</button></div></div>';
 }
 function invFillFrac(id,val){ const el=document.getElementById('invq-'+id); if(el)el.value=val; }
-async function invDoCount(id){
+function invMarkCount(id){
   const el=document.getElementById('invq-'+id); const v=el?el.value:'';
   if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนที่นับได้ก่อน'); return; }
-  const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'cycle',local_id:'c'+Date.now()+id});
-  if(r.ok){ const card=document.getElementById('invc-'+id); if(card){ card.style.background='var(--green-bg)'; card.style.border='1px solid var(--green)'; card.innerHTML='<div style="display:flex;align-items:center;gap:8px;color:var(--green);font-weight:600;font-size:14px;"><span>✓</span>'+esc_(r.item.name)+' — นับ '+rnd_(v)+' '+esc_(r.item.unit)+'</div>'; } _invChkDone++; _invUpdateChkBar(); }
-  else toast('ผิดพลาด');
+  const it=_invWlMap[id]||{}; const wasNew=!(id in _invPending);
+  _invPending[id]={value:Number(v)};
+  const card=document.getElementById('invc-'+id);
+  if(card){ card.style.background='var(--green-bg)'; card.style.border='1px solid var(--green)'; card.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="color:var(--green);font-weight:600;font-size:14px;"><span>✓</span> '+esc_(it.name||'')+' — '+rnd_(Number(v))+' '+esc_(it.unit||'')+'</div><span class="t-cap" style="color:var(--info);cursor:pointer;" onclick="invUndoCount(\''+id+'\')">แก้</span></div>'; }
+  if(wasNew) _invChkDone++;
+  _invUpdateChkBar(); _invUpdateSaveBar();
 }
-function _invUpdateChkBar(){ const bar=document.getElementById('inv-chk-bar'), cnt=document.getElementById('inv-chk-count'); if(!bar)return; const pct=_invChkTotal?Math.round(_invChkDone/_invChkTotal*100):0; bar.style.width=pct+'%'; if(cnt)cnt.textContent='เสร็จ '+_invChkDone+' / '+_invChkTotal; if(_invChkDone>=_invChkTotal){ toast('ตรวจครบแล้ว 🎉'); } }
+function invUndoCount(id){
+  delete _invPending[id]; _invChkDone=Math.max(0,_invChkDone-1);
+  const it=_invWlMap[id]; const card=document.getElementById('invc-'+id);
+  if(card&&it) card.outerHTML=_invCheckRow(it);
+  _invUpdateChkBar(); _invUpdateSaveBar();
+}
+function _invUpdateSaveBar(){ const n=Object.keys(_invPending).length; const bar=document.getElementById('inv-savebar'); if(bar)bar.style.display=n?'flex':'none'; const ne=document.getElementById('inv-pending-n'); if(ne)ne.textContent=n; }
+async function invSaveAllCounts(){
+  const ids=Object.keys(_invPending); if(!ids.length){ toast('ยังไม่มีรายการที่นับ'); return; }
+  const counts=ids.map(id=>({item_id:id,value:_invPending[id].value,context:'cycle',local_id:'b'+Date.now()+'_'+id}));
+  const btn=document.getElementById('inv-savebtn'); if(btn){ btn.disabled=true; btn.textContent='กำลังบันทึก...'; }
+  try{
+    const r=await invSubmit('inv_count_batch',{counts});
+    if(r&&r.ok){ toast('บันทึก '+ids.length+' รายการ ✓'); _invPending={}; _invInvalidate(); renderStockCheck(); }
+    else { toast('บันทึกไม่สำเร็จ — ลองใหม่'); if(btn){ btn.disabled=false; btn.textContent='บันทึกทั้งหมด'; } }
+  }catch(e){ toast('เชื่อมต่อไม่ได้ — ลองใหม่'); if(btn){ btn.disabled=false; btn.textContent='บันทึกทั้งหมด'; } }
+}
+function _invUpdateChkBar(){ const bar=document.getElementById('inv-chk-bar'), cnt=document.getElementById('inv-chk-count'); if(!bar)return; const pct=_invChkTotal?Math.round(_invChkDone/_invChkTotal*100):0; bar.style.width=pct+'%'; if(cnt)cnt.textContent='นับแล้ว '+_invChkDone+' / '+_invChkTotal; }
 
 /* ── helpers (detail) ── */
 function _invFreqLabel(c){ return c==='fresh'?'สด · ตรวจทุกวัน':(c==='mid'?'กลาง · ตรวจ 2-3 วัน':'แห้ง · ตรวจสัปดาห์ละครั้ง'); }
@@ -4917,9 +4945,9 @@ function renderStockDetail(it, ledger){
   el.innerHTML=h;
 }
 function invQuickCount(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--navy);"><label class="t-label">นับได้เท่าไร (เหลือจริง)</label><div style="display:flex;gap:8px;"><input class="fi" type="number" id="inv-quick-val" placeholder="จำนวน" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="invQuickCountSave(\''+id+'\')">บันทึก</button></div></div>'; const f=document.getElementById('inv-quick-val'); if(f)f.focus(); }
-async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ toast('นับแล้ว ✓'); _invLoadDetail(id); } else toast('ผิดพลาด'); }
+async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('นับแล้ว ✓'); _invLoadDetail(id); } else toast('ผิดพลาด'); }
 function invQuickAdjust(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--amber);"><label class="t-label">ปรับยอด (+เพิ่ม / −ลด)</label><div style="display:flex;gap:8px;margin-bottom:8px;"><input class="fi" type="number" id="inv-adj-val" placeholder="+/- จำนวน" style="flex:1;"><input class="fi" id="inv-adj-reason" placeholder="เหตุผล" style="flex:1.4;"></div><button class="btn btn-navy btn-sm" style="width:100%;" onclick="invAdjustSave(\''+id+'\')">บันทึกการปรับ</button></div>'; const f=document.getElementById('inv-adj-val'); if(f)f.focus(); }
-async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ toast('ปรับยอดแล้ว ✓'); _invLoadDetail(id); } else toast('ผิดพลาด'); }
+async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('ปรับยอดแล้ว ✓'); _invLoadDetail(id); } else toast('ผิดพลาด'); }
 
 /* ── CONFIG (owner) ── */
 async function renderStockConfig(){
