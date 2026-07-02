@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260628-230718">
+<meta name="app-build" content="20260702-235144">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -521,9 +521,9 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     </div>
     <div id="owner-sidework" style="margin-bottom:4px;"></div>
     <div id="owner-stock" style="margin-bottom:4px;"></div>
-    <div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;margin-bottom:4px;" onclick="go('s-prep-setup')">
+    <div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;margin-bottom:4px;" onclick="go('s-prep-dashboard')">
       <div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🍳</div>
-      <div class="lcol"><div class="ltitle">ของเตรียมขาย</div><div class="lsub">ตั้งรายการ · วัตถุดิบหมดทุกครัว</div></div>
+      <div class="lcol"><div class="ltitle">ของเตรียมขาย</div><div class="lsub">สรุปวันนี้ · ตั้งรายการ · ของหมด</div></div>
       <span style="color:var(--ink3);">›</span>
     </div>
 
@@ -1411,6 +1411,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 </div>
 
 <!-- ════ PREP STOCK · ของเตรียมขาย ════ -->
+<div id="s-prep-dashboard" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">สรุปของเตรียม</div><button class="topbar-action" onclick="renderPrepDashboard()">↻</button></div>
+  <div class="page"><div id="prep-dashboard-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
 <div id="s-prep-setup" class="sc">
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">รายการของเตรียม</div></div>
   <div class="page"><div id="prep-setup-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
@@ -1477,6 +1481,7 @@ function go(id){
   if(id==='s-owner-roster'){initRoster();}
   if(id==='s-sidework'){swkTab('board');}
   if(id==='s-sw-owner'){swoTab('dash');}
+  if(id==='s-prep-dashboard'){renderPrepDashboard();}
   if(id==='s-prep-setup'){renderPrepSetup();}
   if(id==='s-prep-log'){renderPrepLog();}
   if(id==='s-prep-morning'){renderPrepMorning();}
@@ -3935,6 +3940,68 @@ function prepSaveEdit(btn,id){
   const name=raw_('prep-edit-name'); if(!name){toast('ใส่ชื่อ');return;}
   const done=btnBusy_(btn,'กำลังบันทึก…');
   callAPI({action:'savePrepItem',id:id,kitchen:_prepSetupKitchen,name:name,unit:raw_('prep-edit-unit')||''}).then(r=>{ if(r&&r.ok){toast('แก้ไขแล้ว ✓');_prepEditId=null;renderPrepSetup();} else {toast('⚠ '+((r&&r.error)||'ผิดพลาด'));done();} }).catch(()=>{toast('เชื่อมต่อไม่ได้');done();});
+}
+function pdKpi_(val,label,color){ return '<div style="flex:1;background:var(--surface);box-shadow:var(--sh);border-radius:var(--rsm);padding:12px 6px;text-align:center;"><div style="font-size:22px;font-weight:800;color:'+(color||'var(--navy)')+';line-height:1;">'+val+'</div><div class="t-cap" style="font-size:10.5px;margin-top:4px;">'+label+'</div></div>'; }
+function pdStat_(label,val){ return '<div style="flex:1;text-align:center;background:var(--surface2);border-radius:var(--rsm);padding:7px 4px;"><div class="t-cap" style="font-size:10px;">'+label+'</div><div style="font-size:15px;font-weight:700;">'+val+'</div></div>'; }
+async function renderPrepDashboard(){
+  const el=document.getElementById('prep-dashboard-body'); if(!el)return;
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
+  try{
+    const listR=await callAPI({action:'getPrepList'});
+    const allItems=(listR&&listR.data)||[];
+    const nameById={}; allItems.forEach(it=>{ nameById[it.id]=it.name; });
+    const logs={};
+    await Promise.all(PREP_KITCHENS.map(async k=>{ try{ const r=await callAPI({action:'getPrepLog',kitchen:k}); logs[k]=(r&&r.data)||{logged:false,items:{},shortages:[]}; }catch(e){ logs[k]={logged:false,items:{},shortages:[]}; } }));
+    const shR=await callAPI({action:'getShortages'});
+    const shortages=(shR&&shR.data)||[];
+
+    let loggedCount=0,totalHandover=0,totalNotReady=0;
+    let cards='';
+    PREP_KITCHENS.forEach(k=>{
+      const listN=allItems.filter(it=>it.kitchen===k).length;
+      const log=logs[k]||{}; const items=log.items||{}; const ids=Object.keys(items);
+      const logged=!!log.logged; if(logged) loggedCount++;
+      let sumP=0,sumU=0,sumL=0; const notReady=[],handover=[];
+      ids.forEach(id=>{ const o=items[id]||{}; sumP+=(+o.produced||0); sumU+=(+o.used||0); sumL+=(+o.left||0);
+        const nm=o.itemName||nameById[id]||id;
+        if(o.ready===false) notReady.push(nm);
+        if(o.handover) handover.push(nm);
+      });
+      totalHandover+=handover.length; totalNotReady+=notReady.length;
+      const kShort=(log.shortages||[]).length;
+      cards+='<div class="card" style="padding:12px 14px;margin-bottom:10px;box-shadow:none;border:1px solid var(--border);">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:14px;font-weight:700;">'+esc_(k)+'</span>'
+        +(logged?'<span class="chip chip-blue" style="font-size:10px;">✅ ลงแล้ว</span>':'<span class="chip chip-amber" style="font-size:10px;">⏳ ยังไม่ลงวันนี้</span>')+'</div>';
+      if(logged){
+        cards+='<div style="display:flex;gap:6px;margin-top:10px;">'+pdStat_('ผลิต',sumP)+pdStat_('ใช้',sumU)+pdStat_('เหลือ',sumL)+'</div>';
+        cards+='<div class="t-cap" style="margin-top:8px;">ลงแล้ว '+ids.length+'/'+listN+' รายการ</div>';
+        if(notReady.length) cards+='<div style="font-size:12px;color:var(--red);margin-top:5px;">⚠ ไม่พร้อมขาย: '+notReady.map(esc_).join(', ')+'</div>';
+        if(handover.length) cards+='<div style="font-size:12px;color:var(--navy);margin-top:5px;">📦 เตรียมพรุ่งนี้: '+handover.map(esc_).join(', ')+'</div>';
+        if(kShort) cards+='<div style="font-size:12px;color:#b45309;margin-top:5px;">🧺 วัตถุดิบหมด '+kShort+' รายการ</div>';
+      } else {
+        cards+='<div class="t-cap" style="margin-top:7px;">มีรายการของเตรียม '+listN+' · ยังไม่ลงบันทึกปิดร้านวันนี้</div>';
+      }
+      cards+='</div>';
+    });
+
+    let h='<div class="t-cap" style="margin-bottom:10px;">'+todayISO()+' · ภาพรวมของเตรียมแต่ละครัว</div>';
+    h+='<div style="display:flex;gap:8px;margin-bottom:14px;">'
+      +pdKpi_(loggedCount+'/'+PREP_KITCHENS.length,'ครัวลงบันทึก',(loggedCount===PREP_KITCHENS.length?'var(--green)':'var(--navy)'))
+      +pdKpi_(shortages.length,'ของหมดวันนี้',(shortages.length?'var(--red)':'var(--navy)'))
+      +pdKpi_(totalHandover,'เตรียมพรุ่งนี้','var(--navy)')
+      +'</div>';
+    h+=cards;
+
+    h+='<div class="t-sect">วัตถุดิบหมดวันนี้</div>';
+    if(!shortages.length){ h+='<div class="t-cap" style="text-align:center;padding:8px 0;">ยังไม่มีของหมด 🎉</div>'; }
+    else {
+      const byK={}; shortages.forEach(s=>{ (byK[s.kitchen]=byK[s.kitchen]||[]).push(s.material); });
+      Object.keys(byK).forEach(k=>{ h+='<div class="card" style="padding:9px 12px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border);"><span style="font-size:12px;font-weight:600;">'+esc_(k)+'</span> <span class="t-cap">· '+byK[k].map(esc_).join(', ')+'</span></div>'; });
+    }
+    h+='<button class="btn btn-outline btn-full" style="margin-top:12px;" onclick="go(\'s-prep-shortage\')">ดูวัตถุดิบหมดแบบละเอียด</button>';
+    h+='<button class="btn btn-tan btn-full" style="margin-top:8px;" onclick="go(\'s-prep-setup\')">ตั้งรายการของเตรียม</button>';
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้ ลองใหม่</div>'; }
 }
 async function renderPrepLog(){
   const el=document.getElementById('prep-log-body'); if(!el||!currentUser)return;
