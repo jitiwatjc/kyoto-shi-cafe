@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260703-093015">
+<meta name="app-build" content="20260703-212628">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -4846,7 +4846,9 @@ function _mockLearn(it,val){ if(it.last_count_at&&it.last_count_value!==''&&it.l
 const _INV_CFG_DEF={freq_fresh_days:'1',freq_mid_days:'3',freq_dry_days:'7',reorder_default_ratio:'0.3',worklist_max:'12',low_stock_includes_overdue:'true',weekend_days:'0,6',dyn_safety_days:'2'};
 function _invCfg(){let c=Object.assign({},_INV_CFG_DEF);try{Object.assign(c,JSON.parse(localStorage.getItem('kyoto_inv_config')||'{}'));}catch(e){}return c;}
 function _invNum(v){ return (v===''||v==null)?null:Number(v); }
-function _invDaysSince(iso){ if(!iso) return 99999; return Math.floor((Date.now()-new Date(iso).getTime())/86400000); }
+// นับเป็น "วันปฏิทินไทย" (UTC+7) ไม่ใช่ 24ชม.แบบ rolling — ของที่นับเย็นเมื่อวานต้องขึ้นตรวจเช้านี้
+function _invDayKeyTH(ms){ return Math.floor((ms + 7*3600000)/86400000); }
+function _invDaysSince(iso){ if(!iso) return 99999; return _invDayKeyTH(Date.now()) - _invDayKeyTH(new Date(iso).getTime()); }
 // อัตราใช้/วัน: ใช้ค่าที่ backend เรียนรู้ (usage_avg จาก นับ→รับ→นับ) ก่อน · fallback = คำนวณจาก 2 รอบนับล่าสุด
 function _invUsage(it){
   const ua=Number(it.usage_avg||0); if(ua>0) return ua;
