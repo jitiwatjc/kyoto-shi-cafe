@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260704-170520">
+<meta name="app-build" content="20260704-220924">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -541,7 +541,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn" onclick="goApprove(0)"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ<span class="bn-dot"></span></button>
     <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
-    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button><button class="bn" onclick="go('s-stock-dash')"><span class="bn-icon">📦</span>สต๊อก</button>
   </div>
 </div>
 
@@ -562,7 +562,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn" onclick="goApprove(0)"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ</button>
     <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
-    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button><button class="bn" onclick="go('s-stock-dash')"><span class="bn-icon">📦</span>สต๊อก</button>
   </div>
 </div>
 
@@ -592,7 +592,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <button class="bn" onclick="go('s-owner-emps')"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn on"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ<span class="bn-dot"></span></button>
     <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
-    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button><button class="bn" onclick="go('s-stock-dash')"><span class="bn-icon">📦</span>สต๊อก</button>
   </div>
 </div>
 
@@ -659,7 +659,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <button class="bn on"><span class="bn-icon"><svg class="ic"><use href="#ic-people"/></svg></span>พนักงาน</button>
     <button class="bn" onclick="goApprove(0)"><span class="bn-icon"><svg class="ic"><use href="#ic-check"/></svg></span>อนุมัติ<span class="bn-dot"></span></button>
     <button class="bn" onclick="openStore()"><span class="bn-icon">🧾</span>บัญชี</button>
-    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button>
+    <button class="bn" onclick="go('s-pnl')"><span class="bn-icon">📊</span>P&amp;L</button><button class="bn" onclick="go('s-stock-dash')"><span class="bn-icon">📦</span>สต๊อก</button>
   </div>
 </div>
 
@@ -5236,7 +5236,9 @@ async function renderStockDash(){
     const stations={};
     items.forEach(i=>{ const k=i.category||'อื่นๆ'; (stations[k]=stations[k]||{total:0,today:0,ever:0}); stations[k].total++; if(isToday(i.last_count_at))stations[k].today++; if(i.last_count_at)stations[k].ever++; });
     let h='';
-    h+='<div class="card" style="background:var(--ink2);color:#fff;"><div style="font-size:12px;opacity:.7;">ตรวจวันนี้</div><div style="font-size:30px;font-weight:800;color:#fff;">'+todayCounted.length+' <span style="font-size:14px;font-weight:500;opacity:.7;">รายการ</span></div><div style="font-size:12px;opacity:.7;margin-top:2px;">ค้างตรวจวันนี้ '+wl.length+' · ใกล้หมด '+low+' · จะหมดเร็ว '+soonItems.length+'</div></div>';
+    h+='<div class="card" style="background:var(--ink2);color:#fff;"><div style="font-size:12px;opacity:.7;">ตรวจแล้ววันนี้</div><div style="font-size:30px;font-weight:800;color:#fff;">'+todayCounted.length+' <span style="font-size:14px;font-weight:500;opacity:.7;">/ '+total+' รายการ</span></div><div style="font-size:12px;opacity:.7;margin-top:2px;">ค้างตรวจอีก '+wl.length+' · ใกล้หมด '+low+' · จะหมดเร็ว '+soonItems.length+'</div></div>';
+    // ปุ่มสั่งของ/รับของ เด่นๆ (owner เข้าถึงง่าย)
+    h+='<div style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn" style="flex:1;background:var(--navy);color:#fff;padding:11px;" onclick="_invOrderTab=\'cart\';go(\'s-stock-order\')">🛒 สั่งของ</button><button class="btn" style="flex:1;background:var(--green);color:#fff;padding:11px;" onclick="_invOrderTab=\'recv\';go(\'s-stock-order\')">📥 รับของ</button></div>';
     // ⚠ ต้องสั่ง — list จริง กดเข้ารายการได้
     h+='<div class="t-sect" style="color:var(--red);">⚠ ใกล้หมด / ต้องสั่ง ('+low+')</div>';
     if(!low){ h+='<div class="t-cap" style="padding:4px 2px 10px;">ไม่มีของใกล้หมด 🎉'+(never===total?' (ยังไม่เริ่มนับ ระบบยังไม่รู้จัก min)':'')+'</div>'; }
@@ -5264,9 +5266,10 @@ async function renderStockDash(){
       if(rk.length) h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">'+rk.map(k=>'<span class="chip chip-gray" style="font-size:11px;">'+esc_(k)+' '+rnd_(rs[k])+'</span>').join('')+'</div>';
       h+='<div class="card" style="padding:0;overflow:hidden;">'+(wsum.items||[]).slice(0,6).map(w=>'<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span style="flex:1;font-size:13px;">'+esc_(w.name)+'</span><span class="t-cap">'+rnd_(w.qty)+' '+esc_(w.unit||'')+' · ฿'+rnd_(w.cost)+'</span></div>').join('')+'</div>';
     }
-    h+='<div class="t-sect">แยกตามครัว (ตรวจวันนี้)</div>';
-    Object.keys(stations).forEach(k=>{ const s=stations[k]; const pct=s.total?Math.round(s.today/s.total*100):0; h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><span style="width:70px;font-size:12.5px;">'+esc_(k)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;"><div style="height:7px;width:'+pct+'%;background:var(--navy);border-radius:4px;"></div></div><span class="t-cap" style="width:48px;text-align:right;">'+s.today+'/'+s.total+'</span></div>'; });
-    h+='<div class="t-sect">รายการที่ตรวจวันนี้ ('+todayCounted.length+')</div>';
+    h+='<div class="t-sect">ตรวจแล้ววันนี้ · แยกครัว</div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);padding:0 0 5px;"><span>ครัว</span><span>ตรวจแล้ว / ทั้งหมด</span></div>';
+    Object.keys(stations).forEach(k=>{ const s=stations[k]; const pct=s.total?Math.round(s.today/s.total*100):0; h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><span style="width:76px;font-size:12.5px;">'+esc_(k)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;"><div style="height:7px;width:'+pct+'%;background:var(--navy);border-radius:4px;"></div></div><span class="t-cap" style="width:52px;text-align:right;">'+s.today+' / '+s.total+'</span></div>'; });
+    h+='<div class="t-sect">✓ ที่ตรวจไปแล้ววันนี้ ('+todayCounted.length+' รายการ)</div>';
     if(!todayCounted.length){ h+='<div class="t-cap" style="text-align:center;padding:14px 0;">ยังไม่มีการตรวจวันนี้</div>'; }
     else { h+='<div class="card" style="padding:0;overflow:hidden;">'+todayCounted.sort((a,b)=>new Date(b.last_count_at)-new Date(a.last_count_at)).slice(0,40).map(i=>_invDashRow(i,rnd_(i.last_count_value)+' '+esc_(i.unit)+' · '+_invShortDate(i.last_count_at))).join('')+'</div>'; }
     el.innerHTML=h;
@@ -5290,18 +5293,35 @@ async function renderOrderCart(){
   const el=document.getElementById('stock-order-inner'); if(!el)return;
   try{
     let items=await _invFetchItems(); const stn=_invDefaultStation();
-    if(stn!=='all') items=items.filter(i=>i.category===stn);
-    let need=items.filter(i=>Number(i.on_order||0)===0 && (_invIsLow(i)||_invSoon(i)));
-    need.sort((a,b)=>(_invIsLow(a)?0:1)-(_invIsLow(b)?0:1));
-    if(!need.length){ el.innerHTML='<div style="text-align:center;padding:30px 0;"><div style="font-size:38px;">👍</div><div style="font-weight:700;margin-top:6px;">ยังไม่มีของต้องสั่ง</div><div class="t-cap">ของที่ใกล้หมดจะขึ้นตรงนี้เอง</div></div>'; return; }
-    let h='<div class="t-cap" style="margin-bottom:10px;">ของที่เหลือ ≤ min — แตะ "สั่ง" (จำนวนใส่/ไม่ใส่ก็ได้) แล้วกด "ส่งออเดอร์"</div>';
-    h+=need.map(it=>{ const inCart=!!_invCart[it.item_id]; const mn=_invMin(it);
-      return '<div class="card" style="padding:11px 13px;margin-bottom:8px;'+(inCart?'background:var(--navy-lt);border:1px solid var(--navy);':(_invIsLow(it)?'border:1px solid var(--red);':''))+'"><div style="display:flex;align-items:center;gap:9px;margin-bottom:'+(inCart?'0':'8px')+';"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">เหลือ '+rnd_(it.on_hand)+'/'+(mn.min!=null?rnd_(mn.min):'—')+' '+esc_(it.unit)+' · '+esc_(it.supplier||'ไม่ระบุซัพ')+'</div></div>'+(inCart?'<button class="btn btn-sm" style="background:var(--surface2);color:var(--ink2);" onclick="orderCartRemove(\''+it.item_id+'\')">✕</button>':(_invIsLow(it)?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':'<span class="chip chip-amber" style="font-size:10px;">จะหมดเร็ว</span>'))+'</div>'+(inCart?'':'<div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="oq-'+it.item_id+'" placeholder="จำนวน — ไม่ใส่ก็ได้" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="orderCartAdd(\''+it.item_id+'\')">➕ สั่ง</button></div>')+'</div>';
-    }).join('');
+    let kitems=(stn!=='all'?items.filter(i=>i.category===stn):items).filter(i=>(i.status||'active')==='active');
+    const byId={}; kitems.forEach(i=>byId[i.item_id]=i);
+    const cartIds=Object.keys(_invCart);
+    let sugg=kitems.filter(i=>Number(i.on_order||0)===0 && !_invCart[i.item_id] && (_invIsLow(i)||_invSoon(i)));
+    sugg.sort((a,b)=>(_invIsLow(a)?0:1)-(_invIsLow(b)?0:1));
+    let h='<div class="t-cap" style="margin-bottom:10px;">ของที่ควรสั่ง (≤ min) ขึ้นให้เอง · หรือค้นหา "สั่งของอื่น" ได้เลย (ไม่ต้องรอใกล้หมด)</div>';
+    if(cartIds.length){ h+='<div class="t-sect" style="color:var(--navy);">🛒 ในตะกร้า ('+cartIds.length+')</div>';
+      h+=cartIds.map(id=>{ const it=byId[id]||{item_id:id,name:id,unit:''}; const q=_invCart[id].qty;
+        return '<div class="card" style="padding:10px 13px;margin-bottom:8px;background:var(--navy-lt);border:1px solid var(--navy);"><div style="display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">'+(q!==''&&q!=null?('สั่ง '+rnd_(q)+' '+esc_(it.unit||'')):'สั่ง (ไม่ระบุจำนวน)')+' · '+esc_(it.supplier||'')+'</div></div><button class="btn btn-sm" style="background:var(--surface);color:var(--ink2);" onclick="orderCartRemove(\''+id+'\')">✕</button></div></div>';
+      }).join('');
+    }
+    if(sugg.length){ h+='<div class="t-sect" style="color:var(--red);">ควรสั่ง — ใกล้หมด/จะหมดเร็ว ('+sugg.length+')</div>';
+      h+=sugg.map(it=>{ const mn=_invMin(it);
+        return '<div class="card" style="padding:11px 13px;margin-bottom:8px;'+(_invIsLow(it)?'border:1px solid var(--red);':'')+'"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">เหลือ '+rnd_(it.on_hand)+'/'+(mn.min!=null?rnd_(mn.min):'—')+' '+esc_(it.unit)+' · '+esc_(it.supplier||'ไม่ระบุซัพ')+'</div></div>'+(_invIsLow(it)?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':'<span class="chip chip-amber" style="font-size:10px;">จะหมดเร็ว</span>')+'</div><div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="oq-'+it.item_id+'" placeholder="จำนวน — ไม่ใส่ก็ได้" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="orderCartAdd(\''+it.item_id+'\')">➕ สั่ง</button></div></div>';
+      }).join('');
+    }
+    h+='<div class="t-sect">➕ สั่งของอื่น (พิมพ์ค้นหา)</div><input class="fi" id="order-search" placeholder="พิมพ์ชื่อของที่จะสั่ง..." oninput="orderSearchItems()" style="margin-bottom:8px;"><div id="order-search-results"></div>';
     h+='<div id="order-sendbar"></div>';
     el.innerHTML=h; _updateOrderSendbar();
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
+async function orderSearchItems(){
+  const q=String(raw_('order-search')||'').trim().toLowerCase(); const box=document.getElementById('order-search-results'); if(!box)return;
+  if(!q){ box.innerHTML=''; return; }
+  const items=await _invFetchItems(); const stn=_invDefaultStation();
+  const res=items.filter(i=>(i.status||'active')==='active' && (stn==='all'||i.category===stn) && !_invCart[i.item_id] && String(i.name||'').toLowerCase().indexOf(q)>=0).slice(0,8);
+  box.innerHTML = res.length ? res.map(it=>'<div class="card" style="padding:9px 12px;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+esc_(it.name)+(Number(it.on_order||0)>0?' <span class="chip chip-blue" style="font-size:9px;">สั่งแล้ว</span>':'')+'</div><div class="t-cap">เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)+' · '+esc_(it.supplier||'')+'</div></div><input class="fi" type="number" id="oqs-'+it.item_id+'" placeholder="จำนวน" style="width:66px;"><button class="btn btn-navy btn-sm" onclick="orderCartAddSearch(\''+it.item_id+'\')">➕</button></div></div>').join('') : '<div class="t-cap" style="padding:6px 2px;">ไม่พบ "'+esc_(q)+'"</div>';
+}
+function orderCartAddSearch(id){ const v=raw_('oqs-'+id); _invCart[id]={qty:(v===''||isNaN(Number(v)))?'':Number(v)}; renderOrderCart(); }
 function orderCartAdd(id){ const v=raw_('oq-'+id); _invCart[id]={qty:(v===''||isNaN(Number(v)))?'':Number(v)}; renderOrderCart(); }
 function orderCartRemove(id){ delete _invCart[id]; renderOrderCart(); }
 function _updateOrderSendbar(){ const el=document.getElementById('order-sendbar'); if(!el)return; const n=Object.keys(_invCart).length; el.innerHTML=n?('<div style="position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;"><span style="font-size:13px;font-weight:600;">เลือกสั่ง '+n+' รายการ</span><button class="btn btn-sm" style="background:#fff;color:var(--navy);" onclick="orderSend()">ส่งออเดอร์ →</button></div>'):''; }
