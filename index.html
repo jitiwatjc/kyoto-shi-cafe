@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260703-212628">
+<meta name="app-build" content="20260704-094122">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -4842,7 +4842,7 @@ function _invLedger(){try{return JSON.parse(localStorage.getItem('kyoto_inv_ledg
 function _invPushLog(o){const l=_invLedger();l.push(Object.assign({event_id:'L'+Date.now()+Math.random().toString(36).slice(2,5),ts:new Date().toISOString(),staff:currentUser?.empId||'mock'},o));localStorage.setItem('kyoto_inv_ledger',JSON.stringify(l));}
 function _invAuditArr(){try{return JSON.parse(localStorage.getItem('kyoto_inv_audit')||'[]');}catch(e){return [];}}
 function _invPushAudit(entity_id,action,changes){const a=_invAuditArr();a.push({audit_id:'A'+Date.now(),ts:new Date().toISOString(),entity:'item',entity_id,action,changes:JSON.stringify(changes||{}),staff:currentUser?.empId||'mock'});localStorage.setItem('kyoto_inv_audit',JSON.stringify(a));}
-function _mockLearn(it,val){ if(it.last_count_at&&it.last_count_value!==''&&it.last_count_value!=null){ const days=(Date.now()-new Date(it.last_count_at).getTime())/86400000; if(days>=0.5){ const used=Number(it.last_count_value)+Number(it.received_since||0)-Number(val); if(used>=0){ const rate=used/days,n=Number(it.usage_n||0),avg=Number(it.usage_avg||0); it.usage_avg=n>0?Math.round((0.4*rate+0.6*avg)*1000)/1000:Math.round(rate*1000)/1000; it.usage_n=n+1; } } } it.received_since=0; }
+function _mockLearn(it,val){ if(it.last_count_at&&it.last_count_value!==''&&it.last_count_value!=null){ const days=(Date.now()-new Date(it.last_count_at).getTime())/86400000; if(days>=0.5){ const depletion=Number(it.last_count_value)+Number(it.received_since||0)-Number(val); const waste=Number(it.waste_since||0); const consumption=depletion-waste; if(consumption>=0){ const cr=consumption/days,n=Number(it.usage_n||0),avg=Number(it.usage_avg||0); it.usage_avg=n>0?Math.round((0.4*cr+0.6*avg)*1000)/1000:Math.round(cr*1000)/1000; it.usage_n=n+1; const wr=(waste>0?waste:0)/days,wn=Number(it.waste_n||0),wavg=Number(it.waste_avg||0); it.waste_avg=wn>0?Math.round((0.4*wr+0.6*wavg)*1000)/1000:Math.round(wr*1000)/1000; it.waste_n=wn+1; } } } it.received_since=0; it.waste_since=0; }
 const _INV_CFG_DEF={freq_fresh_days:'1',freq_mid_days:'3',freq_dry_days:'7',reorder_default_ratio:'0.3',worklist_max:'12',low_stock_includes_overdue:'true',weekend_days:'0,6',dyn_safety_days:'2'};
 function _invCfg(){let c=Object.assign({},_INV_CFG_DEF);try{Object.assign(c,JSON.parse(localStorage.getItem('kyoto_inv_config')||'{}'));}catch(e){}return c;}
 function _invNum(v){ return (v===''||v==null)?null:Number(v); }
@@ -4851,7 +4851,7 @@ function _invDayKeyTH(ms){ return Math.floor((ms + 7*3600000)/86400000); }
 function _invDaysSince(iso){ if(!iso) return 99999; return _invDayKeyTH(Date.now()) - _invDayKeyTH(new Date(iso).getTime()); }
 // อัตราใช้/วัน: ใช้ค่าที่ backend เรียนรู้ (usage_avg จาก นับ→รับ→นับ) ก่อน · fallback = คำนวณจาก 2 รอบนับล่าสุด
 function _invUsage(it){
-  const ua=Number(it.usage_avg||0); if(ua>0) return ua;
+  const ua=Number(it.usage_avg||0); if(ua>0) return ua + Math.max(0,Number(it.waste_avg||0));
   const pv=_invNum(it.prev_count_value),lv=_invNum(it.last_count_value); if(pv==null||lv==null||!it.prev_count_at||!it.last_count_at) return null;
   const dd=Math.max(1,Math.round((new Date(it.last_count_at)-new Date(it.prev_count_at))/86400000)); const used=pv-lv; return used>0?used/dd:null;
 }
@@ -4898,6 +4898,8 @@ function invMock(action,p){
   if(action==='inv_count'){ const it=a.find(x=>x.item_id===p.item_id); if(!it)return{ok:false,error:'not found'}; _mockLearn(it,p.value); it.prev_count_value=it.last_count_value; it.prev_count_at=it.last_count_at; it.last_count_value=Number(p.value); it.last_count_at=new Date().toISOString(); it.on_hand=Number(p.value); it.updated_at=it.last_count_at; _invSaveAll(a); _invPushLog({item_id:p.item_id,type:'COUNT',qty_after:Number(p.value),qty_delta:'',unit:it.unit,context:p.context||'cycle'}); return {ok:true,item:it}; }
   if(action==='inv_count_batch'){ (p.counts||[]).forEach(c=>{const it=a.find(x=>x.item_id===c.item_id);if(it){_mockLearn(it,c.value);it.prev_count_value=it.last_count_value;it.prev_count_at=it.last_count_at;it.last_count_value=Number(c.value);it.last_count_at=new Date().toISOString();it.on_hand=Number(c.value);_invPushLog({item_id:c.item_id,type:'COUNT',qty_after:Number(c.value),qty_delta:'',unit:it.unit,context:c.context||'cycle'});}}); _invSaveAll(a); return {ok:true,saved:(p.counts||[]).length}; }
   if(action==='inv_goodsin'){ const it=a.find(x=>x.item_id===p.item_id); if(!it)return{ok:false,error:'not found'}; const q=Number(p.qty); if(!q||q<=0)return{ok:false,error:'qty must be > 0'}; it.on_hand=Number(it.on_hand||0)+q; it.received_since=Number(it.received_since||0)+q; it.updated_at=new Date().toISOString(); _invSaveAll(a); _invPushLog({item_id:p.item_id,type:'IN',qty_after:'',qty_delta:q,unit:it.unit,context:'goodsin',reason:p.note||''}); return {ok:true,item:it}; }
+  if(action==='inv_waste'){ const it=a.find(x=>x.item_id===p.item_id); if(!it)return{ok:false,error:'not found'}; const q=Number(p.qty); if(!q||q<=0)return{ok:false,error:'qty must be > 0'}; it.on_hand=Number(it.on_hand||0)-q; it.waste_since=Number(it.waste_since||0)+q; it.updated_at=new Date().toISOString(); _invSaveAll(a); const cost=q*(Number(it.cost_per_unit)||0); _invPushLog({item_id:p.item_id,type:'WASTE',qty_after:'',qty_delta:-q,unit:it.unit,context:'waste',ref:cost,reason:p.reason||''}); return {ok:true,item:it,cost:cost}; }
+  if(action==='inv_waste_summary'){ const days=Number(p.days)||7; const since=Date.now()-days*86400000; const led=_invLedger().filter(l=>l.type==='WASTE'&&new Date(l.ts).getTime()>=since); const nm={}; a.forEach(i=>nm[i.item_id]=i.name); const byItem={},byReason={}; let tq=0,tc=0; led.forEach(l=>{const q=Math.abs(Number(l.qty_delta)||0),c=Number(l.ref)||0;tq+=q;tc+=c;const k=l.item_id;if(!byItem[k])byItem[k]={item_id:k,name:nm[k]||k,qty:0,cost:0,unit:l.unit};byItem[k].qty+=q;byItem[k].cost+=c;const rr=l.reason||'ไม่ระบุ';byReason[rr]=(byReason[rr]||0)+q;}); const items=Object.values(byItem).sort((x,y)=>y.cost-x.cost); return {ok:true,days,total_qty:tq,total_cost:Math.round(tc),items:items.slice(0,15),reasons:byReason,count:led.length}; }
   if(action==='inv_adjust'){ const it=a.find(x=>x.item_id===p.item_id); if(!it)return{ok:false,error:'not found'}; it.on_hand=Number(it.on_hand||0)+Number(p.qty_delta); it.updated_at=new Date().toISOString(); _invSaveAll(a); _invPushLog({item_id:p.item_id,type:'ADJUST',qty_after:'',qty_delta:Number(p.qty_delta),unit:it.unit,context:'manual',reason:p.reason||''}); return {ok:true,item:it}; }
   if(action==='inv_config'){ return {ok:true,config:_invCfg()}; }
   if(action==='inv_config_save'){ const c=_invCfg(); c[p.key]=p.value; localStorage.setItem('kyoto_inv_config',JSON.stringify(c)); return {ok:true}; }
@@ -4943,7 +4945,9 @@ async function renderOwnerStock(){
 }
 
 /* ── STOCK LIST ── */
-let _invFilter='all', _invStationFilter='all';
+let _invFilter='all', _invStationFilter=null;
+// auto-scope: staff เห็นครัวตัวเองก่อน (จาก profile) · owner/ส่วนกลาง = ทุกครัว
+function _invDefaultStation(){ return (currentUser&&currentUser.role!=='owner'&&currentUser.kitchen&&currentUser.kitchen!=='ส่วนกลาง')?currentUser.kitchen:'all'; }
 function stockSetFilter(f){ _invFilter=f; renderStockList(); }
 function stockSetStation(s){ _invStationFilter=s; renderStockList(); }
 async function renderStockList(){
@@ -4951,6 +4955,7 @@ async function renderStockList(){
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     let items=await _invFetchItems();
+    if(_invStationFilter===null) _invStationFilter=_invDefaultStation();
     const stations=[...new Set(items.map(i=>i.category).filter(Boolean))];
     let h='';
     if(stations.length>1){ h+='<div class="scroll-x" style="margin-bottom:8px;">'+[['all','ทุกครัว']].concat(stations.map(s=>[s,s])).map(s=>'<span onclick="stockSetStation(\''+esc_(s[0])+'\')" class="chip '+(_invStationFilter===s[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+esc_(s[1])+'</span>').join('')+'</div>'; }
@@ -5028,7 +5033,7 @@ function _invBuildWorklist(items){
 }
 async function _invFetchWorklist(force,silent){ if(!force && _invWlCache) return _invWlCache; await _invLoadCfg(); const items=await _invFetchItems(force,silent); _invWlCache=_invBuildWorklist(items); return _invWlCache; }
 function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; }
-let _invChkStation='all';
+let _invChkStation=null;
 function stockCheckSetStation(s){ _invChkStation=s; renderStockCheck(true); }
 async function renderStockCheck(keepPending){
   const el=document.getElementById('stock-check-body'); if(!el)return;
@@ -5040,6 +5045,7 @@ async function renderStockCheck(keepPending){
     let wl=(await _invFetchWorklist()).slice(); const weekend=_invIsWeekendToday();
     if(weekend) wl=_invApplyWeekend(wl);
     // แยกครัว (ข้อเรียกร้อง staff: ไม่ต้องเลื่อนหาของครัวตัวเอง)
+    if(_invChkStation===null) _invChkStation=_invDefaultStation();
     const stations=[...new Set(wl.map(i=>i.category).filter(Boolean))];
     if(_invChkStation!=='all' && stations.indexOf(_invChkStation)<0) _invChkStation='all';
     let fil=(_invChkStation==='all')?wl:wl.filter(i=>i.category===_invChkStation);
@@ -5125,7 +5131,7 @@ function renderStockDetail(it, ledger){
   const mnLbl = mn.src==='auto'?'min อัตโนมัติ':(mn.src==='manual'?'min กำหนดเอง':(mn.src==='par'?'min จาก par':'min (จุดสั่งซื้อ)'));
   h+='<div class="stat-grid"><div class="stat-box"><div class="stat-val">'+rnd_(it.on_hand)+'</div><div class="stat-lbl">เหลือ ('+esc_(it.unit)+')</div></div><div class="stat-box"><div class="stat-val" style="'+(mn.src==='auto'?'color:var(--green);':'')+'">'+(mn.min!=null?rnd_(mn.min):'—')+'</div><div class="stat-lbl">'+mnLbl+'</div></div><div class="stat-box"><div class="stat-val">'+(dc!=null?Math.round(dc):'—')+'</div><div class="stat-lbl">วันคงเหลือ</div></div></div>';
   h+='<div class="t-cap" style="margin-top:10px;">'+(u!=null?('ใช้เฉลี่ย ~'+(Math.round(u*100)/100)+' '+esc_(it.unit)+'/วัน · '+(nCyc>=3?'🌳 ระบบมั่นใจแล้ว':'🌿 กำลังเรียนรู้'+(nCyc?(' (รอบ '+nCyc+')'):' (ค่าเริ่มต้น)')))+(dc!=null?' · จะหมดใน ~'+Math.round(dc)+' วัน':''):'🌱 ยังไม่มีข้อมูล — นับ ≥2 รอบ (+บันทึกรับของ) ให้ระบบเรียนรู้ min เอง')+(it.last_count_at?(' · นับล่าสุด '+_invDaysSince(it.last_count_at)+' วันก่อน'):' · ยังไม่เคยนับ')+'</div></div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;"><button class="btn btn-navy btn-sm" onclick="invQuickCount(\''+it.item_id+'\')">นับตอนนี้</button><button class="btn btn-sm" style="background:var(--green-bg);border:1.5px solid var(--green);color:var(--green);" onclick="invQuickGoodsIn(\''+it.item_id+'\')">📥 รับของ</button><button class="btn btn-sm" style="background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="invQuickAdjust(\''+it.item_id+'\')">ปรับยอด</button><button class="btn btn-sm" style="background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="stockOpenEdit(\''+it.item_id+'\')">แก้ไข</button></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;"><button class="btn btn-navy btn-sm" onclick="invQuickCount(\''+it.item_id+'\')">🔢 นับตอนนี้</button><button class="btn btn-sm" style="background:var(--green-bg);border:1.5px solid var(--green);color:var(--green);" onclick="invQuickGoodsIn(\''+it.item_id+'\')">📥 รับของ</button><button class="btn btn-sm" style="background:var(--red-bg);border:1.5px solid var(--red);color:var(--red);" onclick="invQuickWaste(\''+it.item_id+'\')">🗑️ ของเสีย</button><button class="btn btn-sm" style="background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="stockOpenEdit(\''+it.item_id+'\')">แก้ไข</button></div>';
   h+='<div id="inv-quick"></div>';
   h+='<div class="t-sect" style="margin-top:14px;">ประวัติการเคลื่อนไหว</div>';
   h+='<div id="inv-ledger-box">'+_invLedgerBoxHtml(it, ledger)+'</div>';
@@ -5152,6 +5158,24 @@ async function invGoodsInSave(id){
   const r=await invSubmit('inv_goodsin',{item_id:id,qty:Number(v),local_id:'g'+Date.now()+id});
   if(r&&r.ok){ _invInvalidate(); toast('รับของแล้ว ✓ +'+rnd_(Number(v))); _invOpenDetail(id, r.item); }
   else if(String((r&&r.error)||'').indexOf('unknown action')>=0){ toast('⚠ ฟีเจอร์รับของต้องอัปเดต backend ก่อน — แจ้งเจ้าของ'); }
+  else toast('ผิดพลาด: '+((r&&r.error)||''));
+}
+/* ── ของเสีย: ลดยอด + เหตุผล + ต้นทุน → แยก consumption/waste ให้ min ── */
+const INV_WASTE_REASONS=['หมดอายุ','เน่าเสีย','ทำหล่น','เตรียมเกิน','ลูกค้าคืน'];
+let _invWasteReason='';
+function invPickWasteReason(r){ _invWasteReason=r; document.querySelectorAll('.inv-wr').forEach(x=>x.className='chip inv-wr '+(x.dataset.r===r?'chip-red':'chip-gray')); }
+function invQuickWaste(id){
+  const it=_invWlMap[id]||((_invItemsCache||[]).find(x=>x.item_id===id))||{}; _invWasteReason='';
+  const el=document.getElementById('inv-quick');
+  el.innerHTML='<div class="card" style="border:1.5px solid var(--red);"><label class="t-label">🗑️ ของเสีย — ทิ้งไปกี่ '+esc_(it.unit||'หน่วย')+'?</label><div style="display:flex;gap:8px;margin-bottom:8px;"><input class="fi" type="number" id="inv-w-val" placeholder="จำนวน" style="flex:1;"></div><label class="t-label">เพราะอะไร?</label><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">'+INV_WASTE_REASONS.map(r=>'<span class="chip inv-wr chip-gray" data-r="'+r+'" onclick="invPickWasteReason(\''+r+'\')" style="cursor:pointer;font-size:12px;padding:5px 10px;">'+r+'</span>').join('')+'</div><button class="btn btn-sm" style="width:100%;background:var(--red);color:#fff;" onclick="invWasteSave(\''+id+'\')">บันทึกของเสีย</button></div>';
+  const f=document.getElementById('inv-w-val'); if(f)f.focus();
+}
+async function invWasteSave(id){
+  const v=raw_('inv-w-val'); if(v===''||isNaN(Number(v))||Number(v)<=0){ toast('ใส่จำนวนของเสียก่อน'); return; }
+  if(!_invWasteReason){ toast('เลือกสาเหตุด้วยนะ'); return; }
+  const r=await invSubmit('inv_waste',{item_id:id,qty:Number(v),reason:_invWasteReason,local_id:'w'+Date.now()+id});
+  if(r&&r.ok){ _invInvalidate(); toast('บันทึกของเสียแล้ว ✓ −'+rnd_(Number(v))+(r.cost?(' (฿'+rnd_(r.cost)+')'):'')); _invOpenDetail(id, r.item); }
+  else if(String((r&&r.error)||'').indexOf('unknown action')>=0){ toast('⚠ ฟีเจอร์ของเสียต้องอัปเดต backend ก่อน — แจ้งเจ้าของ'); }
   else toast('ผิดพลาด: '+((r&&r.error)||''));
 }
 
@@ -5191,6 +5215,7 @@ async function renderStockDash(){
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     const items=await _invFetchItems(); const wl=await _invFetchWorklist();
+    let wsum=null; try{ wsum=await invGet('inv_waste_summary',{days:7},{silent:true}); }catch(e){}
     const isToday=iso=>{ if(!iso)return false; const d=new Date(iso),n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate(); };
     const total=items.length;
     const everCounted=items.filter(i=>i.last_count_at);
@@ -5221,6 +5246,12 @@ async function renderStockDash(){
     h+='<div class="card" style="margin:0;padding:12px;"><div class="t-cap">มูลค่าสต๊อก</div><div style="font-size:20px;font-weight:700;">฿'+rnd_(value)+'</div><div class="t-cap">จากทุน/หน่วยที่ใส่ไว้</div></div>';
     h+='</div>';
     if(!value) h+='<div class="t-cap" style="margin:-4px 0 10px;font-style:italic;">มูลค่า ฿0 — ยังไม่ได้ใส่ทุน/หน่วย จะคำนวณได้เมื่อใส่ทุน</div>';
+    if(wsum&&wsum.ok&&wsum.count>0){
+      h+='<div class="t-sect" style="color:var(--red);">🗑️ ของเสีย 7 วัน — ฿'+rnd_(wsum.total_cost)+'</div>';
+      const rs=wsum.reasons||{}; const rk=Object.keys(rs).sort((a,b)=>rs[b]-rs[a]);
+      if(rk.length) h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">'+rk.map(k=>'<span class="chip chip-gray" style="font-size:11px;">'+esc_(k)+' '+rnd_(rs[k])+'</span>').join('')+'</div>';
+      h+='<div class="card" style="padding:0;overflow:hidden;">'+(wsum.items||[]).slice(0,6).map(w=>'<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span style="flex:1;font-size:13px;">'+esc_(w.name)+'</span><span class="t-cap">'+rnd_(w.qty)+' '+esc_(w.unit||'')+' · ฿'+rnd_(w.cost)+'</span></div>').join('')+'</div>';
+    }
     h+='<div class="t-sect">แยกตามครัว (ตรวจวันนี้)</div>';
     Object.keys(stations).forEach(k=>{ const s=stations[k]; const pct=s.total?Math.round(s.today/s.total*100):0; h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><span style="width:70px;font-size:12.5px;">'+esc_(k)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;"><div style="height:7px;width:'+pct+'%;background:var(--navy);border-radius:4px;"></div></div><span class="t-cap" style="width:48px;text-align:right;">'+s.today+'/'+s.total+'</span></div>'; });
     h+='<div class="t-sect">รายการที่ตรวจวันนี้ ('+todayCounted.length+')</div>';
