@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260704-223151">
+<meta name="app-build" content="20260704-232806">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -2042,12 +2042,30 @@ async function renderPnl(){
 // วาง URL ของ Apps Script Web App ที่นี่หลัง Deploy
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycby5m2YzFxN-APkSDrdAIXOciIpskqc5lXuVRK-8TmvepGBd74pxmIj4zYCcvmh7Qc1U/exec';
 // Helper: เรียก API ผ่าน GET (ไม่มีปัญหา CORS กับ Apps Script)
-async function callAPI(params){
-  const url=new URL(SCRIPT_URL);
-  Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
-  url.searchParams.set('_',Date.now());            // cache-buster: กัน browser คืนข้อมูลเก่าหลัง mutation (เช่น ลบ/อนุมัติแล้วจอไม่อัปเดต)
-  const r=await fetch(url.toString(),{cache:'no-store'});
-  return r.json();
+// opts.timeoutMs = ตัด request ที่ค้าง (default 25s) · opts.retries = ลองซ้ำเมื่อ fail/timeout
+// ⚠ retry เปิดเฉพาะคำสั่งที่ยิงซ้ำได้ปลอดภัย (login/อ่าน) — mutation (clockIn/approve) อย่าตั้ง retry กันทำซ้ำ
+async function callAPI(params,opts){
+  opts=opts||{};
+  const maxRetry=opts.retries||0, timeoutMs=opts.timeoutMs||25000;
+  let lastErr;
+  for(let attempt=0;attempt<=maxRetry;attempt++){
+    const url=new URL(SCRIPT_URL);
+    Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
+    url.searchParams.set('_',Date.now());          // cache-buster ใหม่ทุกครั้ง: กันข้อมูลเก่าหลัง mutation + กัน retry โดน cache
+    let timer=null;
+    try{
+      const ctrl=new AbortController(); timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+      const r=await fetch(url.toString(),{cache:'no-store',signal:ctrl.signal});
+      clearTimeout(timer); timer=null;
+      const text=await r.text();
+      try{ return JSON.parse(text); }
+      catch(_){ throw new Error('เซิร์ฟเวอร์ตอบไม่สมบูรณ์'); }   // Apps Script คืนหน้า HTML error (โหลดหนัก) → ถือว่า fail แล้ว retry
+    }catch(e){
+      if(timer)clearTimeout(timer); lastErr=e;
+      if(attempt<maxRetry) await new Promise(z=>setTimeout(z,700*(attempt+1)));  // backoff 0.7s, 1.4s
+    }
+  }
+  throw lastErr||new Error('request failed');
 }
 // POST (form-urlencoded) — ใช้ส่งข้อมูลก้อนใหญ่ เช่น ไฟล์ base64 ที่ส่งผ่าน GET ไม่ได้
 async function callAPIPost(params){
@@ -2111,7 +2129,8 @@ async function doLogin(){
   loginBtns.forEach(b=>{b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';});
   try{
     // Always authenticate on the server — no credentials are hardcoded in this page
-    const res=await callAPI({action:'login',user:u,pass:p});
+    // retry 2 ครั้ง (login ยิงซ้ำได้ปลอดภัย) — กันช่วง Apps Script โหลดหนัก/คนเข้าพร้อมกัน แล้ว blip ทีเดียวล้ม
+    const res=await callAPI({action:'login',user:u,pass:p},{retries:2,timeoutMs:18000});
     if(!res.ok){errEl.style.display='block';return;}
     // The account's real role is decided server-side and must match the selected tab
     if(res.role!==role){errEl.style.display='block';return;}
@@ -2123,7 +2142,7 @@ async function doLogin(){
     hist=[];
     go(role==='owner'?'s-owner-home':'s-emp-home');
   }catch(e){
-    toast('ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+    toast('เซิร์ฟเวอร์ไม่ว่าง (มีคนเข้าพร้อมกันเยอะ) — รอ 2-3 วิ แล้วกดเข้าสู่ระบบอีกครั้ง');
   }finally{
     loginBtns.forEach(b=>{b.disabled=false;b.textContent='เข้าสู่ระบบ';});
   }
@@ -5351,8 +5370,8 @@ async function renderOrderRecv(){
     if(!withOpen.length){ el.innerHTML='<div style="text-align:center;padding:30px 0;"><div style="font-size:38px;">📭</div><div style="font-weight:700;margin-top:6px;">ไม่มีของรอรับ</div><div class="t-cap">ของที่สั่งแล้วจะขึ้นตรงนี้</div></div>'; return; }
     let h='<div class="t-cap" style="margin-bottom:10px;">ของที่สั่งไปแล้ว — พอของมาถึง กด "รับ"</div>';
     const canCancel=currentUser&&currentUser.role==='owner';
-    withOpen.forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="t-sect" style="display:flex;align-items:center;gap:8px;"><span style="flex:1;">'+esc_(po.supplier)+' · '+_invShortDate(po.created_at)+'</span>'+(canCancel?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);padding:3px 10px;font-weight:400;text-transform:none;" onclick="ownerCancelOrder(\''+po.po_id+'\')">ยกเลิกใบนี้</button>':'')+'</div>';
-      ol.forEach(l=>{ h+='<div class="card" id="rline-'+l.line_id+'" style="padding:11px 13px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;"><span style="flex:1;font-size:13.5px;font-weight:600;">'+esc_(l.name)+'</span><span class="t-cap">สั่ง '+(l.qty_ordered!==''&&l.qty_ordered!=null?(rnd_(l.qty_ordered)+' '+esc_(l.unit)):'(ไม่ระบุ)')+'</span></div><div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="rq-'+l.line_id+'" placeholder="รับได้ ('+esc_(l.unit)+')" value="'+(l.qty_ordered!==''&&l.qty_ordered!=null?l.qty_ordered:'')+'" style="flex:1;"><button class="btn btn-sm" style="background:var(--green);color:#fff;" onclick="orderReceiveLine(\''+l.line_id+'\')">รับ</button></div></div>'; });
+    withOpen.forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="t-sect">'+esc_(po.supplier)+' · '+_invShortDate(po.created_at)+'</div>';
+      ol.forEach(l=>{ h+='<div class="card" id="rline-'+l.line_id+'" style="padding:11px 13px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;"><span style="flex:1;font-size:13.5px;font-weight:600;">'+esc_(l.name)+'</span><span class="t-cap">สั่ง '+(l.qty_ordered!==''&&l.qty_ordered!=null?(rnd_(l.qty_ordered)+' '+esc_(l.unit)):'(ไม่ระบุ)')+'</span>'+(canCancel?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);padding:3px 9px;font-weight:400;text-transform:none;" onclick="ownerCancelLine(\''+l.line_id+'\')">ยกเลิก</button>':'')+'</div><div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="rq-'+l.line_id+'" placeholder="รับได้ ('+esc_(l.unit)+')" value="'+(l.qty_ordered!==''&&l.qty_ordered!=null?l.qty_ordered:'')+'" style="flex:1;"><button class="btn btn-sm" style="background:var(--green);color:#fff;" onclick="orderReceiveLine(\''+l.line_id+'\')">รับ</button></div></div>'; });
     });
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
@@ -5363,7 +5382,8 @@ async function orderReceiveLine(lineId){
   if(r&&r.ok){ toast('รับของแล้ว ✓'); _invInvalidate(); const c=document.getElementById('rline-'+lineId); if(c){ c.style.background='var(--green-bg)'; c.style.border='1px solid var(--green)'; c.innerHTML='<div style="color:var(--green);font-weight:600;font-size:13.5px;">✓ รับแล้ว '+rnd_(v)+'</div>'; } }
   else toast('ผิดพลาด: '+((r&&r.error)||''));
 }
-async function ownerCancelOrder(poId){ if(!confirm('ยกเลิกออเดอร์นี้? ของจะกลับไปเป็น "ต้องสั่ง"'))return; const r=await invSubmit('inv_order_cancel',{po_id:poId}); if(r&&r.ok){ toast('ยกเลิกแล้ว'); _invInvalidate(); renderStockOrder(); } else toast('ยกเลิกไม่ได้: '+((r&&r.error)||'')); }
+// ยกเลิกทีละรายการ (owner) — เทาเฉพาะบรรทัดนั้น รายการอื่นในใบเดิมยังอยู่ · backend cancel ด้วย line_id (ไม่แตะ min เพราะ commit ตอนรับ)
+async function ownerCancelLine(lineId){ if(!confirm('ยกเลิกเฉพาะรายการนี้? รายการอื่นในใบเดิมยังอยู่ · ของจะกลับไปเป็น "ต้องสั่ง"'))return; const r=await invSubmit('inv_order_cancel',{line_id:lineId}); if(r&&r.ok){ toast('ยกเลิกรายการแล้ว'); _invInvalidate(); const c=document.getElementById('rline-'+lineId); if(c){ c.style.background='var(--surface2)'; c.style.border='1px solid var(--border)'; c.style.opacity='.65'; c.innerHTML='<div style="color:var(--ink3);font-weight:600;font-size:13.5px;">✕ ยกเลิกแล้ว</div>'; } } else toast('ยกเลิกไม่ได้: '+((r&&r.error)||'')); }
 </script>
 </body>
 </html>
