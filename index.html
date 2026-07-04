@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260704-220924">
+<meta name="app-build" content="20260704-223151">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -5249,8 +5249,8 @@ async function renderStockDash(){
       if(soonItems.length>6) h+='<div class="t-cap" style="text-align:center;padding:4px 0 8px;cursor:pointer;color:var(--info);" onclick="stockJumpList(\'soon\')">ดูทั้งหมด '+soonItems.length+' รายการ ›</div>'; }
     const openPos=(ords&&ords.orders?ords.orders:[]).filter(po=>(po.lines||[]).some(l=>l.status==='open'));
     if(openPos.length){
-      h+='<div class="t-sect" style="color:var(--amber);">🟡 สั่งแล้ว รอรับ ('+openPos.length+' ใบ)</div>';
-      openPos.slice(0,6).forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="card" style="padding:10px 13px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="flex:1;font-size:13px;font-weight:600;">'+esc_(po.supplier)+(po.kitchen?(' · '+esc_(po.kitchen)):'')+'</span><span class="t-cap">'+_invShortDate(po.created_at)+'</span><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);padding:4px 10px;" onclick="ownerCancelOrder(\''+po.po_id+'\')">ยกเลิก</button></div><div class="t-cap">'+ol.map(l=>esc_(l.name)+(l.qty_ordered!==''&&l.qty_ordered!=null?(' '+rnd_(l.qty_ordered)):'')).join(' · ')+'</div></div>'; });
+      h+='<div class="t-sect" style="color:var(--amber);">🟡 สั่งแล้ว รอรับ ('+openPos.length+' ใบ) <span style="font-weight:400;text-transform:none;color:var(--info);">— แตะเพื่อรับ/ยกเลิก ›</span></div>';
+      openPos.slice(0,6).forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="card" style="padding:10px 13px;cursor:pointer;" onclick="_invOrderTab=\'recv\';go(\'s-stock-order\')"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="flex:1;font-size:13px;font-weight:600;">'+esc_(po.supplier)+(po.kitchen?(' · '+esc_(po.kitchen)):'')+'</span><span class="t-cap">'+_invShortDate(po.created_at)+' ›</span></div><div class="t-cap">'+ol.map(l=>esc_(l.name)+(l.qty_ordered!==''&&l.qty_ordered!=null?(' '+rnd_(l.qty_ordered)):'')).join(' · ')+'</div></div>'; });
     }
     h+='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;">ความคืบหน้าตั้งต้น (นับครั้งแรก)</span><span class="t-cap">'+everCounted.length+'/'+total+'</span></div><div style="height:8px;background:var(--surface2);border-radius:4px;"><div style="height:8px;width:'+basePct+'%;background:var(--green);border-radius:4px;"></div></div><div class="t-cap" style="margin-top:4px;">'+basePct+'% · ยังไม่เคยนับ '+never+' รายการ</div></div>';
     h+='<div class="t-sect">ภาพรวม Stock Health <span style="font-weight:400;text-transform:none;">(แตะการ์ดเพื่อดูรายการ)</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
@@ -5350,7 +5350,8 @@ async function renderOrderRecv(){
     const withOpen=pos.filter(po=>(po.lines||[]).some(l=>l.status==='open'));
     if(!withOpen.length){ el.innerHTML='<div style="text-align:center;padding:30px 0;"><div style="font-size:38px;">📭</div><div style="font-weight:700;margin-top:6px;">ไม่มีของรอรับ</div><div class="t-cap">ของที่สั่งแล้วจะขึ้นตรงนี้</div></div>'; return; }
     let h='<div class="t-cap" style="margin-bottom:10px;">ของที่สั่งไปแล้ว — พอของมาถึง กด "รับ"</div>';
-    withOpen.forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="t-sect">'+esc_(po.supplier)+' · '+_invShortDate(po.created_at)+'</div>';
+    const canCancel=currentUser&&currentUser.role==='owner';
+    withOpen.forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="t-sect" style="display:flex;align-items:center;gap:8px;"><span style="flex:1;">'+esc_(po.supplier)+' · '+_invShortDate(po.created_at)+'</span>'+(canCancel?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);padding:3px 10px;font-weight:400;text-transform:none;" onclick="ownerCancelOrder(\''+po.po_id+'\')">ยกเลิกใบนี้</button>':'')+'</div>';
       ol.forEach(l=>{ h+='<div class="card" id="rline-'+l.line_id+'" style="padding:11px 13px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;"><span style="flex:1;font-size:13.5px;font-weight:600;">'+esc_(l.name)+'</span><span class="t-cap">สั่ง '+(l.qty_ordered!==''&&l.qty_ordered!=null?(rnd_(l.qty_ordered)+' '+esc_(l.unit)):'(ไม่ระบุ)')+'</span></div><div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="rq-'+l.line_id+'" placeholder="รับได้ ('+esc_(l.unit)+')" value="'+(l.qty_ordered!==''&&l.qty_ordered!=null?l.qty_ordered:'')+'" style="flex:1;"><button class="btn btn-sm" style="background:var(--green);color:#fff;" onclick="orderReceiveLine(\''+l.line_id+'\')">รับ</button></div></div>'; });
     });
     el.innerHTML=h;
@@ -5362,7 +5363,7 @@ async function orderReceiveLine(lineId){
   if(r&&r.ok){ toast('รับของแล้ว ✓'); _invInvalidate(); const c=document.getElementById('rline-'+lineId); if(c){ c.style.background='var(--green-bg)'; c.style.border='1px solid var(--green)'; c.innerHTML='<div style="color:var(--green);font-weight:600;font-size:13.5px;">✓ รับแล้ว '+rnd_(v)+'</div>'; } }
   else toast('ผิดพลาด: '+((r&&r.error)||''));
 }
-async function ownerCancelOrder(poId){ if(!confirm('ยกเลิกออเดอร์นี้? ของจะกลับไปเป็น "ต้องสั่ง"'))return; const r=await invSubmit('inv_order_cancel',{po_id:poId}); if(r&&r.ok){ toast('ยกเลิกแล้ว'); _invInvalidate(); renderStockDash(); } else toast('ยกเลิกไม่ได้: '+((r&&r.error)||'')); }
+async function ownerCancelOrder(poId){ if(!confirm('ยกเลิกออเดอร์นี้? ของจะกลับไปเป็น "ต้องสั่ง"'))return; const r=await invSubmit('inv_order_cancel',{po_id:poId}); if(r&&r.ok){ toast('ยกเลิกแล้ว'); _invInvalidate(); renderStockOrder(); } else toast('ยกเลิกไม่ได้: '+((r&&r.error)||'')); }
 </script>
 </body>
 </html>
