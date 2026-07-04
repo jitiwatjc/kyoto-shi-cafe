@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260704-094122">
+<meta name="app-build" content="20260704-170520">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1461,6 +1461,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">ภาพรวมสต๊อก</div><button class="topbar-action" onclick="go('s-stock')">รายการ</button></div>
   <div class="page"><div id="stock-dash-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
 </div>
+<div id="s-stock-order" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">สั่งของ</div><span id="stock-order-kchip" style="font-size:11px;font-weight:600;background:var(--navy-lt);color:var(--navy);padding:3px 9px;border-radius:12px;"></span></div>
+  <div class="page"><div id="stock-order-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
 
 <div id="toast"></div>
 <div id="inv-overlay"><div class="inv-spin-box"><div class="inv-spin"></div><span id="inv-overlay-msg">กำลังโหลด...</span></div></div>
@@ -1491,6 +1495,7 @@ function go(id){
   if(id==='s-stock-config'){renderStockConfig();}
   if(id==='s-stock-audit'){renderStockAudit();}
   if(id==='s-stock-dash'){renderStockDash();}
+  if(id==='s-stock-order'){renderStockOrder();}
   if(id==='s-owner-approve'){renderApprovalTabs();}
   if(id==='s-owner-emps'){renderEmpList();}
   if(id==='s-owner-export'){renderAttendanceExport();}
@@ -4962,6 +4967,7 @@ async function renderStockList(){
     const filters=[['all','ทั้งหมด'],['low','ใกล้หมด'],['soon','จะหมดเร็ว'],['never','ยังไม่นับ'],['fresh','สด'],['mid','กลาง'],['dry','แห้ง']];
     h+='<div class="scroll-x" style="margin-bottom:12px;">'+filters.map(f=>'<span onclick="stockSetFilter(\''+f[0]+'\')" class="chip '+(_invFilter===f[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+f[1]+'</span>').join('')+'</div>';
     if(currentUser&&currentUser.role==='owner'){ h+='<div style="display:flex;gap:6px;margin-bottom:12px;"><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-dash\')">📊 ภาพรวม</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-config\')">⚙ ตั้งค่า</button><button class="btn btn-sm" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);" onclick="go(\'s-stock-audit\')">ประวัติ</button></div>'; }
+    h+='<button class="btn btn-sm" style="width:100%;margin-bottom:12px;background:var(--navy);color:#fff;" onclick="go(\'s-stock-order\')">🛒 สั่งของ · รับของ</button>';
     let fil=items;
     if(_invStationFilter!=='all') fil=fil.filter(i=>i.category===_invStationFilter);
     if(_invFilter==='low')fil=fil.filter(_invIsLow);
@@ -4971,7 +4977,7 @@ async function renderStockList(){
     if(!fil.length){ h+='<div style="text-align:center;padding:24px 0;"><div class="t-cap">ไม่มีรายการในกลุ่มนี้</div><button class="btn btn-navy btn-sm" style="margin-top:12px;" onclick="stockOpenAdd()">+ เพิ่มวัตถุดิบ</button></div>'; el.innerHTML=h; return; }
     fil.sort((a,b)=>(_invIsLow(a)?0:1)-(_invIsLow(b)?0:1));
     h+=fil.map(it=>{ const low=_invIsLow(it); const dc=_invDaysCover(it); const counted=!!it.last_count_at; const mn=_invMin(it);
-      return '<div class="card" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'cursor:pointer;" onclick="stockOpenDetail(\''+it.item_id+'\')"><div style="display:flex;align-items:center;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">'+esc_(it.category||'-')+' · '+(counted?('เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)):'ยังไม่นับ')+(mn.min!=null?' · min '+rnd_(mn.min)+(mn.src==='auto'?'*':''):'')+(dc!=null?' · ~'+Math.round(dc)+' วัน':'')+'</div></div>'+(low?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':(_invSoon(it)?'<span class="chip chip-amber" style="font-size:10px;">จะหมดเร็ว</span>':'<span class="t-cap" style="font-size:11px;">'+_invFreqShort(it.freq_class)+'</span>'))+'</div></div>';
+      return '<div class="card" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'cursor:pointer;" onclick="stockOpenDetail(\''+it.item_id+'\')"><div style="display:flex;align-items:center;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">'+esc_(it.category||'-')+' · '+(counted?('เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)):'ยังไม่นับ')+(mn.min!=null?' · min '+rnd_(mn.min)+(mn.src==='auto'?'*':''):'')+(dc!=null?' · ~'+Math.round(dc)+' วัน':'')+'</div></div>'+(Number(it.on_order||0)>0?'<span class="chip chip-blue" style="font-size:10px;">สั่งแล้ว</span>':(low?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':(_invSoon(it)?'<span class="chip chip-amber" style="font-size:10px;">จะหมดเร็ว</span>':'<span class="t-cap" style="font-size:11px;">'+_invFreqShort(it.freq_class)+'</span>')))+'</div></div>';
     }).join('');
     h+='<div class="t-cap" style="text-align:center;padding:8px;">'+fil.length+' รายการ</div>';
     el.innerHTML=h;
@@ -5216,6 +5222,7 @@ async function renderStockDash(){
   try{
     const items=await _invFetchItems(); const wl=await _invFetchWorklist();
     let wsum=null; try{ wsum=await invGet('inv_waste_summary',{days:7},{silent:true}); }catch(e){}
+    let ords=null; try{ ords=await invGet('inv_orders',{status:'open'},{silent:true}); }catch(e){}
     const isToday=iso=>{ if(!iso)return false; const d=new Date(iso),n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate(); };
     const total=items.length;
     const everCounted=items.filter(i=>i.last_count_at);
@@ -5238,6 +5245,11 @@ async function renderStockDash(){
     // 🔶 จะหมดเร็ว ๆ นี้ (คาดการณ์จากอัตราใช้ที่เรียนรู้)
     if(soonItems.length){ h+='<div class="t-sect" style="color:var(--amber);">🔶 จะหมดเร็วๆ นี้ ('+soonItems.length+')</div><div class="card" style="padding:0;overflow:hidden;">'+soonItems.slice(0,6).map(it=>{const dc=_invDaysCover(it);return _invDashRow(it,'เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)+(dc!=null?' · ~'+Math.round(dc)+' วัน':''));}).join('')+'</div>';
       if(soonItems.length>6) h+='<div class="t-cap" style="text-align:center;padding:4px 0 8px;cursor:pointer;color:var(--info);" onclick="stockJumpList(\'soon\')">ดูทั้งหมด '+soonItems.length+' รายการ ›</div>'; }
+    const openPos=(ords&&ords.orders?ords.orders:[]).filter(po=>(po.lines||[]).some(l=>l.status==='open'));
+    if(openPos.length){
+      h+='<div class="t-sect" style="color:var(--amber);">🟡 สั่งแล้ว รอรับ ('+openPos.length+' ใบ)</div>';
+      openPos.slice(0,6).forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="card" style="padding:10px 13px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="flex:1;font-size:13px;font-weight:600;">'+esc_(po.supplier)+(po.kitchen?(' · '+esc_(po.kitchen)):'')+'</span><span class="t-cap">'+_invShortDate(po.created_at)+'</span><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);padding:4px 10px;" onclick="ownerCancelOrder(\''+po.po_id+'\')">ยกเลิก</button></div><div class="t-cap">'+ol.map(l=>esc_(l.name)+(l.qty_ordered!==''&&l.qty_ordered!=null?(' '+rnd_(l.qty_ordered)):'')).join(' · ')+'</div></div>'; });
+    }
     h+='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;">ความคืบหน้าตั้งต้น (นับครั้งแรก)</span><span class="t-cap">'+everCounted.length+'/'+total+'</span></div><div style="height:8px;background:var(--surface2);border-radius:4px;"><div style="height:8px;width:'+basePct+'%;background:var(--green);border-radius:4px;"></div></div><div class="t-cap" style="margin-top:4px;">'+basePct+'% · ยังไม่เคยนับ '+never+' รายการ</div></div>';
     h+='<div class="t-sect">ภาพรวม Stock Health <span style="font-weight:400;text-transform:none;">(แตะการ์ดเพื่อดูรายการ)</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
     h+='<div class="card" style="margin:0;padding:12px;cursor:pointer;" onclick="stockJumpList(\'all\')"><div class="t-cap">รายการทั้งหมด</div><div style="font-size:22px;font-weight:700;">'+total+'</div><div class="t-cap" style="color:var(--info);">ดูรายการ ›</div></div>';
@@ -5260,6 +5272,77 @@ async function renderStockDash(){
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
+
+/* ═══════════ สั่งของ (order + receive) ═══════════ */
+let _invOrderTab='cart', _invCart={};
+function stockOrderTab(t){ _invOrderTab=t; renderStockOrder(); }
+async function renderStockOrder(){
+  const el=document.getElementById('stock-order-body'); if(!el)return;
+  await _invLoadCfg();
+  const stn=_invDefaultStation(); const kchip=document.getElementById('stock-order-kchip'); if(kchip)kchip.textContent=(stn==='all'?'ทุกครัว':stn);
+  let h='<div style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:12px;">'
+    +'<div onclick="stockOrderTab(\'cart\')" style="flex:1;text-align:center;font-size:13px;font-weight:600;padding:8px;border-radius:8px;cursor:pointer;'+(_invOrderTab==='cart'?'background:var(--surface);color:var(--navy);box-shadow:var(--sh);':'color:var(--ink3);')+'">🛒 ต้องสั่ง</div>'
+    +'<div onclick="stockOrderTab(\'recv\')" style="flex:1;text-align:center;font-size:13px;font-weight:600;padding:8px;border-radius:8px;cursor:pointer;'+(_invOrderTab==='recv'?'background:var(--surface);color:var(--navy);box-shadow:var(--sh);':'color:var(--ink3);')+'">📥 รอรับ</div></div>';
+  el.innerHTML=h+'<div id="stock-order-inner"><div class="t-cap" style="text-align:center;padding:16px 0;">กำลังโหลด...</div></div>';
+  if(_invOrderTab==='cart') renderOrderCart(); else renderOrderRecv();
+}
+async function renderOrderCart(){
+  const el=document.getElementById('stock-order-inner'); if(!el)return;
+  try{
+    let items=await _invFetchItems(); const stn=_invDefaultStation();
+    if(stn!=='all') items=items.filter(i=>i.category===stn);
+    let need=items.filter(i=>Number(i.on_order||0)===0 && (_invIsLow(i)||_invSoon(i)));
+    need.sort((a,b)=>(_invIsLow(a)?0:1)-(_invIsLow(b)?0:1));
+    if(!need.length){ el.innerHTML='<div style="text-align:center;padding:30px 0;"><div style="font-size:38px;">👍</div><div style="font-weight:700;margin-top:6px;">ยังไม่มีของต้องสั่ง</div><div class="t-cap">ของที่ใกล้หมดจะขึ้นตรงนี้เอง</div></div>'; return; }
+    let h='<div class="t-cap" style="margin-bottom:10px;">ของที่เหลือ ≤ min — แตะ "สั่ง" (จำนวนใส่/ไม่ใส่ก็ได้) แล้วกด "ส่งออเดอร์"</div>';
+    h+=need.map(it=>{ const inCart=!!_invCart[it.item_id]; const mn=_invMin(it);
+      return '<div class="card" style="padding:11px 13px;margin-bottom:8px;'+(inCart?'background:var(--navy-lt);border:1px solid var(--navy);':(_invIsLow(it)?'border:1px solid var(--red);':''))+'"><div style="display:flex;align-items:center;gap:9px;margin-bottom:'+(inCart?'0':'8px')+';"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;">'+esc_(it.name)+'</div><div class="t-cap">เหลือ '+rnd_(it.on_hand)+'/'+(mn.min!=null?rnd_(mn.min):'—')+' '+esc_(it.unit)+' · '+esc_(it.supplier||'ไม่ระบุซัพ')+'</div></div>'+(inCart?'<button class="btn btn-sm" style="background:var(--surface2);color:var(--ink2);" onclick="orderCartRemove(\''+it.item_id+'\')">✕</button>':(_invIsLow(it)?'<span class="chip chip-red" style="font-size:10px;">ใกล้หมด</span>':'<span class="chip chip-amber" style="font-size:10px;">จะหมดเร็ว</span>'))+'</div>'+(inCart?'':'<div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="oq-'+it.item_id+'" placeholder="จำนวน — ไม่ใส่ก็ได้" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="orderCartAdd(\''+it.item_id+'\')">➕ สั่ง</button></div>')+'</div>';
+    }).join('');
+    h+='<div id="order-sendbar"></div>';
+    el.innerHTML=h; _updateOrderSendbar();
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+function orderCartAdd(id){ const v=raw_('oq-'+id); _invCart[id]={qty:(v===''||isNaN(Number(v)))?'':Number(v)}; renderOrderCart(); }
+function orderCartRemove(id){ delete _invCart[id]; renderOrderCart(); }
+function _updateOrderSendbar(){ const el=document.getElementById('order-sendbar'); if(!el)return; const n=Object.keys(_invCart).length; el.innerHTML=n?('<div style="position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;"><span style="font-size:13px;font-weight:600;">เลือกสั่ง '+n+' รายการ</span><button class="btn btn-sm" style="background:#fff;color:var(--navy);" onclick="orderSend()">ส่งออเดอร์ →</button></div>'):''; }
+async function orderSend(){
+  const ids=Object.keys(_invCart); if(!ids.length){ toast('ยังไม่ได้เลือกของ'); return; }
+  const stn=_invDefaultStation();
+  const lines=ids.map(id=>({item_id:id, qty:_invCart[id].qty}));
+  const items=await _invFetchItems(); const byId={}; items.forEach(i=>byId[i.item_id]=i);
+  const r=await invSubmit('inv_order_create',{kitchen:(stn==='all'?'':stn), lines});
+  if(!r||!r.ok){ toast(String((r&&r.error)||'').indexOf('unknown')>=0?'⚠ ต้องอัปเดต backend ก่อน':'ส่งไม่สำเร็จ'); return; }
+  const groups={}; ids.forEach(id=>{ const it=byId[id]||{}; const sup=(it.supplier||'ไม่ระบุซัพ'); (groups[sup]=groups[sup]||[]).push({it,qty:_invCart[id].qty}); });
+  const t=new Date(); const dstr=t.getDate()+'/'+(t.getMonth()+1);
+  let h='<div style="text-align:center;padding:8px 0 14px;"><div style="font-size:38px;">✅</div><div style="font-weight:700;">ส่งออเดอร์แล้ว '+ids.length+' รายการ</div><div class="t-cap">คัดลอกข้อความส่งซัพทาง LINE</div></div>';
+  Object.keys(groups).forEach((sup,gi)=>{ const mid='omsg-'+gi; const body='🧾 สั่งของ Kyoto Shi'+(stn!=='all'?(' ('+stn+')'):'')+' '+dstr+'\n'+groups[sup].map(g=>'• '+g.it.name+(g.qty!==''&&g.qty!=null?('  '+g.qty+' '+(g.it.unit||'')):'  (ไม่ระบุจำนวน)')).join('\n'); h+='<div class="t-sect">'+esc_(sup)+'</div><div class="card" id="'+mid+'" style="white-space:pre-line;font-size:13px;line-height:1.6;background:#E9F9EE;">'+esc_(body)+'</div><button class="btn btn-navy btn-sm" style="width:100%;margin-bottom:14px;" onclick="orderCopyMsg(\''+mid+'\')">📋 คัดลอกข้อความ</button>'; });
+  h+='<button class="btn" style="width:100%;background:var(--surface2);color:var(--ink2);" onclick="_invCart={};stockOrderTab(\'recv\')">เสร็จ — ดูของที่รอรับ ›</button>';
+  _invCart={}; _invInvalidate();
+  const el=document.getElementById('stock-order-inner'); if(el)el.innerHTML=h;
+}
+function orderCopyMsg(id){ const el=document.getElementById(id); if(!el)return; if(navigator.clipboard){ navigator.clipboard.writeText(el.textContent).then(()=>toast('คัดลอกแล้ว ✓')).catch(()=>toast('คัดลอกไม่ได้ — เลือกข้อความเอง')); } else toast('กดค้างที่ข้อความเพื่อคัดลอก'); }
+async function renderOrderRecv(){
+  const el=document.getElementById('stock-order-inner'); if(!el)return;
+  try{
+    const stn=_invDefaultStation();
+    const r=await invGet('inv_orders',stn==='all'?{status:'open'}:{status:'open',kitchen:stn});
+    let pos=(r&&r.orders)||[];
+    const withOpen=pos.filter(po=>(po.lines||[]).some(l=>l.status==='open'));
+    if(!withOpen.length){ el.innerHTML='<div style="text-align:center;padding:30px 0;"><div style="font-size:38px;">📭</div><div style="font-weight:700;margin-top:6px;">ไม่มีของรอรับ</div><div class="t-cap">ของที่สั่งแล้วจะขึ้นตรงนี้</div></div>'; return; }
+    let h='<div class="t-cap" style="margin-bottom:10px;">ของที่สั่งไปแล้ว — พอของมาถึง กด "รับ"</div>';
+    withOpen.forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="t-sect">'+esc_(po.supplier)+' · '+_invShortDate(po.created_at)+'</div>';
+      ol.forEach(l=>{ h+='<div class="card" id="rline-'+l.line_id+'" style="padding:11px 13px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;"><span style="flex:1;font-size:13.5px;font-weight:600;">'+esc_(l.name)+'</span><span class="t-cap">สั่ง '+(l.qty_ordered!==''&&l.qty_ordered!=null?(rnd_(l.qty_ordered)+' '+esc_(l.unit)):'(ไม่ระบุ)')+'</span></div><div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="rq-'+l.line_id+'" placeholder="รับได้ ('+esc_(l.unit)+')" value="'+(l.qty_ordered!==''&&l.qty_ordered!=null?l.qty_ordered:'')+'" style="flex:1;"><button class="btn btn-sm" style="background:var(--green);color:#fff;" onclick="orderReceiveLine(\''+l.line_id+'\')">รับ</button></div></div>'; });
+    });
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
+}
+async function orderReceiveLine(lineId){
+  const v=raw_('rq-'+lineId); if(v===''||isNaN(Number(v))||Number(v)<0){ toast('ใส่จำนวนที่รับก่อน'); return; }
+  const r=await invSubmit('inv_order_receive',{line_id:lineId,qty_received:Number(v),local_id:'r'+Date.now()+lineId});
+  if(r&&r.ok){ toast('รับของแล้ว ✓'); _invInvalidate(); const c=document.getElementById('rline-'+lineId); if(c){ c.style.background='var(--green-bg)'; c.style.border='1px solid var(--green)'; c.innerHTML='<div style="color:var(--green);font-weight:600;font-size:13.5px;">✓ รับแล้ว '+rnd_(v)+'</div>'; } }
+  else toast('ผิดพลาด: '+((r&&r.error)||''));
+}
+async function ownerCancelOrder(poId){ if(!confirm('ยกเลิกออเดอร์นี้? ของจะกลับไปเป็น "ต้องสั่ง"'))return; const r=await invSubmit('inv_order_cancel',{po_id:poId}); if(r&&r.ok){ toast('ยกเลิกแล้ว'); _invInvalidate(); renderStockDash(); } else toast('ยกเลิกไม่ได้: '+((r&&r.error)||'')); }
 </script>
 </body>
 </html>
