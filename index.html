@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260704-232806">
+<meta name="app-build" content="20260705-100616">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -4877,7 +4877,8 @@ function _invDaysSince(iso){ if(!iso) return 99999; return _invDayKeyTH(Date.now
 function _invUsage(it){
   const ua=Number(it.usage_avg||0); if(ua>0) return ua + Math.max(0,Number(it.waste_avg||0));
   const pv=_invNum(it.prev_count_value),lv=_invNum(it.last_count_value); if(pv==null||lv==null||!it.prev_count_at||!it.last_count_at) return null;
-  const dd=Math.max(1,Math.round((new Date(it.last_count_at)-new Date(it.prev_count_at))/86400000)); const used=pv-lv; return used>0?used/dd:null;
+  const gap=(new Date(it.last_count_at)-new Date(it.prev_count_at))/86400000; if(gap<0.5) return null; // ช่วง 2 รอบสั้นเกิน (นับแก้วันเดียว) — ไม่ถือเป็นอัตราใช้ (ตรงกับเกราะ usage_avg)
+  const dd=Math.max(1,Math.round(gap)); const used=pv-lv; return used>0?used/dd:null;
 }
 function _invDaysCover(it){ const u=_invUsage(it); if(!u) return null; return Number(it.on_hand||0)/u; }
 function _invLead(it){ const m=String(it.note||'').match(/lead\s*(\d+)/i); return m?Number(m[1]):2; }
@@ -5096,7 +5097,8 @@ function _invDoneRowHtml(it,val){
 }
 function _invCheckRow(it){
   const low=_invIsLow(it);
-  const lastTxt=it.last_count_at?('นับล่าสุด '+rnd_(it.last_count_value)+' '+esc_(it.unit)+' · '+_invDaysSince(it.last_count_at)+' วันก่อน'):'ยังไม่เคยนับ — ตั้งยอดตั้งต้น';
+  const dsc=it.last_count_at?_invDaysSince(it.last_count_at):null;
+  const lastTxt=it.last_count_at?('นับล่าสุด '+rnd_(it.last_count_value)+' '+esc_(it.unit)+' · '+(dsc===0?'✓ นับไปแล้ววันนี้':(dsc+' วันก่อน'))):'ยังไม่เคยนับ — ตั้งยอดตั้งต้น';
   const frac=/ขวด|กระป๋อง|แกลลอน|ถุง|กล่อง|หลอด|แพ็ค/.test(it.unit||'')?'<div style="display:flex;gap:5px;margin-bottom:7px;">'+[['เต็ม',1],['¾',0.75],['½',0.5],['¼',0.25]].map(f=>'<button class="btn btn-sm" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);background:var(--surface2);color:var(--ink2);" onclick="invFillFrac(\''+it.item_id+'\','+(Math.round(Number(it.par)*f[1]*100)/100)+')">'+f[0]+'</button>').join('')+'</div>':'';
   return '<div class="card" id="invc-'+it.item_id+'" style="padding:12px 14px;margin-bottom:8px;'+(low?'border:1px solid var(--red);':'')+'"><div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;"><span style="width:9px;height:9px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><span style="flex:1;font-size:14px;font-weight:600;">'+esc_(it.name)+'</span>'+_invReasonChip(it.reason)+'</div><div class="t-cap" style="margin:0 0 8px 18px;">'+lastTxt+'</div>'+frac+'<div style="display:flex;gap:8px;align-items:center;"><input class="fi" type="number" id="invq-'+it.item_id+'" placeholder="นับได้ ('+esc_(it.unit)+')" style="flex:1;" onkeydown="if(event.key===\'Enter\')invMarkCount(\''+it.item_id+'\')"><button class="btn btn-navy btn-sm" onclick="invMarkCount(\''+it.item_id+'\')">นับ</button></div></div>';
 }
@@ -5173,7 +5175,11 @@ async function invLoadLedger(id){
   catch(e){ if(box)box.innerHTML='<div class="t-cap" style="text-align:center;padding:12px 0;color:var(--red);">โหลดประวัติไม่ได้</div>'; }
 }
 function invQuickCount(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--navy);"><label class="t-label">นับได้เท่าไร (เหลือจริง)</label><div style="display:flex;gap:8px;"><input class="fi" type="number" id="inv-quick-val" placeholder="จำนวน" style="flex:1;"><button class="btn btn-navy btn-sm" onclick="invQuickCountSave(\''+id+'\')">บันทึก</button></div></div>'; const f=document.getElementById('inv-quick-val'); if(f)f.focus(); }
-async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('นับแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
+async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; }
+  // เตือนถ้ารายการนี้นับไปแล้ววันนี้ — ค่าใหม่จะทับค่าเดิม (last write wins)
+  const it0=(_invItemsCache||[]).find(x=>x.item_id===id)||(_invWlMap&&_invWlMap[id])||{};
+  if(it0.last_count_at && _invDaysSince(it0.last_count_at)===0 && !confirm('รายการนี้นับไปแล้ววันนี้ (ค่าเดิม '+rnd_(it0.last_count_value)+' '+(it0.unit||'')+')\nยืนยันบันทึกทับด้วยค่าใหม่?')) return;
+  const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('นับแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
 function invQuickAdjust(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--amber);"><label class="t-label">ปรับยอด (+เพิ่ม / −ลด)</label><div style="display:flex;gap:8px;margin-bottom:8px;"><input class="fi" type="number" id="inv-adj-val" placeholder="+/- จำนวน" style="flex:1;"><input class="fi" id="inv-adj-reason" placeholder="เหตุผล" style="flex:1.4;"></div><button class="btn btn-navy btn-sm" style="width:100%;" onclick="invAdjustSave(\''+id+'\')">บันทึกการปรับ</button></div>'; const f=document.getElementById('inv-adj-val'); if(f)f.focus(); }
 async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('ปรับยอดแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
 /* ── รับของเข้า (แบบง่าย): บวกสต๊อก + ให้ระบบเรียนรู้อัตราใช้จาก นับ→รับ→นับ ── */
@@ -5279,11 +5285,15 @@ async function renderStockDash(){
     h+='<div class="card" style="margin:0;padding:12px;"><div class="t-cap">มูลค่าสต๊อก</div><div style="font-size:20px;font-weight:700;">฿'+rnd_(value)+'</div><div class="t-cap">จากทุน/หน่วยที่ใส่ไว้</div></div>';
     h+='</div>';
     if(!value) h+='<div class="t-cap" style="margin:-4px 0 10px;font-style:italic;">มูลค่า ฿0 — ยังไม่ได้ใส่ทุน/หน่วย จะคำนวณได้เมื่อใส่ทุน</div>';
-    if(wsum&&wsum.ok&&wsum.count>0){
-      h+='<div class="t-sect" style="color:var(--red);">🗑️ ของเสีย 7 วัน — ฿'+rnd_(wsum.total_cost)+'</div>';
+    // ซ่อน waste ของ item ที่ถูกลบถาวร (hard delete) — ชื่อ resolve ไม่ได้ backend เลย fallback เป็นรหัส INV-xxxx
+    // (ของจริงจะ archive ไม่ลบ → ชื่อ resolve ได้เสมอ · เคสนี้เกิดเฉพาะข้อมูลเทสต์ที่ลบทิ้ง)
+    const wItems=((wsum&&wsum.items)||[]).filter(w=>!/^INV-\d+$/i.test(String(w.name||'').trim()));
+    const wCost=wItems.reduce((s,w)=>s+Number(w.cost||0),0);
+    if(wsum&&wsum.ok&&wItems.length>0){
+      h+='<div class="t-sect" style="color:var(--red);">🗑️ ของเสีย 7 วัน — ฿'+rnd_(wCost)+'</div>';
       const rs=wsum.reasons||{}; const rk=Object.keys(rs).sort((a,b)=>rs[b]-rs[a]);
       if(rk.length) h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">'+rk.map(k=>'<span class="chip chip-gray" style="font-size:11px;">'+esc_(k)+' '+rnd_(rs[k])+'</span>').join('')+'</div>';
-      h+='<div class="card" style="padding:0;overflow:hidden;">'+(wsum.items||[]).slice(0,6).map(w=>'<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span style="flex:1;font-size:13px;">'+esc_(w.name)+'</span><span class="t-cap">'+rnd_(w.qty)+' '+esc_(w.unit||'')+' · ฿'+rnd_(w.cost)+'</span></div>').join('')+'</div>';
+      h+='<div class="card" style="padding:0;overflow:hidden;">'+wItems.slice(0,6).map(w=>'<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span style="flex:1;font-size:13px;">'+esc_(w.name)+'</span><span class="t-cap">'+rnd_(w.qty)+' '+esc_(w.unit||'')+' · ฿'+rnd_(w.cost)+'</span></div>').join('')+'</div>';
     }
     h+='<div class="t-sect">ตรวจแล้ววันนี้ · แยกครัว</div>';
     h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);padding:0 0 5px;"><span>ครัว</span><span>ตรวจแล้ว / ทั้งหมด</span></div>';
