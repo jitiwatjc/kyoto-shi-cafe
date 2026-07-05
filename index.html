@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260705-204321">
+<meta name="app-build" content="20260705-210950">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1431,6 +1431,10 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">วัตถุดิบหมด · ทุกครัว</div></div>
   <div class="page"><div id="prep-shortage-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
 </div>
+<div id="s-prep-detail" class="sc">
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title" id="prep-detail-title">รายละเอียด</div><button class="topbar-action" onclick="renderPrepDetail()">↻</button></div>
+  <div class="page"><div id="prep-detail-body"><div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div></div></div>
+</div>
 
 <!-- ════ STOCK · สต๊อกวัตถุดิบ (Phase 1 · no-POS) ════ -->
 <div id="s-stock" class="sc">
@@ -1486,6 +1490,7 @@ function go(id){
   if(id==='s-sidework'){swkTab('board');}
   if(id==='s-sw-owner'){swoTab('dash');}
   if(id==='s-prep-dashboard'){renderPrepDashboard();}
+  if(id==='s-prep-detail'){renderPrepDetail();}
   if(id==='s-prep-setup'){ if(currentUser&&currentUser.role!=='owner'&&PREP_KITCHENS.indexOf(currentUser.kitchen)>=0)_prepSetupKitchen=currentUser.kitchen; renderPrepSetup(); }
   if(id==='s-prep-log'){renderPrepLog();}
   if(id==='s-prep-morning'){renderPrepMorning();}
@@ -4004,11 +4009,13 @@ function pdStep_(state,text){ // state: ok | wait | bad
   return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:'+c+';white-space:nowrap;"><span style="font-weight:700;">'+ic+'</span>'+esc_(text)+'</span>';
 }
 function pdDots_(dots){ if(!dots||!dots.length)return ''; let d=dots.map(v=>'<span style="width:8px;height:8px;border-radius:50%;display:inline-block;'+(v?'background:var(--green);':'border:1px solid var(--border);')+'"></span>').join(''); return '<div style="display:flex;align-items:center;gap:4px;margin-top:9px;"><span class="t-cap" style="margin-right:3px;">นับ 7 วัน</span>'+d+'</div>'; }
+let _prepStatusCache=null, _prepDetailKitchen='';
 async function renderPrepDashboard(){
   const el=document.getElementById('prep-dashboard-body'); if(!el)return;
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     const status=await prepFetchStatus();
+    _prepStatusCache=status;
     const ks=status.kitchens||[];
     const cnt={ready:0,follow:0,risk:0}; ks.forEach(x=>{ cnt[x.readiness]=(cnt[x.readiness]||0)+1; });
     let h='<div class="t-cap" style="margin-bottom:10px;">'+todayISO()+' · ความพร้อมของเตรียมแต่ละครัว'+(status._legacy?' · โหมดพื้นฐาน':'')+'</div>';
@@ -4019,8 +4026,8 @@ async function renderPrepDashboard(){
       +'</div>';
     ks.forEach(x=>{
       const R=PREP_READY[x.readiness]||PREP_READY.follow;
-      h+='<div class="card" style="padding:12px 14px;margin-bottom:10px;box-shadow:none;border:1px solid var(--border);border-left:3px solid '+R.color+';border-radius:var(--rsm);">';
-      h+='<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:14px;font-weight:700;">'+esc_(x.kitchen)+'</span><span class="chip '+R.chip+'" style="font-size:10px;">'+R.label+'</span></div>';
+      h+='<div class="card" style="padding:12px 14px;margin-bottom:10px;box-shadow:none;border:1px solid var(--border);border-left:3px solid '+R.color+';border-radius:var(--rsm);cursor:pointer;" onclick="prepOpenDetail(\''+esc_(x.kitchen)+'\')">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:14px;font-weight:700;">'+esc_(x.kitchen)+'</span><span style="display:flex;align-items:center;gap:8px;"><span class="chip '+R.chip+'" style="font-size:10px;">'+R.label+'</span><span style="color:var(--ink3);font-size:16px;">›</span></span></div>';
       // timeline: ส่งกะเมื่อวาน → เตรียมเช้านี้ → นับคืนนี้
       const s1=x.fromDate?pdStep_('ok','ส่งกะ'+(prepTime_(x.handoverTime)?(' '+prepTime_(x.handoverTime)):'แล้ว')):pdStep_('bad','ไม่ส่งกะเมื่อวาน');
       const s2=x.toPrepCount?pdStep_(x.prepDone?'ok':'wait','เตรียม '+x.ackCount+'/'+x.toPrepCount):pdStep_('ok','ไม่มีของต้องเตรียม');
@@ -4040,6 +4047,60 @@ async function renderPrepDashboard(){
       Object.keys(byK).forEach(k=>{ h+='<div class="card" style="padding:9px 12px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border);"><span style="font-size:12px;font-weight:600;">'+esc_(k)+'</span> <span class="t-cap">· '+byK[k].map(esc_).join(', ')+'</span></div>'; }); }
     h+='<button class="btn btn-outline btn-full" style="margin-top:12px;" onclick="go(\'s-prep-shortage\')">ดูวัตถุดิบหมดแบบละเอียด</button>';
     h+='<button class="btn btn-tan btn-full" style="margin-top:8px;" onclick="go(\'s-prep-setup\')">ตั้งรายการของเตรียม</button>';
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้ ลองใหม่</div>'; }
+}
+function prepOpenDetail(k){ _prepDetailKitchen=k; go('s-prep-detail'); }
+function pdBadge_(txt,cls){ return '<span class="chip '+cls+'" style="font-size:10px;margin-right:5px;">'+txt+'</span>'; }
+async function renderPrepDetail(){
+  const el=document.getElementById('prep-detail-body'); if(!el)return;
+  const kitchen=_prepDetailKitchen||''; const tt=document.getElementById('prep-detail-title'); if(tt)tt.textContent=kitchen||'รายละเอียด';
+  el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
+  try{
+    const status=(_prepStatusCache&&(_prepStatusCache.kitchens||[]).some(x=>x.kitchen===kitchen))?_prepStatusCache:await prepFetchStatus();
+    _prepStatusCache=status;
+    const K=prepKit_(status,kitchen);
+    if(!K){ el.innerHTML='<div class="alert alert-info" style="font-size:13px;">ไม่พบข้อมูลครัวนี้</div>'; return; }
+    const R=PREP_READY[K.readiness]||PREP_READY.follow;
+    let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:15px;font-weight:700;">'+esc_(kitchen)+'</span><span class="chip '+R.chip+'" style="font-size:10px;">'+R.label+'</span></div>';
+    h+='<div class="t-cap" style="margin-bottom:12px;">'+todayISO()+'</div>';
+    // ── บันทึกปิดร้าน (นับ) ──
+    h+='<div class="t-sect">บันทึกปิดร้าน (นับเหลือ)</div>';
+    if(K.logged){
+      h+='<div class="t-cap" style="margin-bottom:8px;">ลงโดย '+esc_(K.sendBy||'-')+(prepTime_(K.sendTime)?(' · '+prepTime_(K.sendTime)):'')+'</div>';
+      h+='<div style="display:flex;gap:6px;margin-bottom:10px;">'+pdStat_('ผลิตรวม',K.sumProduced)+pdStat_('ขายไปรวม',K.sumUsed)+pdStat_('เหลือรวม',K.sumLeft)+'</div>';
+    } else {
+      h+='<div class="alert alert-warning" style="font-size:12px;background:var(--amber-bg);color:var(--amber);border:none;margin-bottom:10px;">⏳ ยังไม่ลงบันทึกปิดร้านวันนี้</div>';
+    }
+    const log=K.logToday||{}; const list=K.list||[];
+    list.forEach(it=>{ const o=log[it.itemId];
+      if(!o){ h+='<div class="card" style="padding:9px 12px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border);opacity:.7;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">'+esc_(it.name)+' <span class="t-cap">· '+esc_(it.unit||'')+'</span></span><span class="t-cap">ยังไม่นับ</span></div>'; return; }
+      h+='<div class="card" style="padding:10px 12px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border);">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:600;">'+esc_(it.name)+'</span><span class="t-cap">'+esc_(it.unit||'')+'</span></div>'
+        +'<div style="display:flex;gap:6px;margin-top:7px;">'+pdStat_('เหลือ',o.left)+pdStat_('ผลิต',o.produced)+pdStat_('ขายไป',o.used)+'</div>'
+        +'<div style="margin-top:8px;">'
+          +(o.handover?pdBadge_('📦 เตรียมพรุ่งนี้','chip-navy'):'')
+          +(o.ready===false?pdBadge_('ไม่พร้อมขาย','chip-red'):pdBadge_('พร้อมขาย','chip-green'))
+        +'</div>'
+        +(o.note?('<div class="t-cap" style="margin-top:6px;color:var(--navy);">📝 '+esc_(o.note)+'</div>'):'')
+        +'</div>';
+    });
+    // ── รับกะเช้า ──
+    if(K.toPrepCount){
+      h+='<div class="t-sect">รับกะเช้า ('+K.ackCount+'/'+K.toPrepCount+')</div>';
+      (K.toPrep||[]).forEach(t=>{ const remake=!t.ready;
+        const st=t.blocked?pdBadge_('วัตถุดิบหมด','chip-red'):(t.done?pdBadge_('✓ เตรียมแล้ว','chip-green'):pdBadge_('ยังไม่เตรียม','chip-gray'));
+        h+='<div class="card" style="padding:10px 12px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border);">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:13px;font-weight:600;">'+esc_(t.itemName)+'</span><span>'+st+(remake?pdBadge_('ทำใหม่','chip-amber'):'')+'</span></div>'
+          +'<div class="t-cap" style="margin-top:4px;">'+(t.target!==''&&t.target!=null?('เป้า '+t.target+(t.unit?(' '+esc_(t.unit)):'')+' · '):'')+(remake?'เมื่อวานไม่พร้อมขาย':('เหลือเมื่อวาน '+t.left))+(t.done&&t.qty!==''&&t.qty!=null?(' · ทำแล้ว '+t.qty):'')+'</div>'
+          +(t.note?('<div class="t-cap" style="margin-top:3px;color:var(--navy);">📝 '+esc_(t.note)+'</div>'):'')
+          +'</div>';
+      });
+    }
+    // ── วัตถุดิบหมด ──
+    h+='<div class="t-sect">วัตถุดิบหมด ('+(K.shortages||[]).length+')</div>';
+    if(!(K.shortages||[]).length){ h+='<div class="t-cap" style="text-align:center;padding:8px 0;">ไม่มี 🎉</div>'; }
+    else { (K.shortages||[]).forEach(s=>{ h+='<div class="card" style="padding:9px 12px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border);"><span style="font-size:13px;">'+esc_(s.material)+'</span>'+(s.blocks?(' '+pdBadge_('บล็อก '+esc_(s.blocks),'chip-red')):'')+(s.note?(' <span class="t-cap">· '+esc_(s.note)+'</span>'):'')+'</div>'; }); }
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้ ลองใหม่</div>'; }
 }
