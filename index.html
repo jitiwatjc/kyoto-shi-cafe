@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260707-231513">
+<meta name="app-build" content="20260708-012800">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -2049,7 +2049,39 @@ const SCRIPT_URL='https://script.google.com/macros/s/AKfycby5m2YzFxN-APkSDrdAIXO
 // Helper: เรียก API ผ่าน GET (ไม่มีปัญหา CORS กับ Apps Script)
 // opts.timeoutMs = ตัด request ที่ค้าง (default 25s) · opts.retries = ลองซ้ำเมื่อ fail/timeout
 // ⚠ retry เปิดเฉพาะคำสั่งที่ยิงซ้ำได้ปลอดภัย (login/อ่าน) — mutation (clockIn/approve) อย่าตั้ง retry กันทำซ้ำ
+/* ── READ CACHE + in-flight coalescing (ลด fan-out ตอนหลายคนเปิดแอปพร้อมกัน = ต้นเหตุ "แอปช้า") ──
+   กติกาของระบบนี้: action ที่เป็น"การอ่าน"ขึ้นต้นด้วย 'get' ทั้งหมด · การเขียนไม่ใช่ 'get' เลย
+   → cache เฉพาะ get* (TTL สั้น) + รวม request เดียวกันที่ยิงพร้อมกันให้เหลือครั้งเดียว (coalesce)
+   → ทุกการเขียน (ไม่ใช่ get) ล้าง cache ทั้งก้อนทันที กันข้อมูลค้างหลังแก้ (เหมือน bug "ลบแล้วไม่หาย") */
+const API_CACHE_TTL=45000;          // อายุ cache 45 วิ — พอให้สลับหน้า/กลับ home ไม่ยิงซ้ำ แต่สดพอ
+const _apiCache=new Map();          // key -> {t:เวลาที่ได้ข้อมูล, data}
+const _apiInflight=new Map();       // key -> Promise ที่กำลังวิ่ง (ยังไม่ตอบ)
+function _apiKey(params){ return Object.keys(params).filter(k=>k!=='_').sort().map(k=>k+'='+params[k]).join('&'); }
+function apiCacheClear(){ _apiCache.clear(); }   // เรียกทุกครั้งที่มีการเขียนข้อมูล
+function _isReadAction(a){ return typeof a==='string' && a.indexOf('get')===0; }
+
 async function callAPI(params,opts){
+  opts=opts||{};
+  const action=params&&params.action;
+  const cacheable=_isReadAction(action) && !opts.fresh;
+  if(cacheable){
+    const key=_apiKey(params);
+    const hit=_apiCache.get(key);
+    if(hit && (Date.now()-hit.t)<API_CACHE_TTL) return hit.data;   // มี cache สด → ไม่ยิงเน็ต
+    const inf=_apiInflight.get(key);
+    if(inf) return inf;                                            // request เดียวกันกำลังวิ่งอยู่ → รอใช้ผลร่วมกัน
+    const p=_callAPIraw(params,opts);
+    _apiInflight.set(key,p);
+    p.then(data=>{ _apiCache.set(key,{t:Date.now(),data}); },()=>{})
+     .then(()=>{ _apiInflight.delete(key); });
+    return p;
+  }
+  // การเขียน (login/clockIn/approve/submit/save/...) — ทำก่อน แล้วล้าง read cache ให้ข้อมูลรอบถัดไปสด
+  const p=_callAPIraw(params,opts);
+  p.then(()=>apiCacheClear(),()=>apiCacheClear());
+  return p;
+}
+async function _callAPIraw(params,opts){
   opts=opts||{};
   const maxRetry=opts.retries||0, timeoutMs=opts.timeoutMs||25000;
   let lastErr;
@@ -2072,12 +2104,14 @@ async function callAPI(params,opts){
   }
   throw lastErr||new Error('request failed');
 }
-// POST (form-urlencoded) — ใช้ส่งข้อมูลก้อนใหญ่ เช่น ไฟล์ base64 ที่ส่งผ่าน GET ไม่ได้
+// POST (form-urlencoded) — ใช้ส่งข้อมูลก้อนใหญ่ เช่น ไฟล์ base64 ที่ส่งผ่าน GET ไม่ได้ (เป็นการเขียนเสมอ → ล้าง cache)
 async function callAPIPost(params){
   const body=new URLSearchParams();
   Object.keys(params).forEach(k=>body.set(k,params[k]==null?'':params[k]));
   const r=await fetch(SCRIPT_URL,{method:'POST',body});
-  return r.json();
+  const j=await r.json();
+  apiCacheClear();
+  return j;
 }
 
 /* ── REVENUE BACKEND (Phase II — บัญชีร้าน: รายได้/เบรค/รายจ่าย/P&L) ── */
@@ -2276,18 +2310,19 @@ async function renderEmpHome(){
   if(greetEl)greetEl.textContent='สวัสดี'+(nick?', '+nick:'')+' 👋';
   if(avatarEl)avatarEl.textContent=nick.charAt(0)||'E';
 
+  // ── โหลดข้อมูลทุก card แบบ "พร้อมกัน" (parallel) — เดิม 3 ตัวแรก await เรียงต่อกันทำให้รอนาน ─
   // Today's clock-in status
-  try{
+  (async()=>{ try{
     const r=await callAPI({action:'getTodayClock',empId:currentUser.empId,date:todayISO()});
     const sub=document.getElementById('emp-clock-sub');
     if(sub){
       if(r.ok&&r.data&&r.data.clockIn) sub.textContent='เวลาเข้างานวันนี้: '+r.data.clockIn+' น.';
       else sub.textContent='ยังไม่ได้ Clock In วันนี้';
     }
-  }catch(e){}
+  }catch(e){} })();
 
   // Leave balance quick card
-  try{
+  (async()=>{ try{
     const year=now.getFullYear();
     const lb=await callAPI({action:'getLeaveBalance',empId:currentUser.empId,year});
     if(lb.ok&&lb.data){
@@ -2295,26 +2330,24 @@ async function renderEmpHome(){
       const sub=document.getElementById('qcard-leave-sub');
       if(sub)sub.textContent='เหลือ '+(rem.v||0)+'+'+(rem.s||0)+'+'+(rem.p||0)+' วัน';
     }
-  }catch(e){}
+  }catch(e){} })();
 
-  // OT pending
-  try{
-    const ot=await callAPI({action:'getPendingApprovals'});
+  // OT pending — ใช้ getOT (เฉพาะ OT ของตัวเอง) แทน getPendingApprovals (ดึงรออนุมัติทั้งระบบ = หนักเกินจำเป็น)
+  (async()=>{ try{
+    const ot=await callAPI({action:'getOT',empId:currentUser.empId});
     const sub=document.getElementById('qcard-ot-sub');
-    if(sub&&ot.ok&&ot.data){
-      const myOT=(ot.data.ot||[]).filter(o=>String(o.empId)===String(currentUser.empId));
+    if(sub&&ot.ok){
+      const myOT=(ot.data||[]).filter(o=>{const s=String(o.status||'').toLowerCase();return s!=='approved'&&s!=='rejected';});
       sub.textContent=myOT.length>0?'⚠ รออนุมัติ '+myOT.length:'ไม่มีรายการค้าง';
       sub.style.color=myOT.length>0?'var(--amber)':'';
     }
-  }catch(e){}
+  }catch(e){} })();
 
-  // Schedule pending
-  try{
-    const schedEl=document.getElementById('qcard-sched-sub');
-    if(schedEl)schedEl.textContent='ส่งตารางงาน';
-  }catch(e){}
+  // Schedule pending (ไม่ต้องยิง API)
+  const schedEl=document.getElementById('qcard-sched-sub');
+  if(schedEl)schedEl.textContent='ส่งตารางงาน';
 
-  // กะถัดไป + เบรคที่ต้องส่ง (สรุปบนหน้า home)
+  // กะถัดไป + เบรคที่ต้องส่ง + sidework + สต๊อก (สรุปบนหน้า home) — ยิงพร้อมกันหมด
   renderHomeNextShift();
   renderHomePendingBreaks();
   renderHomeSidework();
@@ -4284,8 +4317,8 @@ async function renderOwnerHome(){
   if(chipTotal)chipTotal.textContent='';
   if(chipClock)chipClock.style.display='none';
 
-  try{
-    // Pending approvals
+  // Pending approvals — ยิงแบบไม่บล็อก ให้โหลดพร้อมกับสรุปการเข้างานด้านล่าง (เดิมรอตัวนี้ก่อน)
+  (async()=>{ try{
     const apv=await callAPI({action:'getPendingApprovals'});
     if(apv.ok&&apv.data){
       const d=apv.data;
@@ -4308,7 +4341,7 @@ async function renderOwnerHome(){
       const tbReq=document.getElementById('apv-tab-badge-req'),reqTot=schedN+leaveN+otN;
       if(tbReq){tbReq.textContent=reqTot;tbReq.style.display=reqTot>0?'':'none';}
     }
-  }catch(e){}
+  }catch(e){} })();
 
   try{
     // Today's clock-in summary
