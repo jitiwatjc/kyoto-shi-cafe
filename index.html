@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260708-213126">
+<meta name="app-build" content="20260708-215423">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -2322,19 +2322,53 @@ async function renderEmpHome(){
     }
   }catch(e){} })();
 
-  // Leave balance quick card
-  (async()=>{ try{
-    const year=now.getFullYear();
-    const lb=await callAPI({action:'getLeaveBalance',empId:currentUser.empId,year});
-    if(lb.ok&&lb.data){
-      const rem=lb.data;
-      const sub=document.getElementById('qcard-leave-sub');
-      if(sub)sub.textContent='เหลือ '+(rem.v||0)+'+'+(rem.s||0)+'+'+(rem.p||0)+' วัน';
-    }
-  }catch(e){} })();
+  // Schedule pending (ไม่ต้องยิง API)
+  const schedEl=document.getElementById('qcard-sched-sub');
+  if(schedEl)schedEl.textContent='ส่งตารางงาน';
 
-  // OT pending — ใช้ getOT (เฉพาะ OT ของตัวเอง) แทน getPendingApprovals (ดึงรออนุมัติทั้งระบบ = หนักเกินจำเป็น)
-  (async()=>{ try{
+  // การ์ดที่เหลือ = LAZY โหลดเมื่อเลื่อนเข้าใกล้จอ — เดิมยิง backend หลัก ~5 คำสั่งทุกครั้งที่เปิด Home
+  // ตอนเปลี่ยนกะหลายคนเปิดพร้อมกัน = ชน concurrency → login/แอปช้า. คนส่วนใหญ่แค่ clock in ไม่เลื่อน
+  // ใส่ placeholder มีความสูงก่อน (กันการ์ดว่างยุบกองบนสุดแล้วโหลดหมดทันที) → การ์ดใต้ fold ถึงจะรอจริง
+  _homeLazyPH('home-next-shift','🗓️ กะถัดไป');
+  _homeLazyPH('home-breaks','🎂 เบรคที่ต้องส่ง');
+  _homeLazyPH('home-sidework','🧹 Sidework วันนี้');
+  _homeLazyPH('home-stock','📦 ตรวจสต๊อก');
+  _lazyCard('home-next-shift', renderHomeNextShift);
+  _lazyCard('home-breaks', renderHomePendingBreaks);
+  _lazyCard('home-sidework', renderHomeSidework);
+  _lazyCard('home-stock', renderHomeStock);
+  _lazyCard('qcard-leave-sub', renderHomeLeaveQuick);
+  _lazyCard('qcard-ot-sub', renderHomeOTQuick);
+}
+
+// placeholder มีความสูง (~90px) — โชว์หัวข้อไว้ก่อน, รักษา layout ให้ตรวจ fold ได้ถูก, ไม่ทับถ้าโหลดแล้ว
+function _homeLazyPH(elId, title){
+  const el=document.getElementById(elId); if(!el) return;
+  if(el.getAttribute('data-loaded')==='1') return;   // เคยโหลดของจริงแล้ว ไม่ต้องใส่ placeholder ทับ
+  el.innerHTML='<div class="card" style="box-shadow:none;border:1px solid var(--border);min-height:64px;display:flex;align-items:center;justify-content:space-between;"><div style="font-size:14px;font-weight:600;color:var(--ink);">'+title+'</div><span class="t-cap">เลื่อนดู ›</span></div>';
+}
+// lazy-load การ์ด: เรียก fn ครั้งเดียวเมื่อ element เลื่อนเข้าใกล้จอ (ล่วงหน้า 60px) — ลด fan-out ตอนเปิดแอป
+function _lazyCard(elId, fn){
+  const el=document.getElementById(elId); if(!el) return;
+  if(el.getAttribute('data-lazy')==='1') return;                 // ลงทะเบียนไว้แล้ว ไม่ซ้ำ
+  if(!('IntersectionObserver' in window)){ try{fn();}catch(e){} return; }  // เบราว์เซอร์เก่า → โหลดเลย
+  el.setAttribute('data-lazy','1');
+  const io=new IntersectionObserver(function(entries,obs){
+    for(const e of entries){ if(e.isIntersecting){ obs.disconnect(); el.removeAttribute('data-lazy'); el.setAttribute('data-loaded','1'); try{fn();}catch(_){} return; } }
+  },{rootMargin:'60px'});
+  io.observe(el);
+}
+async function renderHomeLeaveQuick(){
+  if(!currentUser)return;
+  try{
+    const lb=await callAPI({action:'getLeaveBalance',empId:currentUser.empId,year:new Date().getFullYear()});
+    if(lb.ok&&lb.data){ const rem=lb.data; const sub=document.getElementById('qcard-leave-sub');
+      if(sub)sub.textContent='เหลือ '+(rem.v||0)+'+'+(rem.s||0)+'+'+(rem.p||0)+' วัน'; }
+  }catch(e){}
+}
+async function renderHomeOTQuick(){
+  if(!currentUser)return;
+  try{
     const ot=await callAPI({action:'getOT',empId:currentUser.empId});
     const sub=document.getElementById('qcard-ot-sub');
     if(sub&&ot.ok){
@@ -2342,17 +2376,7 @@ async function renderEmpHome(){
       sub.textContent=myOT.length>0?'⚠ รออนุมัติ '+myOT.length:'ไม่มีรายการค้าง';
       sub.style.color=myOT.length>0?'var(--amber)':'';
     }
-  }catch(e){} })();
-
-  // Schedule pending (ไม่ต้องยิง API)
-  const schedEl=document.getElementById('qcard-sched-sub');
-  if(schedEl)schedEl.textContent='ส่งตารางงาน';
-
-  // กะถัดไป + เบรคที่ต้องส่ง + sidework + สต๊อก (สรุปบนหน้า home) — ยิงพร้อมกันหมด
-  renderHomeNextShift();
-  renderHomePendingBreaks();
-  renderHomeSidework();
-  renderHomeStock();
+  }catch(e){}
 }
 
 // กะถัดไป — วันทำงานถัดไป ≥ วันนี้ จากตารางที่อนุมัติแล้ว
