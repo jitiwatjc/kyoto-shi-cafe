@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260708-210703">
+<meta name="app-build" content="20260708-213126">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -890,7 +890,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 
     <!-- No Schedule Lock -->
     <div id="clock-no-sched" style="display:none;">
-      <div class="alert alert-danger" style="font-size:13px;font-weight:600;">🔒 ไม่พบตารางงานที่อนุมัติสำหรับวันนี้<br><span style="font-weight:400;font-size:12px;">ระบบล็อก Clock In/Out อัตโนมัติ — กรุณาสร้างตารางและรอ Owner อนุมัติก่อน</span></div>
+      <div class="alert alert-danger" id="clock-no-sched-msg" style="font-size:13px;font-weight:600;">🔒 ไม่พบตารางงานที่อนุมัติสำหรับวันนี้<br><span style="font-weight:400;font-size:12px;">ระบบล็อก Clock In/Out อัตโนมัติ — กรุณาสร้างตารางและรอ Owner อนุมัติก่อน</span></div>
       <button class="btn btn-navy btn-full" onclick="go('s-emp-sched')">ไปสร้างตารางงาน →</button>
     </div>
 
@@ -2063,17 +2063,18 @@ function _isReadAction(a){ return typeof a==='string' && a.indexOf('get')===0; }
 async function callAPI(params,opts){
   opts=opts||{};
   const action=params&&params.action;
-  const cacheable=_isReadAction(action) && !opts.fresh;
-  if(cacheable){
+  if(_isReadAction(action)){
     const key=_apiKey(params);
-    const hit=_apiCache.get(key);
-    if(hit && (Date.now()-hit.t)<API_CACHE_TTL) return hit.data;   // มี cache สด → ไม่ยิงเน็ต
-    const inf=_apiInflight.get(key);
-    if(inf) return inf;                                            // request เดียวกันกำลังวิ่งอยู่ → รอใช้ผลร่วมกัน
+    if(!opts.fresh){   // opts.fresh = บังคับอ่านใหม่ (เช่น หน้า Clock ที่ต้องสดเสมอ) — ข้าม cache/coalesce แต่ "ไม่ล้าง" cache
+      const hit=_apiCache.get(key);
+      if(hit && (Date.now()-hit.t)<API_CACHE_TTL) return hit.data;   // มี cache สด → ไม่ยิงเน็ต
+      const inf=_apiInflight.get(key);
+      if(inf) return inf;                                            // request เดียวกันกำลังวิ่งอยู่ → รอใช้ผลร่วมกัน
+    }
     const p=_callAPIraw(params,opts);
     _apiInflight.set(key,p);
     p.then(data=>{ _apiCache.set(key,{t:Date.now(),data}); },()=>{})
-     .then(()=>{ _apiInflight.delete(key); });
+     .then(()=>{ if(_apiInflight.get(key)===p) _apiInflight.delete(key); });
     return p;
   }
   // การเขียน (login/clockIn/approve/submit/save/...) — ทำก่อน แล้วล้าง read cache ให้ข้อมูลรอบถัดไปสด
@@ -3111,6 +3112,7 @@ function checkGPS(){
 // todaySchedule = { approved: bool, planStart: 'HH:MM', planEnd: 'HH:MM' } | null
 let todaySchedule=null;
 let _clockedInToday=false;  // กัน Clock Out โดยไม่ได้ Clock In
+let _clockAutoRetry=0;      // นับครั้ง auto-retry ตอนโหลดตาราง/บันทึกไม่ขึ้น (กัน loop)
 
 function initTodaySchedule(){
   // Unlock Clock In/Out only if the employee has an APPROVED schedule (Schedules sheet)
@@ -3121,24 +3123,24 @@ function initTodaySchedule(){
     return Promise.resolve(null);
   }
   const today=todayISO();
-  return callAPI({action:'getSchedules',empId:currentUser.empId})
+  // fresh:true = อ่านตารางสดเสมอ (ไม่เอา cache 45 วิ กันสถานะค้าง) · retries = ทน backend ช้า/throttle
+  return callAPI({action:'getSchedules',empId:currentUser.empId},{fresh:true,retries:2,timeoutMs:12000})
     .then(r=>{
+      if(!r||!r.ok||!Array.isArray(r.data)){ todaySchedule={approved:false,loadError:true}; return todaySchedule; } // อ่านไม่สำเร็จ ≠ ไม่มีตาราง
       let slot=null;
-      if(r.ok&&Array.isArray(r.data)){
-        for(const s of r.data){
-          if(String(s.status||'').toLowerCase()!=='approved')continue;
-          const dates=s.dates||{};
-          if(dates[today]&&!dates[today].off){slot=dates[today];break;}  // วันหยุด = ไม่ปลดล็อกตอกบัตร
-        }
+      for(const s of r.data){
+        if(String(s.status||'').toLowerCase()!=='approved')continue;
+        const dates=s.dates||{};
+        if(dates[today]&&!dates[today].off){slot=dates[today];break;}  // วันหยุด = ไม่ปลดล็อกตอกบัตร
       }
       if(slot){
         todaySchedule={approved:true,planStart:slot.start||'08:30',planEnd:slot.end||'17:00'};
       }else{
-        todaySchedule={approved:false};
+        todaySchedule={approved:false};   // อ่านสำเร็จแต่ไม่มีตารางอนุมัติวันนี้จริงๆ
       }
       return todaySchedule;
     })
-    .catch(()=>{todaySchedule={approved:false};return todaySchedule;}); // fail closed (stay locked on error)
+    .catch(()=>{todaySchedule={approved:false,loadError:true};return todaySchedule;}); // โหลดพลาด → ทำเครื่องหมายไว้ (ไม่ใช่ "ไม่มีตาราง")
 }
 
 /* ── CLOCK WINDOW ── */
@@ -3148,13 +3150,15 @@ function fmtMin(m){
 }
 
 function initClockScreen(){
+  // fresh:true + retries — หน้า Clock ต้องอ่านสถานะสดและทน backend ช้า (กัน "ยังไม่ได้ clock in" ปลอมตอนเซิร์ฟเวอร์ไม่ว่าง)
   const attProm=currentUser
-    ?callAPI({action:'getAttendance',empId:currentUser.empId,limit:10}).catch(()=>({ok:false}))
+    ?callAPI({action:'getAttendance',empId:currentUser.empId,limit:10},{fresh:true,retries:2,timeoutMs:12000}).catch(()=>({ok:false,_err:true}))
     :Promise.resolve({ok:false});
-  const otProm=currentUser?callAPI({action:'getOT',empId:currentUser.empId}).catch(()=>({ok:false})):Promise.resolve({ok:false});
+  const otProm=currentUser?callAPI({action:'getOT',empId:currentUser.empId},{fresh:true,retries:1,timeoutMs:12000}).catch(()=>({ok:false})):Promise.resolve({ok:false});
   Promise.all([initTodaySchedule(),attProm,otProm]).then(([sched,attRes,otRes])=>{
     const today=todayISO();
-    const list=attRes.ok&&Array.isArray(attRes.data)?attRes.data:[];
+    const attErr=!attRes||attRes.ok!==true;   // อ่านบันทึกลงเวลาไม่สำเร็จ (≠ ยังไม่ได้ clock in)
+    const list=(!attErr&&Array.isArray(attRes.data))?attRes.data:[];
     // Auto clock-out: ปิดทุกวันในอดีตที่มี clockIn แต่ลืม clockOut → ใช้ plannedEnd ตามตารางงาน
     const orphans=list.filter(r=>r.date!==today&&r.clockIn&&!r.clockOut);
     orphans.forEach(r=>{
@@ -3164,7 +3168,7 @@ function initClockScreen(){
     if(orphans.length)toast('⚠ บันทึก Clock Out อัตโนมัติ '+orphans.length+' วันที่ลืมออก ตามเวลาตารางงาน');
     computeClockWindow(otRes);   // window = กะ ∪ OT อนุมัติวันนี้ (กรณีต่อเนื่อง 2,4)
     const rec=list.find(r=>r.date===today)||null;
-    renderClockScreen(sched,rec);
+    renderClockScreen(sched,rec,attErr);   // attErr → หน้ารู้ว่า "โหลดพลาด" ไม่ใช่ "ยังไม่ clock in"
   });
   renderClockHistory();
 }
@@ -3183,23 +3187,35 @@ function computeClockWindow(otRes){
   todaySchedule.winEndMin=ends.length?Math.max.apply(null,ends):pe;
 }
 
-function renderClockScreen(sched,todayRec){
+function renderClockScreen(sched,todayRec,loadErr){
   const noSchedEl=document.getElementById('clock-no-sched');
+  const noSchedMsg=document.getElementById('clock-no-sched-msg');
   const clockBody=document.getElementById('clock-body');
-
-  if(!sched||!sched.approved){
-    // LOCK: no approved schedule
-    if(noSchedEl)noSchedEl.style.display='block';
-    if(clockBody)clockBody.style.display='none';
-    return;
-  }
-  if(noSchedEl)noSchedEl.style.display='none';
-  if(clockBody)clockBody.style.display='block';
 
   // Restore today's clock-in/out state from attendance record
   const alreadyIn=!!(todayRec?.clockIn);
   const alreadyOut=!!(todayRec?.clockOut);
-  _clockedInToday=alreadyIn;
+  if(alreadyIn) _clockedInToday=true;   // อัปเกรดเท่านั้น — read ที่พลาดต้องไม่ล้างสถานะ clock-in ของเช้า (กัน "clock out ไม่ได้")
+  const schedApproved=!!(sched&&sched.approved);
+  const schedLoadErr=!!loadErr||!!(sched&&sched.loadError);   // โหลดตาราง/บันทึกไม่สำเร็จ ≠ ไม่มีตาราง/ยังไม่ clock in
+
+  // ล็อกทั้งหน้าเฉพาะเมื่อ "ยังไม่เคย clock in วันนี้ + ไม่มีตารางอนุมัติจริง"
+  // ถ้า clock in ไปแล้ว → โชว์หน้าเสมอ ให้ clock out ได้ แม้ตาราง/บันทึกโหลดไม่ขึ้น (เดิม fail ตรงนี้ = clock out ไม่ได้ตอนบ่าย)
+  if(!schedApproved && !alreadyIn && !_clockedInToday){
+    if(noSchedMsg){
+      noSchedMsg.className = schedLoadErr?'alert alert-warn':'alert alert-danger';
+      noSchedMsg.innerHTML = schedLoadErr
+        ? '⏳ กำลังโหลดตารางงาน... (เซิร์ฟเวอร์กำลังไม่ว่าง — ระบบลองใหม่ให้อัตโนมัติ)<br><span style="font-weight:400;font-size:12px;">ถ้าไม่ขึ้นใน 10–20 วิ ให้ปิด-เปิดแอปอีกครั้ง</span>'
+        : '🔒 ไม่พบตารางงานที่อนุมัติสำหรับวันนี้<br><span style="font-weight:400;font-size:12px;">ระบบล็อก Clock In/Out อัตโนมัติ — กรุณาสร้างตารางและรอ Owner อนุมัติก่อน</span>';
+    }
+    if(noSchedEl)noSchedEl.style.display='block';
+    if(clockBody)clockBody.style.display='none';
+    if(schedLoadErr && _clockAutoRetry<3){ _clockAutoRetry++; setTimeout(function(){ var on=document.querySelector('.sc.on'); if(on&&on.id==='s-emp-clockin') initClockScreen(); }, 5000); }  // โหลดพลาด → ลองใหม่เองสูงสุด 3 ครั้ง
+    return;
+  }
+  _clockAutoRetry=0;   // โหลดได้แล้ว รีเซ็ตตัวนับ
+  if(noSchedEl)noSchedEl.style.display='none';
+  if(clockBody)clockBody.style.display='block';
   if(alreadyIn){
     const ciEl=document.getElementById('ci-status-display');
     if(ciEl){ciEl.textContent=todayRec.clockIn+' น. ✓';ciEl.style.color='var(--green)';}
@@ -3255,18 +3271,24 @@ function renderClockScreen(sched,todayRec){
   const coBtn=document.getElementById('co-btn');
   const coBtnMsg=document.getElementById('co-btn-msg');
   if(coBtn&&!coBtn.disabled){
-    if(!alreadyIn){
-      // ยังไม่ได้ Clock In — ห้าม Clock Out (กัน state ขัดแย้ง)
+    const inState=alreadyIn||_clockedInToday;   // clock in แล้ว (จาก read หรือรู้จากเช้าในเซสชันนี้)
+    if(!inState){
+      // ยังไม่ได้ Clock In จริง — ห้าม Clock Out (กัน state ขัดแย้ง)
       coBtn.disabled=true;coBtn.style.opacity='0.4';coBtn.textContent='Clock Out ตอนนี้';
       coBtn.className='btn btn-danger btn-full';
       if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.style.color='var(--ink3)';coBtnMsg.textContent='ต้อง Clock In ก่อนจึงจะ Clock Out ได้';}
+    } else if(schedLoadErr){
+      // clock in แล้ว แต่ตาราง/บันทึกโหลดไม่ขึ้น → เปิด Clock Out ตรงๆ (ไม่รู้เวลากะจริง อย่าบล็อก — นี่คือบั๊กที่รายงาน)
+      coBtn.disabled=false;coBtn.style.opacity='1';coBtn.textContent='Clock Out ตอนนี้';
+      coBtn.className='btn btn-danger btn-full';coBtn.onclick=()=>openModal('m-clockout');
+      if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.style.color='var(--ink3)';coBtnMsg.textContent='โหลดตารางไม่ครบ — แต่ Clock Out ได้เพราะ Clock In ไปแล้ว';}
     } else if(nowMin<coStart){
       coBtn.textContent='ขอ Clock Out ก่อนเวลา';
       coBtn.className='btn btn-outline btn-full';
       coBtn.onclick=()=>openEarlyClockOutModal(planEnd);
       if(coBtnMsg){coBtnMsg.style.display='block';coBtnMsg.style.color='var(--ink3)';coBtnMsg.textContent='ยังไม่ถึงช่วง Clock Out';}
     } else if(nowMin>coEnd){
-      if(alreadyIn&&!alreadyOut){
+      if(inState&&!alreadyOut){
         // Clock In แล้วแต่ยังไม่ Clock Out — อนุญาตเสมอแม้เลยหน้าต่างเวลา
         coBtn.disabled=false;coBtn.style.opacity='1';coBtn.textContent='Clock Out ตอนนี้';
         coBtn.className='btn btn-danger btn-full';coBtn.onclick=()=>openModal('m-clockout');
