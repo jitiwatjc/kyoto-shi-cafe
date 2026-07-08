@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260708-012800">
+<meta name="app-build" content="20260708-104422">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -4997,15 +4997,56 @@ const INVENTORY_URL='https://script.google.com/macros/s/AKfycbzuIFg2j6FycECriA4G
 const INV_MOCK = !INVENTORY_URL;
 const INV_FREQ={fresh:1,mid:3,dry:7};
 
-async function callInv(params){const url=new URL(INVENTORY_URL);Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));url.searchParams.set('_',Date.now());const r=await fetch(url.toString(),{cache:'no-store'});return r.json();}
-async function callInvPost(params){const body=new URLSearchParams();Object.keys(params).forEach(k=>body.set(k,params[k]==null?'':params[k]));const r=await fetch(INVENTORY_URL,{method:'POST',body});return r.json();}
+/* ── INVENTORY read: cache + in-flight coalescing + timeout/retry ──
+   ต้นเหตุ "กด Stock แล้วช้ามาก": inv_items เป็น query หนัก (อ่านทั้งชีต 332 รายการ + คำนวณต่อแถว) + Apps Script cold start,
+   และ callInv เดิมไม่มี timeout เลย → ถ้า backend ช้า/cold แถบโหลดค้างยาว. read ผ่าน callInv ทั้งหมด (idempotent)
+   → cache/coalesce ได้ + retry ได้; write ผ่าน callInvPost ทั้งหมด → ล้าง cache หลังเขียน. */
+const INV_CACHE_TTL=45000;
+const _invReqCache=new Map();        // key -> {t, data}
+const _invReqInflight=new Map();     // key -> Promise
+function _invReqKey(params){ return Object.keys(params).filter(k=>k!=='_').sort().map(k=>k+'='+params[k]).join('&'); }
+function invReqCacheClear(){ _invReqCache.clear(); }
+async function callInv(params,opts){
+  opts=opts||{};
+  const key=_invReqKey(params);
+  if(!opts.fresh){
+    const hit=_invReqCache.get(key);
+    if(hit && (Date.now()-hit.t)<INV_CACHE_TTL) return hit.data;   // cache สด
+    const inf=_invReqInflight.get(key);
+    if(inf) return inf;                                            // request เดียวกันวิ่งอยู่ (เช่น prefetch จาก home) → ใช้ร่วม
+  }
+  const p=_callInvRaw(params,opts);
+  _invReqInflight.set(key,p);
+  p.then(data=>{ _invReqCache.set(key,{t:Date.now(),data}); },()=>{}).then(()=>{ _invReqInflight.delete(key); });
+  return p;
+}
+async function _callInvRaw(params,opts){
+  opts=opts||{};
+  const timeoutMs=opts.timeoutMs||20000, maxRetry=(opts.retries!=null?opts.retries:1);
+  let lastErr;
+  for(let attempt=0;attempt<=maxRetry;attempt++){
+    const url=new URL(INVENTORY_URL);
+    Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));
+    url.searchParams.set('_',Date.now());
+    let timer=null;
+    try{
+      const ctrl=new AbortController(); timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+      const r=await fetch(url.toString(),{cache:'no-store',signal:ctrl.signal});
+      clearTimeout(timer); timer=null;
+      const text=await r.text();
+      try{ return JSON.parse(text); }catch(_){ throw new Error('เซิร์ฟเวอร์ตอบไม่สมบูรณ์'); }
+    }catch(e){ if(timer)clearTimeout(timer); lastErr=e; if(attempt<maxRetry) await new Promise(z=>setTimeout(z,600*(attempt+1))); }
+  }
+  throw lastErr||new Error('request failed');
+}
+async function callInvPost(params){const body=new URLSearchParams();Object.keys(params).forEach(k=>body.set(k,params[k]==null?'':params[k]));const r=await fetch(INVENTORY_URL,{method:'POST',body});const j=await r.json();invReqCacheClear();return j;}
 // loading overlay (กันกดซ้ำ): ref-counted + หน่วง 150ms กัน flash ตอน cache/เร็ว
 let _invBusyN=0, _invBusyTimer=null;
 function invBusyStart(msg){ _invBusyN++; if(_invBusyN===1 && !_invBusyTimer){ _invBusyTimer=setTimeout(function(){ const o=document.getElementById('inv-overlay'); const m=document.getElementById('inv-overlay-msg'); if(m&&msg)m.textContent=msg; if(o)o.style.display='flex'; _invBusyTimer=null; },150); } }
 function invBusyEnd(){ _invBusyN=Math.max(0,_invBusyN-1); if(_invBusyN===0){ if(_invBusyTimer){clearTimeout(_invBusyTimer);_invBusyTimer=null;} const o=document.getElementById('inv-overlay'); if(o)o.style.display='none'; } }
 async function invGet(action,extra,opts){
   opts=opts||{};
-  const run=()=> INV_MOCK ? invMock(action,extra||{}) : callInv(Object.assign({action,empId:currentUser?.empId||'',role:currentUser?.role||''},extra||{}));
+  const run=()=> INV_MOCK ? invMock(action,extra||{}) : callInv(Object.assign({action,empId:currentUser?.empId||'',role:currentUser?.role||''},extra||{}),opts);
   if(opts.silent) return run();
   invBusyStart(); try{ return await run(); } finally{ invBusyEnd(); }
 }
@@ -5233,7 +5274,7 @@ function _invBuildWorklist(items){
   return out;
 }
 async function _invFetchWorklist(force,silent){ if(!force && _invWlCache) return _invWlCache; await _invLoadCfg(); const items=await _invFetchItems(force,silent); _invWlCache=_invBuildWorklist(items); return _invWlCache; }
-function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; }
+function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; invReqCacheClear(); }
 let _invChkStation=null;
 function stockCheckSetStation(s){ _invChkStation=s; renderStockCheck(true); }
 async function renderStockCheck(keepPending){
