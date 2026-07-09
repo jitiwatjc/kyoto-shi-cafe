@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260709-215406">
+<meta name="app-build" content="20260709-221714">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -3134,16 +3134,14 @@ function exportToExcel(){
   if(!_attendanceCache||!_attendanceCache.length){toast('ไม่มีข้อมูล — เลือกพนักงานและเดือนก่อน');return;}
   const empName=(document.getElementById('export-emp-select')?.options[document.getElementById('export-emp-select')?.selectedIndex]?.text||'').split(' — ')[0]||'พนักงาน';
   const monthLabel=document.getElementById('export-month-select')?.options[document.getElementById('export-month-select')?.selectedIndex]?.text||'';
-  const header=['วันที่','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม. จริง','OT×1','OT×1.5','OT×2','แรงรวม'];
+  const header=['วันที่','ประเภทวัน','แผน เข้า','แผน ออก','จริง เข้า','จริง ออก','ชม.ปกติ','OT×1','OT×1.5','OT×2','แรงรวม'];
   let sumHrs=0,sOt1=0,sOt15=0,sOt2=0;
   const dataRows=_attendanceCache.map(r=>{
-    const hasWork=r.clockIn&&r.clockOut;
-    let hrs=0;
-    if(hasWork){const[ah,am]=r.clockIn.split(':').map(Number);const[bh,bm]=r.clockOut.split(':').map(Number);hrs=Math.max(0,((bh*60+bm)-(ah*60+am))/60-1);}
+    const nh=parseFloat(r.workedHours)||0;   // ชม.ปกติในกะ (ไม่หักพัก) — ตรงกับที่โชว์บนจอ
     const ot1=parseFloat(r.ot1)||0,ot15=parseFloat(r.ot15)||0,ot2=parseFloat(r.ot2)||0;
     const weighted=ot1*1+ot15*1.5+ot2*2;
-    sumHrs+=hasWork?hrs:0;sOt1+=ot1;sOt15+=ot15;sOt2+=ot2;
-    return[r.date,r.specialDay||'ปกติ',r.plannedStart||'—',r.plannedEnd||'—',r.clockIn||'—',r.clockOut||'—',hasWork?+hrs.toFixed(2):'—',ot1||'',ot15||'',ot2||'',weighted||''];
+    if(!r.isLeave){sumHrs+=nh;sOt1+=ot1;sOt15+=ot15;sOt2+=ot2;}
+    return[r.date,r.specialDay||'ปกติ',r.plannedStart||'—',r.plannedEnd||'—',r.clockIn||'—',r.clockOut||'—',(!r.isLeave&&r.clockIn)?+nh.toFixed(2):'—',ot1||'',ot15||'',ot2||'',weighted||''];
   });
   const totalRow=['รวม','','','','','',+sumHrs.toFixed(2),+sOt1.toFixed(2),+sOt15.toFixed(2),+sOt2.toFixed(2),+(sOt1*1+sOt15*1.5+sOt2*2).toFixed(2)];
   const rows=[header,...dataRows,totalRow];
