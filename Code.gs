@@ -1089,9 +1089,14 @@ function getAttendance(empId, month, year, limit) {
     // ปกติ 3 นาที · ฝนตก 15 นาที. OT เย็น (หลังกะ + มีช่วงว่าง) ไม่ตรวจสาย — clock ครั้งเดียวรู้แค่เวลาออก
     let firstStartMin = plannedStart ? toMin(plannedStart) : null;
     otReqs.forEach(function(o) {
+      // เฉพาะ OT ก่อนกะที่ "ต่อเนื่อง" (ห่าง ≤ 60 นาที) เท่านั้นที่ใช้เป็นจุดวัดสาย —
+      // OT ก่อนกะแบบไม่ต่อเนื่อง (มีช่วงว่างมาก) เป็นคนละช่วง clock, การมากะไม่ใช่การมาสาย OT
       if (o.start && o.end && plannedStart && toMin(o.end) <= toMin(plannedStart)) {
-        const s = toMin(o.start);
-        if (firstStartMin === null || s < firstStartMin) firstStartMin = s;
+        const gapBefore = toMin(plannedStart) - toMin(o.end);
+        if (gapBefore <= 60) {
+          const s = toMin(o.start);
+          if (firstStartMin === null || s < firstStartMin) firstStartMin = s;
+        }
       }
     });
     let isLate = false, lateMin = 0, lateKind = '';
