@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260709-215219">
+<meta name="app-build" content="20260709-215406">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -3069,7 +3069,7 @@ function _exportDayCard(r,DAYS_S){
   const isSpecialDay=r.specialDay&&r.specialDay!=='ปกติ';
   let statusChip;
   if(r.isLate){
-    statusChip='<span class="chip chip-red" style="font-size:11px;">⚠ '+(r.lateKind==='ot'?'สาย OT':'สาย')+' '+(r.lateMin||0)+' นาที</span>';
+    statusChip='<span class="chip chip-red" style="font-size:11px;">⚠ '+(r.lateKind==='ot'?'สาย OT':'สาย')+((r.lateMin||0)>0?' '+r.lateMin+' นาที':'')+'</span>';
   } else if(hasOut){
     statusChip='<span class="chip chip-green" style="font-size:11px;">ตรงเวลา</span>';
   } else {
