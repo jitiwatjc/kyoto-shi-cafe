@@ -48,6 +48,16 @@ function doGet(e) {
       case 'submitSidework':         return res(submitSidework(p));
       case 'getSideworkLeaderboard': return res(getSideworkLeaderboard());
       case 'getSideworkDashboard':   return res(getSideworkDashboard());
+      case 'getPrepList':            return res(getPrepList(p.kitchen));
+      case 'savePrepItem':           return res(savePrepItem(p));
+      case 'deletePrepItem':         return res(deletePrepItem(p));
+      case 'getPrepLog':             return res(getPrepLog(p));
+      case 'savePrepLog':            return res(savePrepLog(p));
+      case 'getMorningPrep':         return res(getMorningPrep(p.kitchen));
+      case 'getShortages':           return res(getShortages(p));
+      case 'getPrepStatus':         return res(getPrepStatus());
+      case 'saveMorningAck':        return res(saveMorningAck(p));
+      case 'savePrepPlan':          return res(savePrepPlan(p));
       case 'getPending':           return res(getPendingApprovals());
       case 'getPendingApprovals':  return res(getPendingApprovals());
       case 'getTodayClock':        return res(getTodayClock(p.empId, p.date));
@@ -629,12 +639,12 @@ function getSideworkBoard(empId){
     if(t.assignee) return String(t.assignee)===String(empId);
     return t.kitchen===me.kitchen || t.kitchen==='ส่วนกลาง'; });
   const canDo=function(t){
-    if(t.tier==='daily') return cyc.dailyActive && swDayMatch_(t.days,cyc.dow) && (!cyc.isBusy||t.busyInclude);
+    if(t.tier==='daily') return cyc.dailyActive && swDayMatch_(t.days,cyc.dow);
     if(t.tier==='weekly') return cyc.weeklyActive;
     if(t.tier==='once')  return !t.deadline || nowStr<=t.deadline;
     return false; };
   const visible=function(t){ const dn=done[t.id];
-    if(t.tier==='daily') return swDayMatch_(t.days,cyc.dow) && (!cyc.isBusy||t.busyInclude);  // วันยุ่งโชว์เฉพาะ busyInclude
+    if(t.tier==='daily') return swDayMatch_(t.days,cyc.dow);
     if(t.tier==='once')  return !dn && (!t.deadline || nowStr<=t.deadline);                   // เสร็จ/เลยเวลา = หายไป
     return true; };                                                                            // weekly โชว์เสมอ
   const pack=function(t){ const dn=done[t.id]; return {id:t.id,name:t.name,category:t.category,tier:t.tier,points:t.points,kitchen:t.kitchen,
@@ -711,8 +721,88 @@ function getSideworkLeaderboard(){ return { ok:true, data:swLeaderboard_() }; }
 function getSideworkDashboard(){
   swEnsure_(); const cyc=swCycle_(), tasks=swReadTasks_().filter(t=>t.active), done=swCurrentDone_(), kits={};
   SW_KITCHENS.forEach(function(k){ kits[k]={kitchen:k,coreTotal:0,coreDone:0}; });
-  tasks.forEach(function(t){ if(t.tier!=='daily') return; if(t.assignee) return; if(!swDayMatch_(t.days,cyc.dow)) return; if(cyc.isBusy && !t.busyInclude) return; const k=kits[t.kitchen]; if(!k) return; k.coreTotal++; if(done[t.id]) k.coreDone++; });
+  tasks.forEach(function(t){ if(t.tier!=='daily') return; if(t.assignee) return; if(!swDayMatch_(t.days,cyc.dow)) return; const k=kits[t.kitchen]; if(!k) return; k.coreTotal++; if(done[t.id]) k.coreDone++; });
   return { ok:true, data:{ isBusy:cyc.isBusy, dailyActive:cyc.dailyActive, kitchens:SW_KITCHENS.map(k=>kits[k]), leaderboard:swLeaderboard_() } };
+}
+
+// ════════════════════════════════════════════════════════════
+// PREP STOCK — ของเตรียมขาย (Phase A)
+// ════════════════════════════════════════════════════════════
+const PREP = { ITEMS:'Prep_Items', LOGS:'Prep_Logs', SHORT:'Prep_Shortages' };
+function prepEnsure_(){
+  const ss=openSS();
+  if(!ss.getSheetByName(PREP.ITEMS)){ const s=ss.insertSheet(PREP.ITEMS); s.appendRow(['id','kitchen','name','unit','active','createdAt']); s.setFrozenRows(1); }
+  if(!ss.getSheetByName(PREP.LOGS)){ const s=ss.insertSheet(PREP.LOGS); s.appendRow(['id','date','kitchen','itemId','itemName','produced','used','left','handover','ready','note','empId','empName','ts']); s.setFrozenRows(1); }
+  if(!ss.getSheetByName(PREP.SHORT)){ const s=ss.insertSheet(PREP.SHORT); s.appendRow(['id','date','kitchen','material','note','empId','empName','ts']); s.setFrozenRows(1); }
+  return ss;
+}
+function prepDStr_(v){ if(v instanceof Date){ try{ return Utilities.formatDate(v, openSS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }catch(e){ return Utilities.formatDate(v, "Asia/Bangkok", "yyyy-MM-dd"); } } return String(v).slice(0,10); }
+
+function prepToday_(){ return Utilities.formatDate(new Date(),'Asia/Bangkok','yyyy-MM-dd'); }
+function prepUid_(p){ return p+Date.now()+Math.floor(Math.random()*1000); }
+function prepBool_(v){ return v===true||v==='TRUE'||v==='true'; }
+function prepDelRows_(sh,date,kitchen){ const last=sh.getLastRow(); if(last<2) return; const r=sh.getRange(2,2,last-1,2).getValues(); for(let i=r.length-1;i>=0;i--){ if(prepDStr_(r[i][0])===prepDStr_(date)&&String(r[i][1])===String(kitchen)) sh.deleteRow(i+2); } }
+function getPrepList(kitchen){
+  prepEnsure_(); const sh=openSS().getSheetByName(PREP.ITEMS), last=sh.getLastRow(), out=[];
+  if(last>=2){ const r=sh.getRange(2,1,last-1,6).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(!x[0]) continue; if(x[4]===false||x[4]==='FALSE'||x[4]==='false') continue;
+      if(kitchen && String(x[1])!==String(kitchen)) continue;
+      out.push({id:String(x[0]),kitchen:String(x[1]),name:String(x[2]),unit:String(x[3]||'')}); } }
+  return { ok:true, data:out };
+}
+function savePrepItem(p){
+  prepEnsure_(); const sh=openSS().getSheetByName(PREP.ITEMS);
+  if(p.id){ const last=sh.getLastRow(); if(last>=2){ const r=sh.getRange(2,1,last-1,1).getValues();
+      for(let i=0;i<r.length;i++){ if(String(r[i][0])===String(p.id)){ sh.getRange(i+2,2,1,3).setValues([[p.kitchen||'',p.name||'',p.unit||'']]); return {ok:true,id:p.id}; } } }
+    return {ok:false,error:'ไม่พบรายการ'}; }
+  if(!p.name||!p.kitchen) return {ok:false,error:'ใส่ชื่อ+ครัว'};
+  const id=prepUid_('PI'); sh.appendRow([id,p.kitchen,p.name,p.unit||'',true,fmtDateTime(new Date())]); return {ok:true,id:id};
+}
+function deletePrepItem(p){
+  prepEnsure_(); const sh=openSS().getSheetByName(PREP.ITEMS), last=sh.getLastRow(); if(last<2) return {ok:false,error:'ว่าง'};
+  const r=sh.getRange(2,1,last-1,1).getValues();
+  for(let i=0;i<r.length;i++){ if(String(r[i][0])===String(p.id)){ sh.getRange(i+2,5).setValue(false); return {ok:true}; } }
+  return {ok:false,error:'ไม่พบ'};
+}
+function getPrepLog(p){
+  prepEnsure_(); const date=prepToday_(), kitchen=p.kitchen, ss=openSS();
+  const lg=ss.getSheetByName(PREP.LOGS), last=lg.getLastRow(), items={};
+  if(last>=2){ const r=lg.getRange(2,1,last-1,14).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(prepDStr_(x[1])!==date||String(x[2])!==String(kitchen)) continue;
+      items[String(x[3])]={produced:Number(x[5])||0,used:Number(x[6])||0,left:Number(x[7])||0,handover:prepBool_(x[8]),ready:!(x[9]===false||x[9]==='FALSE'||x[9]==='false'),note:String(x[10]||'')}; } }
+  const sh=ss.getSheetByName(PREP.SHORT), sl=sh.getLastRow(), shorts=[];
+  if(sl>=2){ const r=sh.getRange(2,1,sl-1,8).getValues(); for(let i=0;i<r.length;i++){ const x=r[i]; if(prepDStr_(x[1])!==date||String(x[2])!==String(kitchen)) continue; shorts.push({material:String(x[3]),note:String(x[4]||'')}); } }
+  return { ok:true, data:{ logged:Object.keys(items).length>0, items:items, shortages:shorts } };
+}
+function savePrepLog(p){
+  prepEnsure_(); const ss=openSS(), date=prepToday_(), kitchen=p.kitchen;
+  if(!kitchen) return {ok:false,error:'ไม่มีครัว'};
+  const me=swEmpKitchen_(p.empId), empName=me.name||p.empId;
+  let items=[], shorts=[];
+  try{ items=JSON.parse(p.items||'[]'); }catch(e){}
+  try{ shorts=JSON.parse(p.shortages||'[]'); }catch(e){}
+  const lg=ss.getSheetByName(PREP.LOGS); prepDelRows_(lg,date,kitchen);
+  const now=fmtDateTime(new Date());
+  items.forEach(function(it){ lg.appendRow([prepUid_('PL'),date,kitchen,it.itemId||'',it.itemName||'',Number(it.produced)||0,Number(it.used)||0,Number(it.left)||0,(it.handover?true:false),(it.ready===false?false:true),it.note||'',p.empId,empName,now]); });
+  const sh=ss.getSheetByName(PREP.SHORT); prepDelRows_(sh,date,kitchen);
+  shorts.forEach(function(s){ if(!s.material) return; sh.appendRow([prepUid_('PS'),date,kitchen,s.material,s.note||'',p.empId,empName,now]); });
+  return { ok:true };
+}
+function getMorningPrep(kitchen){
+  prepEnsure_(); const today=prepToday_(); const lg=openSS().getSheetByName(PREP.LOGS), last=lg.getLastRow();
+  let fromDate=''; const rows=[];
+  if(last>=2){ const r=lg.getRange(2,1,last-1,14).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(kitchen&&String(x[2])!==String(kitchen)) continue; const d=prepDStr_(x[1]); if(d<today && d>fromDate) fromDate=d; }
+    if(fromDate){ for(let i=0;i<r.length;i++){ const x=r[i]; if(kitchen&&String(x[2])!==String(kitchen)) continue; if(prepDStr_(x[1])!==fromDate) continue;
+      rows.push({itemId:String(x[3]),itemName:String(x[4]),left:Number(x[7])||0,handover:prepBool_(x[8]),ready:!(x[9]===false||x[9]==='FALSE'||x[9]==='false'),note:String(x[10]||'')}); } } }
+  const toPrep=rows.filter(function(it){ return it.handover || !it.ready; });
+  return { ok:true, data:{ kitchen:kitchen, date:today, fromDate:fromDate, toPrep:toPrep, all:rows } };
+}
+function getShortages(p){
+  prepEnsure_(); const date=(p&&p.date)||prepToday_(); const sh=openSS().getSheetByName(PREP.SHORT), last=sh.getLastRow(), out=[];
+  if(last>=2){ const r=sh.getRange(2,1,last-1,8).getValues();
+    for(let i=0;i<r.length;i++){ const x=r[i]; if(prepDStr_(x[1])!==date) continue; out.push({kitchen:String(x[2]),material:String(x[3]),note:String(x[4]||''),by:String(x[6]||'')}); } }
+  return { ok:true, data:out };
 }
 
 function submitSchedule(p) {
@@ -990,46 +1080,86 @@ function getAttendance(empId, month, year, limit) {
     const dow       = d.getDay();
     const isSpecial = (plan.special === true) || dow === 0 || dow === 6;
 
-    // สาย: clock in เกินแผน · ปกติ 3 นาที · ฝนตก 15 นาที
-    const rain = (row[8] === true || row[8] === 'TRUE' || row[8] === 'true');
-    let isLate = false;
-    if (clockIn && plannedStart) {
-      isLate = toMin(clockIn) > toMin(plannedStart) + (rain ? 15 : 3);
+    const r2 = function(x) { return Math.round(x * 100) / 100; };
+    const rain       = (row[8] === true || row[8] === 'TRUE' || row[8] === 'true');
+    const completed  = !!(clockIn && clockOut);
+    const otReqs     = otMap[key] || [];             // คำขอ OT ที่อนุมัติของวันนั้น
+
+    // ── สาย: clock-in เกิน "จุดเริ่มของช่วงแรก" (กะ หรือ OT ที่จบก่อน/ตรงกับเริ่มกะ = OT ก่อนกะ) ──
+    // ปกติ 3 นาที · ฝนตก 15 นาที. OT เย็น (หลังกะ + มีช่วงว่าง) ไม่ตรวจสาย — clock ครั้งเดียวรู้แค่เวลาออก
+    let firstStartMin = plannedStart ? toMin(plannedStart) : null;
+    otReqs.forEach(function(o) {
+      if (o.start && o.end && plannedStart && toMin(o.end) <= toMin(plannedStart)) {
+        const s = toMin(o.start);
+        if (firstStartMin === null || s < firstStartMin) firstStartMin = s;
+      }
+    });
+    let isLate = false, lateMin = 0, lateKind = '';
+    if (clockIn && firstStartMin !== null) {
+      const ci = toMin(clockIn);
+      if (ci > firstStartMin + (rain ? 15 : 3)) {
+        isLate   = true;
+        lateMin  = ci - firstStartMin;
+        lateKind = (plannedStart && firstStartMin < toMin(plannedStart)) ? 'ot' : 'shift';
+      }
     }
 
     // ── คำนวณ OT (แยกตามแรง 1 / 1.5 / 2) ──
     // มาตรฐาน 9 ชม./วัน (ทำงาน 8 + พัก 1). OT×1 คิดจาก plan ที่ยาวเกิน 9 ชม. (ถึง plan end)
-    const completed  = !!(clockIn && clockOut);
-    let   planHours  = 0;
+    let planHours = 0;
     if (plannedStart && plannedEnd) planHours = (toMin(plannedEnd) - toMin(plannedStart)) / 60;
     const planExcess = Math.max(0, planHours - 9);   // ชม. plan ที่เกินมาตรฐาน
-    const otReqs     = otMap[key] || [];             // คำขอ OT ที่อนุมัติของวันนั้น
 
     let ot1 = 0, ot15 = 0, ot2 = 0;
-    if (isSpecial) {
-      // วันหยุด/วันพิเศษ — ทุกอย่างเป็น 2 แรง
-      if (completed) ot2 += planExcess;
-      if (clockIn) otReqs.forEach(function(o) { ot2 += o.hours; });
-    } else {
-      // วันธรรมดา
-      if (completed) ot1 += planExcess;            // ส่วนเกิน plan = 1 แรง
-      if (clockIn) otReqs.forEach(function(o) {
-        // จำแนกคำขอ OT: ก่อน plan เริ่ม = 1.5 แรง · หลัง plan ออก (หรือในแผน) = 1 แรง
-        let before = false;
-        if (o.start && o.end && plannedStart && plannedEnd) {
-          if (toMin(o.end) <= toMin(plannedStart))      before = true;   // ทั้งช่วงก่อน plan เริ่ม
-          else if (toMin(o.start) >= toMin(plannedEnd)) before = false;  // ทั้งช่วงหลัง plan ออก
-          else before = ((toMin(o.start) + toMin(o.end)) / 2) < toMin(plannedStart); // คาบเกี่ยว → ดูจุดกึ่งกลาง
-        }
-        if (before) ot15 += o.hours; else ot1 += o.hours;
+    const otItems = [];                              // breakdown ต่อคำขอ OT (สำหรับ report)
+
+    // OT จากแผนกะที่ยาวเกิน 9 ชม. (planned OT) — คงเดิม
+    if (completed && isSpecial) ot2 += planExcess;
+    else if (completed)         ot1 += planExcess;
+
+    // OT จากคำขอ — สรุป = min(ที่ขอ, เวลาจริงที่ clock ทับกับหน้าต่าง OT)
+    // clock ครั้งเดียวคร่อมทั้งวัน → clip [clockIn,clockOut] กับ [o.start,o.end] · ช่วงว่างตกไปเอง
+    if (clockIn) otReqs.forEach(function(o) {
+      let before = false, gapMin = 0;
+      if (o.start && o.end && plannedStart && plannedEnd) {
+        if (toMin(o.end) <= toMin(plannedStart))      { before = true;  gapMin = toMin(plannedStart) - toMin(o.end); }
+        else if (toMin(o.start) >= toMin(plannedEnd))  { before = false; gapMin = toMin(o.start) - toMin(plannedEnd); }
+        else { before = ((toMin(o.start) + toMin(o.end)) / 2) < toMin(plannedStart); gapMin = 0; }
+      }
+      const continuous = gapMin <= 60;               // ห่าง ≤ 60 นาที = ต่อเนื่อง
+
+      let actualHrs = null, summaryHrs = o.hours;     // ยังไม่ clock out → ใช้ที่ขอไปก่อน (ชั่วคราว)
+      if (completed && o.start && o.end) {
+        const ws = Math.max(toMin(clockIn),  toMin(o.start));
+        const we = Math.min(toMin(clockOut), toMin(o.end));
+        actualHrs  = r2(Math.max(0, (we - ws) / 60));
+        summaryHrs = Math.min(o.hours, actualHrs);   // ทำเกินไม่จ่ายเพิ่ม · ทำขาดหักตามจริง
+      }
+      summaryHrs = r2(summaryHrs);
+
+      const rate = isSpecial ? 2 : (before ? 1.5 : 1);
+      if (rate === 2)        ot2  += summaryHrs;
+      else if (rate === 1.5) ot15 += summaryHrs;
+      else                   ot1  += summaryHrs;
+
+      otItems.push({
+        reqStart:    o.start,
+        reqEnd:      o.end,
+        reqHours:    r2(o.hours),
+        actualHours: actualHrs,          // null = ยังไม่ครบ (ไม่มี clock out)
+        summaryHours: summaryHrs,
+        rate:        rate,
+        kind:        before ? 'before' : 'after',
+        continuous:  continuous,
+        gapMin:      gapMin,
       });
-    }
-    const r2 = function(x) { return Math.round(x * 100) / 100; };
+    });
+
     ot1 = r2(ot1); ot15 = r2(ot15); ot2 = r2(ot2);
-    const otHours    = r2(ot1 + ot15 + ot2);                  // ชม. OT รวม
+    const otHours    = r2(ot1 + ot15 + ot2);                  // ชม. OT รวม (สรุปแล้ว)
     const otWeighted = r2(ot1 * 1 + ot15 * 1.5 + ot2 * 2);    // แรงรวม (สำหรับคิดเงิน)
 
-    // ── ชั่วโมงทำงาน Part-time: max(0, เวลาเลิกตาราง − max(clock-in, เวลาเริ่มตาราง)) ──
+    // ── ชั่วโมงในกะ (ปกติ): max(0, เวลาเลิกตาราง − max(clock-in, เวลาเริ่มตาราง)) ──
     // มาสาย=หักชั่วโมง · มาก่อน=ไม่เพิ่ม · ไม่อิง clock-out · ไม่หักพัก · ไม่ติดลบ
     let workedHours = 0;
     if (clockIn && plannedStart && plannedEnd) {
@@ -1047,12 +1177,15 @@ function getAttendance(empId, month, year, limit) {
       workedHours:  workedHours,
       specialDay:   isSpecial ? 'พิเศษ' : 'ปกติ',
       isLate:       isLate,
+      lateMin:      lateMin,
+      lateKind:     lateKind,
       rain:         rain,
       ot1:          ot1,
       ot15:         ot15,
       ot2:          ot2,
       otHours:      otHours,
       otWeighted:   otWeighted,
+      otItems:      otItems,
     });
   }
   // แทรกวันลาที่อนุมัติแล้วเป็นแถว "ลา" (รายงานรายเดือน) — ใช้รายการวันลาที่เก็บไว้
@@ -1529,4 +1662,272 @@ function fmtTime(v) {
 function hashPw(s) {
   const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(s), Utilities.Charset.UTF_8);
   return raw.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PREP STOCK v2 — "Daily handover loop" PATCH  (July 5 2026)
+// ─ วางฟังก์ชันทั้งหมดนี้ต่อท้าย Code.gs ในโปรเจกต์ Apps Script (โปรเจกต์ "Management system")
+// ─ แล้วเพิ่ม 3 case ใน switch ของ doGet (ดูบล็อก "// ▶ ADD THESE CASES" ด้านล่าง)
+// ─ จากนั้น Deploy → Manage deployments → Edit(ดินสอ) → New version → Deploy (SAME /exec)
+//
+// เป็น ADDITIVE ล้วน — ไม่แก้ฟังก์ชัน prep เดิม (getPrepList/savePrepLog/getShortages ฯลฯ ทำงานเหมือนเดิม)
+// เพิ่ม 2 ชีตใหม่: Prep_Ack (รับกะเช้า) · Prep_Plan (เป้าของพรุ่งนี้)
+// เพิ่ม 3 action: getPrepStatus (อ่านรวมทีเดียว—แก้ throttle) · saveMorningAck · savePrepPlan
+//
+// blocks (วัตถุดิบหมดบล็อกของเตรียมตัวไหน) ไม่ต้องแก้ backend — frontend เก็บใน note ของ Prep_Shortages
+// ด้วย convention "⟦blk:ชื่อของเตรียม⟧ ..." แล้ว getPrepStatus ถอดออกมาให้
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ▶ ADD THESE CASES  (วางใน switch(p.action) ของ doGet — ในกลุ่ม "อ่านข้อมูล"/"บันทึกข้อมูล")
+//      case 'getPrepStatus':   return res(getPrepStatus());
+//      case 'saveMorningAck':  return res(saveMorningAck(p));
+//      case 'savePrepPlan':    return res(savePrepPlan(p));
+
+const PREP2 = {
+  ITEMS:     'Prep_Items',
+  LOGS:      'Prep_Logs',
+  SHORTAGES: 'Prep_Shortages',
+  ACK:       'Prep_Ack',
+  PLAN:      'Prep_Plan',
+};
+const PREP2_KITCHENS = ['บาร์น้ำ', 'เบเกอรี่', 'ครัวอาหาร'];
+
+function prep2Ensure_() {
+  const ss = openSS();
+  if (!ss.getSheetByName(PREP2.ACK)) {
+    const a = ss.insertSheet(PREP2.ACK);
+    a.appendRow(['id', 'date', 'kitchen', 'itemId', 'itemName', 'done', 'qty', 'empId', 'empName', 'ts']);
+    a.setFrozenRows(1);
+  }
+  if (!ss.getSheetByName(PREP2.PLAN)) {
+    const pl = ss.insertSheet(PREP2.PLAN);
+    pl.appendRow(['id', 'date', 'kitchen', 'itemId', 'target', 'empId', 'ts']);
+    pl.setFrozenRows(1);
+  }
+  return ss;
+}
+
+// วันที่แบบ string เสมอ (กัน Google Sheets coerce cell เป็น Date object → เทียบ string ไม่ตรง)
+function prep2DStr_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, openSS().getSpreadsheetTimeZone() || 'Asia/Bangkok', 'yyyy-MM-dd');
+  return String(v == null ? '' : v).slice(0, 10);
+}
+function prep2Today_() {
+  return Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
+}
+function prep2AddDays_(dateStr, delta) {
+  const p = String(dateStr).split('-').map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]); d.setDate(d.getDate() + delta);
+  const z = n => ('0' + n).slice(-2);
+  return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+}
+function prep2Rows_(name) {
+  const sh = openSS().getSheetByName(name);
+  if (!sh) return [];
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
+}
+function prep2Bool_(v) { return v === true || v === 'TRUE' || v === 'true' || v === 1 || v === '1'; }
+// ถอด "⟦blk:xxx⟧ note..." → { blocks:'xxx', note:'note...' }
+function prep2ParseBlk_(raw) {
+  const s = String(raw == null ? '' : raw);
+  const m = s.match(/⟦blk:([^⟧]*)⟧\s*/);
+  if (!m) return { blocks: '', note: s.trim() };
+  return { blocks: (m[1] || '').trim(), note: s.replace(m[0], '').trim() };
+}
+
+// ── SAVE: รับกะเช้า (staff ติ๊ก "เตรียมแล้ว" + จำนวน) — 1 ชุดต่อครัวต่อวัน ─────────
+function saveMorningAck(p) {
+  const ss = prep2Ensure_();
+  const sh = ss.getSheetByName(PREP2.ACK);
+  const date = prep2Today_();
+  const kitchen = String(p.kitchen || '');
+  if (!kitchen) return { ok: false, error: 'no kitchen' };
+  let items = [];
+  try { items = JSON.parse(p.items || '[]'); } catch (e) { items = []; }
+  const emp = swEmpKitchen_(p.empId || '');
+  // ลบของวันนี้ครัวนี้ก่อน แล้วเขียนใหม่ (กัน duplicate)
+  prep2DelRows_(sh, date, kitchen);
+  const ts = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm:ss');
+  let n = 0;
+  items.forEach(it => {
+    const done = prep2Bool_(it.done);
+    if (!done && (it.qty == null || it.qty === '')) return; // ข้ามรายการที่ยังไม่แตะ
+    if (done) n++;
+    sh.appendRow(['A' + Date.now() + Math.floor(Math.random() * 1000),
+      date, kitchen, String(it.itemId || ''), String(it.itemName || ''),
+      done, (it.qty === '' || it.qty == null) ? '' : Number(it.qty) || 0,
+      String(p.empId || ''), emp.name || '', ts]);
+  });
+  return { ok: true, ackCount: n };
+}
+
+// ── SAVE: เป้าของพรุ่งนี้ (ตั้งตอนปิดร้าน) — 1 ชุดต่อครัวต่อวัน ────────────────────
+function savePrepPlan(p) {
+  const ss = prep2Ensure_();
+  const sh = ss.getSheetByName(PREP2.PLAN);
+  const date = prep2Today_();
+  const kitchen = String(p.kitchen || '');
+  if (!kitchen) return { ok: false, error: 'no kitchen' };
+  let items = [];
+  try { items = JSON.parse(p.items || '[]'); } catch (e) { items = []; }
+  prep2DelRows_(sh, date, kitchen);
+  const ts = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm:ss');
+  items.forEach(it => {
+    if (it.target === '' || it.target == null) return;
+    sh.appendRow(['P' + Date.now() + Math.floor(Math.random() * 1000),
+      date, kitchen, String(it.itemId || ''), Number(it.target) || 0, String(p.empId || ''), ts]);
+  });
+  return { ok: true };
+}
+
+// ลบแถวที่ date(col0) + kitchen(col2) ตรงกัน (schema: [id,date,kitchen,...])
+function prep2DelRows_(sh, date, kitchen) {
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  const r = sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
+  for (let i = r.length - 1; i >= 0; i--) {
+    if (prep2DStr_(r[i][1]) === prep2DStr_(date) && String(r[i][2]) === String(kitchen)) {
+      sh.deleteRow(i + 2);
+    }
+  }
+}
+
+// ═══ READ รวมทีเดียว — ใช้ได้ทั้ง owner dashboard / จอเช้า / จอปิดร้าน ═══════════════
+// อ่าน 5 ชีตครั้งเดียว ประกอบทุกครัว → ลด fan-out (เดิม owner ยิง 5 request)
+function getPrepStatus() {
+  prep2Ensure_();
+  const today = prep2Today_();
+  const yest = prep2AddDays_(today, -1);
+
+  // items ต่อครัว (active เท่านั้น)  schema Prep_Items[0 id,1 kitchen,2 name,3 unit,4 active,5 createdAt]
+  const itemRows = prep2Rows_(PREP2.ITEMS);
+  const itemsByKit = {}, itemName = {}, itemUnit = {};
+  itemRows.forEach(x => {
+    if (!x[0]) return;
+    if (x[4] === false || x[4] === 'FALSE' || x[4] === 'false') return;
+    const k = String(x[1]);
+    (itemsByKit[k] = itemsByKit[k] || []).push({ itemId: String(x[0]), name: String(x[2]), unit: String(x[3] || '') });
+    itemName[String(x[0])] = String(x[2]);
+    itemUnit[String(x[0])] = String(x[3] || '');
+  });
+
+  // logs ทั้งหมด  schema Prep_Logs[0 id,1 date,2 kitchen,3 itemId,4 itemName,5 produced,6 used,7 left,8 handover,9 ready,10 note,11 empId,12 empName,13 ts]
+  const logRows = prep2Rows_(PREP2.LOGS);
+  const logByDateKit = {};           // key = date|kitchen → { byId, ts, empName }
+  const loggedDays = {};             // key = kitchen → Set(date)
+  logRows.forEach(x => {
+    if (!x[0]) return;
+    const d = prep2DStr_(x[1]), k = String(x[2]);
+    const key = d + '|' + k;
+    if (!logByDateKit[key]) logByDateKit[key] = { byId: {}, ts: '', empName: '' };
+    logByDateKit[key].byId[String(x[3])] = {
+      produced: Number(x[5]) || 0, used: Number(x[6]) || 0, left: Number(x[7]) || 0,
+      handover: prep2Bool_(x[8]), ready: !(x[9] === false || x[9] === 'FALSE' || x[9] === 'false'),
+      note: String(x[10] || ''), itemName: String(x[4] || '')
+    };
+    const ts = String(x[13] || '');
+    if (ts > logByDateKit[key].ts) { logByDateKit[key].ts = ts; logByDateKit[key].empName = String(x[12] || ''); }
+    (loggedDays[k] = loggedDays[k] || {})[d] = true;
+  });
+
+  // ack วันนี้  schema Prep_Ack[0 id,1 date,2 kitchen,3 itemId,4 itemName,5 done,6 qty,...]
+  const ackRows = prep2Rows_(PREP2.ACK);
+  const ackByKit = {};
+  ackRows.forEach(x => {
+    if (!x[0] || prep2DStr_(x[1]) !== today) return;
+    const k = String(x[2]);
+    (ackByKit[k] = ackByKit[k] || {})[String(x[3])] = { done: prep2Bool_(x[5]), qty: (x[6] === '' ? '' : Number(x[6]) || 0) };
+  });
+
+  // plan  schema Prep_Plan[0 id,1 date,2 kitchen,3 itemId,4 target,...]
+  const planRows = prep2Rows_(PREP2.PLAN);
+  const planByDateKit = {};
+  planRows.forEach(x => {
+    if (!x[0]) return;
+    const key = prep2DStr_(x[1]) + '|' + String(x[2]);
+    (planByDateKit[key] = planByDateKit[key] || {})[String(x[3])] = Number(x[4]) || 0;
+  });
+
+  // shortages วันนี้  schema Prep_Shortages[0 id,1 date,2 kitchen,3 material,4 note,...]
+  const shRows = prep2Rows_(PREP2.SHORTAGES);
+  const shByKit = {}, shortagesAll = [];
+  shRows.forEach(x => {
+    if (!x[0] || prep2DStr_(x[1]) !== today) return;
+    const k = String(x[2]);
+    const parsed = prep2ParseBlk_(x[3]);              // block tag ฝังในชื่อวัตถุดิบ (material) — savePrepLog เดิมเก็บคอลัมน์นี้แน่นอน
+    const rec = { material: parsed.note || String(x[3]), blocks: parsed.blocks, note: String(x[4] || '') };
+    (shByKit[k] = shByKit[k] || []).push(rec);
+    shortagesAll.push({ kitchen: k, material: rec.material, blocks: rec.blocks, note: rec.note });
+  });
+
+  const kitchens = PREP2_KITCHENS.map(k => {
+    const list = itemsByKit[k] || [];
+    const todayLog = logByDateKit[today + '|' + k] || { byId: {}, ts: '', empName: '' };
+    const logToday = todayLog.byId;
+    const logged = Object.keys(logToday).length > 0;
+
+    let sumP = 0, sumU = 0, sumL = 0; const handoverNames = [], notReadyNames = [];
+    Object.keys(logToday).forEach(id => {
+      const o = logToday[id];
+      sumP += o.produced; sumU += o.used; sumL += o.left;
+      const nm = o.itemName || itemName[id] || id;
+      if (o.handover) handoverNames.push(nm);
+      if (o.ready === false) notReadyNames.push(nm);
+    });
+
+    // fromDate = วันปิดร้านล่าสุดที่ < วันนี้ (ที่ครัวนี้เคยลง log)
+    let fromDate = '';
+    Object.keys(loggedDays[k] || {}).forEach(d => { if (d < today && d > fromDate) fromDate = d; });
+    const yLogFull = logByDateKit[fromDate + '|' + k] || { byId: {}, ts: '', empName: '' };
+    const yLog = yLogFull.byId;
+    const yPlan = planByDateKit[fromDate + '|' + k] || {};
+    const ack = ackByKit[k] || {};
+
+    // toPrep = ของที่กะปิดร้านส่งต่อ (handover) หรือ เมื่อวานไม่พร้อมขาย
+    const shBlocks = {}; (shByKit[k] || []).forEach(s => { if (s.blocks) shBlocks[s.blocks] = true; });
+    const toPrep = [];
+    Object.keys(yLog).forEach(id => {
+      const o = yLog[id];
+      if (!(o.handover || o.ready === false)) return;
+      const nm = o.itemName || itemName[id] || id;
+      const a = ack[id] || {};
+      toPrep.push({
+        itemId: id, itemName: nm, unit: itemUnit[id] || '',
+        target: (yPlan[id] != null ? yPlan[id] : ''), left: o.left, ready: o.ready, note: o.note,
+        blocked: !!(shBlocks[id] || shBlocks[nm]),
+        done: !!a.done, qty: (a.qty == null ? '' : a.qty)
+      });
+    });
+    const toPrepCount = toPrep.length;
+    const ackCount = toPrep.filter(t => t.done).length;
+    const anyBlockedOpen = toPrep.some(t => t.blocked && !t.done);
+    const prepDone = toPrepCount > 0 && ackCount >= toPrepCount;
+
+    // ไฟสถานะ: แดง=ไม่ส่งกะเมื่อวาน(ที่มีของต้องส่ง) || มีของถูกบล็อกยังไม่จัดการ · เขียว=ไม่มีอะไรต้องเตรียม||เตรียมครบ · เหลือง=กำลังเตรียม
+    let readiness;
+    if ((!fromDate && list.length > 0) || anyBlockedOpen) readiness = 'risk';
+    else if (toPrepCount === 0 || prepDone) readiness = 'ready';
+    else readiness = 'follow';
+
+    // dots 7 วันหลังสุด (today-6..today) ครัวนี้ลง log ไหม
+    const dots = [];
+    for (let i = 6; i >= 0; i--) dots.push(!!(loggedDays[k] || {})[prep2AddDays_(today, -i)]);
+
+    return {
+      kitchen: k, listCount: list.length, list: list,
+      logged: logged, sendTime: todayLog.ts, sendBy: todayLog.empName,
+      sumProduced: sumP, sumUsed: sumU, sumLeft: sumL,
+      logToday: logToday, ackToday: ack, planToday: (planByDateKit[today + '|' + k] || {}),
+      handoverNames: handoverNames, notReadyNames: notReadyNames,
+      shortages: shByKit[k] || [],
+      fromDate: fromDate, handoverTime: yLogFull.ts, handoverBy: yLogFull.empName,
+      toPrep: toPrep, toPrepCount: toPrepCount, ackCount: ackCount, prepDone: prepDone,
+      readiness: readiness, dots: dots
+    };
+  });
+
+  return { ok: true, data: { date: today, kitchens: kitchens, shortagesAll: shortagesAll } };
 }
