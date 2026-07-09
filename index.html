@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260708-215423">
+<meta name="app-build" content="20260709-215219">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -1022,12 +1022,18 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
   <div class="page">
 
     <!-- Filters -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
       <select class="fi fi-sel" id="export-emp-select" style="flex:2;padding:10px 36px 10px 12px;font-size:13px;" onchange="loadAttendanceExport()">
         <option value="">กำลังโหลด...</option>
       </select>
       <select class="fi fi-sel" id="export-month-select" style="flex:1;padding:10px 36px 10px 12px;font-size:13px;" onchange="loadAttendanceExport()">
       </select>
+    </div>
+    <!-- Period presets (date filter — งวดจ่าย 15 วัน) -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;">
+      <button type="button" id="exp-per-all" onclick="setExportPeriod('all')" style="flex:1;font-size:12px;padding:8px 4px;border-radius:var(--rsm);border:1px solid var(--navy);background:var(--navy-lt);color:var(--navy);font-weight:700;cursor:pointer;">ทั้งเดือน</button>
+      <button type="button" id="exp-per-h1" onclick="setExportPeriod('h1')" style="flex:1;font-size:12px;padding:8px 4px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--surface);color:var(--ink2);font-weight:600;cursor:pointer;">งวด 1–15</button>
+      <button type="button" id="exp-per-h2" onclick="setExportPeriod('h2')" style="flex:1;font-size:12px;padding:8px 4px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--surface);color:var(--ink2);font-weight:600;cursor:pointer;">16–สิ้นเดือน</button>
     </div>
 
     <!-- Summary chips -->
@@ -1038,11 +1044,11 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
       </div>
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
         <div style="font-size:20px;font-weight:700;color:var(--green);" id="export-stat-hours">—</div>
-        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. จริง</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม.ปกติ</div>
       </div>
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
         <div style="font-size:20px;font-weight:700;color:var(--amber);" id="export-stat-ot">—</div>
-        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">ชม. OT รวม</div>
+        <div style="font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;">OT สรุป (ชม.)</div>
       </div>
       <div style="background:var(--surface);border-radius:var(--rsm);padding:10px 16px;box-shadow:var(--sh);text-align:center;flex:1;min-width:70px;">
         <div style="font-size:20px;font-weight:700;color:var(--navy);" id="export-stat-weighted">—</div>
@@ -2951,6 +2957,7 @@ async function renderOTScreen(){
 
 /* ── ATTENDANCE EXPORT (OWNER) ── */
 let _attendanceCache=[];
+let _exportPeriod='all';   // ตัวกรองงวด: all | h1 (1–15) | h2 (16–สิ้นเดือน)
 async function renderAttendanceExport(){
   // Populate employee dropdown from cached list
   const empSel=document.getElementById('export-emp-select');
@@ -2985,93 +2992,140 @@ async function loadAttendanceExport(){
   const empSel=document.getElementById('export-emp-select');
   const monthSel=document.getElementById('export-month-select');
   const container=document.getElementById('export-table-container');
-  const titleEl=document.getElementById('export-table-title');
   if(!empSel||!monthSel||!container)return;
   const empId=empSel.value;
-  const empName=empSel.options[empSel.selectedIndex]?.text||'';
   const [yr,mo]=(monthSel.value||'').split('-').map(Number);
-  if(!empId||!yr||!mo)return;
+  if(!empId||!yr||!mo){container.textContent='เลือกพนักงานและเดือนก่อน';return;}
   container.textContent='กำลังโหลด...';
-  if(titleEl)titleEl.textContent='บันทึกรายวัน — '+empName.split(' — ')[0];
-  document.getElementById('export-stat-days').textContent='—';
-  document.getElementById('export-stat-hours').textContent='—';
-  document.getElementById('export-stat-ot').textContent='—';
-  const _w0=document.getElementById('export-stat-weighted');if(_w0)_w0.textContent='—';
+  ['export-stat-days','export-stat-hours','export-stat-ot','export-stat-weighted'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
   try{
     const res=await callAPI({action:'getAttendance',empId,month:mo,year:yr});
-    const rows=res.ok&&res.data?res.data:[];
-    _attendanceCache=rows;
-    const DAYS_S=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
-    let workDays=0,totalHrs=0,tOt1=0,tOt15=0,tOt2=0;
-    const otCell=v=>v>0?'<span style="font-weight:700;color:var(--amber);">+'+v+'</span>':'<span style="color:var(--ink3);">—</span>';
-    const tbody=rows.map(r=>{
-      const d=new Date(r.date);
-      const dayLabel=!isNaN(d)?d.getDate()+' '+THAI_MONTHS_SHORT[d.getMonth()]+' ('+DAYS_S[d.getDay()]+')':r.date;
-      const isHoliday=r.specialDay&&r.specialDay!=='ปกติ';
-      const hasWork=r.clockIn&&r.clockOut;
-      if(hasWork)workDays++;
-      let hrs=0;
-      if(hasWork){const[ah,am]=r.clockIn.split(':').map(Number);const[bh,bm]=r.clockOut.split(':').map(Number);hrs=Math.max(0,((bh*60+bm)-(ah*60+am))/60-1);totalHrs+=hrs;}
-      const ot1=parseFloat(r.ot1)||0,ot15=parseFloat(r.ot15)||0,ot2=parseFloat(r.ot2)||0;
-      tOt1+=ot1;tOt15+=ot15;tOt2+=ot2;
-      const rowStyle=isHoliday?'background:var(--red-bg);':'';
-      const ciColor=r.isLate?'color:var(--amber);':'color:var(--green);';
-      return`<tr style="border-top:1px solid var(--border);${rowStyle}">
-        <td style="padding:9px 12px;font-weight:600;white-space:nowrap;">${dayLabel}</td>
-        <td style="padding:9px 6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;background:${isHoliday?'var(--red-bg);color:var(--red)':'var(--green-bg);color:var(--green)'};">${r.specialDay||'ปกติ'}</span></td>
-        <td style="padding:9px 6px;text-align:center;">${r.plannedStart||'—'}</td>
-        <td style="padding:9px 6px;text-align:center;">${r.plannedEnd||'—'}</td>
-        <td style="padding:9px 6px;text-align:center;${r.clockIn?ciColor:''}">${r.clockIn||'—'}</td>
-        <td style="padding:9px 6px;text-align:center;${r.clockOut?'color:var(--green);':''}">${r.clockOut||'—'}</td>
-        <td style="padding:9px 6px;text-align:center;font-weight:600;">${hasWork?hrs.toFixed(2):'—'}</td>
-        <td style="padding:9px 6px;text-align:center;">${otCell(ot1)}</td>
-        <td style="padding:9px 6px;text-align:center;">${otCell(ot15)}</td>
-        <td style="padding:9px 6px;text-align:center;">${otCell(ot2)}</td>
-      </tr>`;
-    }).join('');
-    const totalOT=tOt1+tOt15+tOt2;
-    const weighted=tOt1*1+tOt15*1.5+tOt2*2;
-    container.innerHTML=`<div class="card" style="padding:0;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:680px;">
-      <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
-        <th style="padding:9px 12px;text-align:left;font-weight:600;color:var(--ink2);">วันที่</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ประเภทวัน</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน เข้า</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">แผน ออก</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง เข้า</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--green);">จริง ออก</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--ink2);">ชม.จริง</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--amber);">OT×1</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--amber);">OT×1.5</th>
-        <th style="padding:9px 6px;text-align:center;font-weight:600;color:var(--amber);">OT×2</th>
-      </tr></thead>
-      <tbody>${tbody||'<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--ink3);">ไม่มีข้อมูลในเดือนนี้</td></tr>'}</tbody>
-      <tfoot><tr style="border-top:2px solid var(--navy);background:var(--navy-lt);">
-        <td colspan="6" style="padding:10px 12px;font-weight:700;color:var(--navy);">รวม</td>
-        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--navy);">${totalHrs.toFixed(1)}</td>
-        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt1.toFixed(2)}</td>
-        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt15.toFixed(2)}</td>
-        <td style="padding:10px 6px;text-align:center;font-weight:700;color:var(--amber);">${tOt2.toFixed(2)}</td>
-      </tr></tfoot>
-    </table></div>`;
-    // ── สรุปชั่วโมง & ค่าจ้าง Part-time (โชว์เฉพาะพนักงาน Part-time) ──
-    const _emp=_empListCache.find(x=>String(x.id)===String(empId));
-    if(_emp && _emp.type==='Part-time'){
-      let ptN=0,ptS=0; rows.forEach(r=>{ const wh=parseFloat(r.workedHours)||0; if((r.specialDay||'ปกติ')!=='ปกติ') ptS+=wh; else ptN+=wh; });
-      ptN=Math.round(ptN*100)/100; ptS=Math.round(ptS*100)/100;
-      const rN=parseFloat(_emp.ptRate)||0, rH=parseFloat(_emp.ptRateHol)||0, pay=Math.round(ptN*rN+ptS*rH);
-      const card='<div class="card" style="border-left:3px solid var(--navy);margin-bottom:12px;">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div class="card-title">Part-time · ชั่วโมง & ค่าจ้าง</div><span class="chip chip-blue" style="font-size:10px;">รายชั่วโมง</span></div>'
-        +'<div style="display:flex;gap:8px;margin-bottom:8px;"><div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--ink);">'+(ptN+ptS).toFixed(1)+'</div><div class="t-cap">ชม. รวม</div></div><div style="flex:1;text-align:center;background:var(--green-bg);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--green);">฿'+pay.toLocaleString()+'</div><div class="t-cap">ค่าจ้างประมาณ</div></div></div>'
-        +'<div style="font-size:12px;color:var(--ink2);line-height:1.7;">วันธรรมดา '+ptN.toFixed(1)+' ชม.'+(rN?(' × ฿'+rN+' = ฿'+Math.round(ptN*rN).toLocaleString()):'')+'<br>วันหยุด/พิเศษ '+ptS.toFixed(1)+' ชม.'+(rH?(' × ฿'+rH+' = ฿'+Math.round(ptS*rH).toLocaleString()):'')+'</div>'
-        +((rN>0||rH>0)?'':'<div class="alert alert-warn" style="font-size:11px;margin-top:8px;">ยังไม่ได้ตั้งอัตรา ฿/ชม. — ไปที่โปรไฟล์พนักงาน → แก้ไข</div>')
-        +'</div>';
-      container.innerHTML=card+container.innerHTML;
-    }
-    document.getElementById('export-stat-days').textContent=workDays;
-    document.getElementById('export-stat-hours').textContent=totalHrs.toFixed(1);
-    document.getElementById('export-stat-ot').textContent=totalOT.toFixed(2);
-    const wEl=document.getElementById('export-stat-weighted');if(wEl)wEl.textContent=weighted.toFixed(2);
+    _attendanceCache=(res.ok&&res.data)?res.data:[];
+    renderExportView();
   }catch(e){container.innerHTML='<div style="color:var(--ink3);padding:16px 0;">โหลดไม่สำเร็จ</div>';}
+}
+
+// ตัวกรอง "งวด" (date filter) — ทั้งเดือน / 1–15 / 16–สิ้นเดือน
+function _inExportPeriod(dateStr){
+  if(_exportPeriod==='all')return true;
+  const d=new Date(dateStr); if(isNaN(d))return true;
+  const day=d.getDate();
+  return _exportPeriod==='h1'?day<=15:day>=16;
+}
+function setExportPeriod(p){
+  _exportPeriod=p;
+  [['all','exp-per-all'],['h1','exp-per-h1'],['h2','exp-per-h2']].forEach(function(pair){
+    const b=document.getElementById(pair[1]); if(!b)return;
+    const on=(pair[0]===p);
+    b.style.border='1px solid '+(on?'var(--navy)':'var(--border)');
+    b.style.background=on?'var(--navy-lt)':'var(--surface)';
+    b.style.color=on?'var(--navy)':'var(--ink2)';
+    b.style.fontWeight=on?'700':'600';
+  });
+  renderExportView();
+}
+
+function _hh(v){v=parseFloat(v)||0;return String(Math.round(v*100)/100);}
+
+// กล่องสรุป OT ต่อ 1 คำขอ — ต่อเนื่อง(navy) / ไม่ต่อเนื่อง(amber) · สรุป = min(ที่ขอ, จริงในหน้าต่าง)
+function _exportOtBox(it,r){
+  const cont=it.continuous;
+  const bg=cont?'var(--navy-lt)':'var(--amber-bg)';
+  const bd=cont?'var(--navy)':'var(--amber)';
+  const fg=cont?'var(--navy)':'var(--amber)';
+  const kindTxt=it.kind==='before'?'ก่อนกะ':'หลังกะ';
+  const typeTxt=cont?'ต่อเนื่อง':'ไม่ต่อเนื่อง';
+  const rateTxt='×'+it.rate;
+  const req=(it.reqStart||'—')+'–'+(it.reqEnd||'—')+' · '+_hh(it.reqHours);
+  const hasActual=(it.actualHours!==null&&it.actualHours!==undefined);
+  const actual=hasActual?(_hh(it.actualHours)+' ชม'):'<span style="color:var(--ink3);">รอ clock out</span>';
+  const rowS='display:flex;justify-content:space-between;font-size:12px;padding:1px 0;';
+  let box='<div style="background:'+bg+';border:1px solid '+bd+';border-radius:8px;padding:9px 11px;margin-top:9px;">';
+  box+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><span style="font-size:10.5px;font-weight:700;color:'+fg+';">OT · '+typeTxt+' ('+kindTxt+')</span><span style="font-size:10.5px;font-weight:700;color:'+fg+';">'+rateTxt+'</span></div>';
+  box+='<div style="'+rowS+'"><span style="color:var(--ink3);">ขอไว้</span><span style="font-family:monospace;color:var(--ink2);">'+req+'</span></div>';
+  box+='<div style="'+rowS+'"><span style="color:var(--ink3);">จริงในหน้าต่าง</span><span style="font-family:monospace;color:var(--ink2);">'+actual+'</span></div>';
+  box+='<div style="'+rowS+'border-top:1px solid var(--border);margin-top:3px;padding-top:5px;"><span style="font-weight:700;color:'+fg+';">สรุป min('+_hh(it.reqHours)+', '+(hasActual?_hh(it.actualHours):'—')+')</span><span style="font-weight:700;color:var(--ink);">'+_hh(it.summaryHours)+' ชม '+rateTxt+'</span></div>';
+  if(it.kind==='before'&&r.isLate&&r.lateKind==='ot'){
+    box+='<div style="font-size:10.5px;color:var(--red);margin-top:5px;">ⓘ มาสายเกิน 3 นาที → หัก OT ตาม min + ติดสาย</div>';
+  } else if(!cont&&it.kind==='after'){
+    box+='<div style="font-size:10.5px;color:var(--ink3);margin-top:5px;">ⓘ มีช่วงว่าง '+(it.gapMin||0)+' นาที (ไม่นับ) · OT เย็นถือว่ามาตรงเวลา</div>';
+  }
+  box+='</div>';
+  return box;
+}
+
+// การ์ดรายวัน (matches concept mockup)
+function _exportDayCard(r,DAYS_S){
+  const d=new Date(r.date);
+  const lbl=!isNaN(d)?(DAYS_S[d.getDay()]+' '+d.getDate()+' '+THAI_MONTHS_SHORT[d.getMonth()]):r.date;
+  if(r.isLeave){
+    return '<div class="card" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:700;color:var(--ink);">'+lbl+'</span><span class="chip chip-navy" style="font-size:11px;">'+(r.specialDay||'ลา')+'</span></div>';
+  }
+  const hasOut=!!r.clockOut;
+  const normalHrs=parseFloat(r.workedHours)||0;
+  const items=r.otItems||[];
+  let otS=0; items.forEach(function(it){otS+=parseFloat(it.summaryHours)||0;});
+  const dayTotal=normalHrs+otS;
+  const isSpecialDay=r.specialDay&&r.specialDay!=='ปกติ';
+  let statusChip;
+  if(r.isLate){
+    statusChip='<span class="chip chip-red" style="font-size:11px;">⚠ '+(r.lateKind==='ot'?'สาย OT':'สาย')+' '+(r.lateMin||0)+' นาที</span>';
+  } else if(hasOut){
+    statusChip='<span class="chip chip-green" style="font-size:11px;">ตรงเวลา</span>';
+  } else {
+    statusChip='<span class="chip chip-amber" style="font-size:11px;">ยังไม่ clock out</span>';
+  }
+  let h='<div class="card" style="margin-bottom:10px;'+(isSpecialDay?'border-left:3px solid var(--red);':'')+'">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-weight:700;color:var(--ink);">'+lbl+(isSpecialDay?' · '+r.specialDay:'')+'</span>'+statusChip+'</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink2);"><span>กะ '+(r.plannedStart||'—')+'–'+(r.plannedEnd||'—')+'</span><span style="font-weight:700;color:var(--ink3);">รวม '+_hh(dayTotal)+' ชม</span></div>';
+  const ciCol=r.isLate?'var(--red)':'var(--green)';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:13px;"><span style="font-family:monospace;">เข้า <b style="color:'+ciCol+';">'+(r.clockIn||'—')+'</b> · ออก <b style="color:var(--green);">'+(r.clockOut||'—')+'</b></span><span style="color:var(--ink3);">ปกติ '+_hh(normalHrs)+'</span></div>';
+  items.forEach(function(it){h+=_exportOtBox(it,r);});
+  h+='</div>';
+  return h;
+}
+
+function renderExportView(){
+  const empSel=document.getElementById('export-emp-select');
+  const container=document.getElementById('export-table-container');
+  const titleEl=document.getElementById('export-table-title');
+  if(!empSel||!container)return;
+  const empId=empSel.value;
+  const empName=(empSel.options[empSel.selectedIndex]?.text||'').split(' — ')[0];
+  const DAYS_S=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  const ordered=(_attendanceCache||[]).filter(function(r){return _inExportPeriod(r.date);})
+    .sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+  if(titleEl)titleEl.textContent='บันทึกรายวัน — '+empName+(_exportPeriod==='h1'?' · งวด 1–15':_exportPeriod==='h2'?' · 16–สิ้นเดือน':'');
+  let workDays=0,normalHrs=0,otSum=0,weighted=0;
+  const cards=ordered.map(function(r){
+    if(!r.isLeave){
+      if(r.clockIn&&r.clockOut)workDays++;
+      normalHrs+=parseFloat(r.workedHours)||0;
+      otSum+=parseFloat(r.otHours)||0;
+      weighted+=parseFloat(r.otWeighted)||0;
+    }
+    return _exportDayCard(r,DAYS_S);
+  }).join('');
+  container.innerHTML=cards||'<div class="card" style="text-align:center;color:var(--ink3);padding:20px;">ไม่มีข้อมูลในช่วงนี้</div>';
+  // ── สรุปชั่วโมง & ค่าจ้าง Part-time (โชว์เฉพาะพนักงาน Part-time) ──
+  const _emp=_empListCache.find(function(x){return String(x.id)===String(empId);});
+  if(_emp&&_emp.type==='Part-time'){
+    let ptN=0,ptS=0; ordered.forEach(function(r){ if(r.isLeave)return; const wh=parseFloat(r.workedHours)||0; if((r.specialDay||'ปกติ')!=='ปกติ')ptS+=wh; else ptN+=wh; });
+    ptN=Math.round(ptN*100)/100; ptS=Math.round(ptS*100)/100;
+    const rN=parseFloat(_emp.ptRate)||0, rH=parseFloat(_emp.ptRateHol)||0, pay=Math.round(ptN*rN+ptS*rH);
+    const card='<div class="card" style="border-left:3px solid var(--navy);margin-bottom:12px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div class="card-title">Part-time · ชั่วโมง & ค่าจ้าง</div><span class="chip chip-blue" style="font-size:10px;">รายชั่วโมง</span></div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:8px;"><div style="flex:1;text-align:center;background:var(--surface2);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--ink);">'+(ptN+ptS).toFixed(1)+'</div><div class="t-cap">ชม. รวม</div></div><div style="flex:1;text-align:center;background:var(--green-bg);border-radius:8px;padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--green);">฿'+pay.toLocaleString()+'</div><div class="t-cap">ค่าจ้างประมาณ</div></div></div>'
+      +'<div style="font-size:12px;color:var(--ink2);line-height:1.7;">วันธรรมดา '+ptN.toFixed(1)+' ชม.'+(rN?(' × ฿'+rN+' = ฿'+Math.round(ptN*rN).toLocaleString()):'')+'<br>วันหยุด/พิเศษ '+ptS.toFixed(1)+' ชม.'+(rH?(' × ฿'+rH+' = ฿'+Math.round(ptS*rH).toLocaleString()):'')+'</div>'
+      +((rN>0||rH>0)?'':'<div class="alert alert-warn" style="font-size:11px;margin-top:8px;">ยังไม่ได้ตั้งอัตรา ฿/ชม. — ไปที่โปรไฟล์พนักงาน → แก้ไข</div>')
+      +'</div>';
+    container.innerHTML=card+container.innerHTML;
+  }
+  const setStat=function(id,v){const e=document.getElementById(id);if(e)e.textContent=v;};
+  setStat('export-stat-days',workDays);
+  setStat('export-stat-hours',(Math.round(normalHrs*10)/10).toFixed(1));
+  setStat('export-stat-ot',(Math.round(otSum*100)/100).toFixed(2));
+  setStat('export-stat-weighted',(Math.round(weighted*100)/100).toFixed(2));
 }
 
 /* ── EXCEL EXPORT ── */
