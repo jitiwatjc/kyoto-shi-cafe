@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260710-102158">
+<meta name="app-build" content="20260710-143343">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -5269,7 +5269,15 @@ function _invFreqShort(c){ return c==='fresh'?'ทุกวัน':(c==='mid'?'2
 function _invReasonChip(r){ const m={low:['chip-red','ใกล้หมด'],soon:['chip-amber','จะหมดเร็วๆ นี้'],'new':['chip-blue','ยังไม่นับ'],overdue:['chip-amber','เกินรอบ'],due:['chip-gray','ถึงรอบ']}; const x=m[r]||m.due; return '<span class="chip '+x[0]+'" style="font-size:10px;">'+x[1]+'</span>'; }
 function _invEss(it){ const v=it&&it.weekend_essential; return v===true||v===1||v==='1'||v==='Y'||v==='y'||v==='true'; }
 let _invCfgCache=null;
-async function _invLoadCfg(){ if(_invCfgCache)return _invCfgCache; try{ const r=await invGet('inv_config',{},{silent:true}); _invCfgCache=(r&&r.config)||{}; }catch(e){ _invCfgCache={}; } return _invCfgCache; }
+const INV_CFG_SNAP='kyoto_inv_cfg_snapshot_v1';
+async function _invLoadCfg(){
+  if(_invCfgCache)return _invCfgCache;
+  // SWR: ใช้ config รอบล่าสุดทันที (ไม่ block หน้าแรก) + refresh เงียบ — config เปลี่ยนน้อยมาก
+  if(!INV_MOCK){ try{ const s=JSON.parse(localStorage.getItem(INV_CFG_SNAP)||'null');
+    if(s){ _invCfgCache=s; invGet('inv_config',{},{silent:true}).then(r=>{ if(r&&r.config){ _invCfgCache=r.config; try{localStorage.setItem(INV_CFG_SNAP,JSON.stringify(r.config));}catch(e){} } }).catch(()=>{}); return _invCfgCache; } }catch(e){} }
+  try{ const r=await invGet('inv_config',{},{silent:true}); _invCfgCache=(r&&r.config)||{}; if(!INV_MOCK){ try{ localStorage.setItem(INV_CFG_SNAP,JSON.stringify(_invCfgCache)); }catch(e){} } }catch(e){ _invCfgCache={}; }
+  return _invCfgCache;
+}
 function _invWeekendDays(){ const s=(_invCfgCache&&_invCfgCache.weekend_days); if(s===undefined||s===null)return [0,6]; if(String(s).trim()==='')return []; return String(s).split(',').map(x=>parseInt(x,10)).filter(x=>!isNaN(x)); }
 function _invIsWeekendToday(){ return _invWeekendDays().indexOf(new Date().getDay())>=0; }
 // บนวันหยุด: เหลือเฉพาะของจำเป็น (ติดธง) + ของใกล้หมด — เลื่อนที่เหลือไปวันธรรมดา
@@ -5281,6 +5289,7 @@ async function renderHomeStock(){
   try{
     await _invLoadCfg();
     const allItems=await _invFetchWorklist(false,true); let wl=allItems.slice(); const weekend=_invIsWeekendToday(); if(weekend) wl=_invApplyWeekend(wl);
+    if(_invSnapStale){ _invFreshHook=renderHomeStock; _invRefreshSilent(); }
     if(!wl.length){ el.innerHTML=''; return; }
     const lowN=allItems.filter(_invIsLow).length;
     let h='<div class="card" style="padding:13px 15px;border:1.5px solid var(--amber);cursor:pointer;" onclick="go(\'s-stock-check\')">';
@@ -5295,6 +5304,7 @@ async function renderOwnerStock(){
   const fb='<div class="lrow" style="cursor:pointer;background:var(--surface);border-radius:var(--rsm);box-shadow:var(--sh);padding:14px 16px;" onclick="go(\'s-stock-dash\')"><div style="width:40px;height:40px;border-radius:var(--rsm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div><div class="lcol"><div class="ltitle">สต๊อกวัตถุดิบ</div><div class="lsub">รายการ · ใกล้หมด · มูลค่า</div></div><span style="color:var(--ink3);">›</span></div>';
   try{
     const items=await _invFetchItems(false,true); if(!items.length){ el.innerHTML=fb; return; }
+    if(_invSnapStale){ _invFreshHook=renderOwnerStock; _invRefreshSilent(); }
     const low=items.filter(_invIsLow).length; const val=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
     el.innerHTML='<div class="card" style="cursor:pointer;" onclick="go(\'s-stock-dash\')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:14px;font-weight:700;">📦 สต๊อกวัตถุดิบ</div><span class="t-cap" style="color:var(--info);">ดูภาพรวม ›</span></div><div style="display:flex;gap:8px;"><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;">'+items.length+'</div><div class="t-cap">รายการ</div></div><div style="flex:1;background:var(--red-bg);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--red);">'+low+'</div><div class="t-cap">ใกล้หมด</div></div><div style="flex:1;background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:700;">฿'+rnd_(val)+'</div><div class="t-cap">มูลค่า</div></div></div></div>';
   }catch(e){ el.innerHTML=fb; }
@@ -5311,9 +5321,10 @@ async function renderStockList(){
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     let items=await _invFetchItems();
+    if(_invSnapStale){ _invFreshHook=renderStockList; _invRefreshSilent(); }
     if(_invStationFilter===null) _invStationFilter=_invDefaultStation();
     const stations=[...new Set(items.map(i=>i.category).filter(Boolean))];
-    let h='';
+    let h=_invStaleNote();
     if(stations.length>1){ h+='<div class="scroll-x" style="margin-bottom:8px;">'+[['all','ทุกครัว']].concat(stations.map(s=>[s,s])).map(s=>'<span onclick="stockSetStation(\''+esc_(s[0])+'\')" class="chip '+(_invStationFilter===s[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+esc_(s[1])+'</span>').join('')+'</div>'; }
     const filters=[['all','ทั้งหมด'],['low','ใกล้หมด'],['soon','จะหมดเร็ว'],['never','ยังไม่นับ'],['fresh','สด'],['mid','กลาง'],['dry','แห้ง']];
     h+='<div class="scroll-x" style="margin-bottom:12px;">'+filters.map(f=>'<span onclick="stockSetFilter(\''+f[0]+'\')" class="chip '+(_invFilter===f[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+f[1]+'</span>').join('')+'</div>';
@@ -5380,7 +5391,16 @@ function _invItemsFrom(r){
   }
   return [];
 }
-async function _invFetchItems(force,silent){ if(!force && _invItemsCache) return _invItemsCache; const r=await invGet('inv_items',{status:'active'},{silent:!!silent}); _invItemsCache=_invItemsFrom(r); return _invItemsCache; }
+async function _invFetchItems(force,silent){
+  if(!force && _invItemsCache) return _invItemsCache;
+  // ① SWR: เซสชันใหม่ + มี snapshot → คืนทันที (0ms) แล้ว refresh เงียบ · ยกเว้นเพิ่ง invalidate เต็ม (_invForceFresh) ต้องดึงสด
+  if(!force && !_invForceFresh){
+    const snap=_invSnapLoad();
+    if(snap){ _invItemsCache=snap.items; _invSnapStale=snap.t; _invRefreshSilent(); return _invItemsCache; }
+  }
+  const r=await invGet('inv_items',{status:'active'},{silent:!!silent});
+  _invItemsCache=_invItemsFrom(r); _invForceFresh=false; _invSnapStale=0; _invSnapSaveNow(); return _invItemsCache;
+}
 // worklist คำนวณฝั่งแอปจาก items (เร็ว + logic dynamic ปรับได้ทันที ไม่ต้องรอ backend)
 function _invBuildWorklist(items){
   const out=[];
@@ -5399,7 +5419,28 @@ function _invBuildWorklist(items){
   return out;
 }
 async function _invFetchWorklist(force,silent){ if(!force && _invWlCache) return _invWlCache; await _invLoadCfg(); const items=await _invFetchItems(force,silent); _invWlCache=_invBuildWorklist(items); return _invWlCache; }
-function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; invReqCacheClear(); }
+function _invInvalidate(){ _invItemsCache=null; _invWlCache=null; _invForceFresh=true; invReqCacheClear(); }
+/* ── SWR snapshot (localStorage): เปิดแอปเห็นข้อมูลรอบล่าสุดทันที แล้วดึงของสดตามหลังเงียบ ๆ ──
+   _invForceFresh = write ที่ไม่รู้ผลลัพธ์ (เพิ่ม/แก้/archive/สั่งของ) เพิ่ง invalidate → ครั้งถัดไปห้ามใช้ snapshot ต้องดึงสด */
+const INV_SNAP_KEY='kyoto_inv_snapshot_v1', INV_SNAP_MAX_AGE=48*3600000; // snapshot แก่เกิน 2 วัน = ไม่ใช้ (เสี่ยงชี้นำผิด)
+let _invSnapStale=0, _invRefreshing=false, _invFreshHook=null, _invForceFresh=false;
+function _invSnapSaveNow(){ if(INV_MOCK||!_invItemsCache||!_invItemsCache.length) return; try{ localStorage.setItem(INV_SNAP_KEY,JSON.stringify({t:Date.now(),items:_invItemsCache})); }catch(e){} }
+function _invSnapLoad(){ if(INV_MOCK) return null; try{ const s=JSON.parse(localStorage.getItem(INV_SNAP_KEY)||'null'); if(!s||!s.items||!s.items.length) return null; if(Date.now()-Number(s.t||0)>INV_SNAP_MAX_AGE) return null; return s; }catch(e){ return null; } }
+// ดึงของสดเบื้องหลัง (ไม่มี overlay) → อัปเดต cache+snapshot แล้ว re-render หน้าที่ค้าง snapshot อยู่
+// ผลพลอยได้: GET นี้ทำให้ backend คำนวณ+เก็บ cache (TTL 6 ชม.) = อุ่น cache ให้เครื่องอื่นด้วย
+async function _invRefreshSilent(){
+  if(_invRefreshing||INV_MOCK) return; _invRefreshing=true;
+  try{
+    const r=await invGet('inv_items',{status:'active'},{silent:true});
+    const items=_invItemsFrom(r);
+    if(items.length){ _invItemsCache=items; _invWlCache=null; _invSnapStale=0; _invSnapSaveNow();
+      const f=_invFreshHook; _invFreshHook=null; if(f) f(); }
+  }catch(e){}
+  _invRefreshing=false;
+}
+function _invStaleNote(){ if(!_invSnapStale) return ''; return '<div style="background:var(--info-bg);color:var(--info);border-radius:8px;padding:7px 11px;margin-bottom:8px;font-size:12px;">🔄 ข้อมูลเมื่อ '+_invShortDate(new Date(_invSnapStale).toISOString())+' · กำลังอัปเดต…</div>'; }
+// ② write ที่รู้ผลลัพธ์แล้ว (backend คืน item ที่อัปเดต) → patch cache แทนล้างทั้งก้อน ไม่ต้องรอโหลดใหม่
+function _invSoftWrite(item){ if(item) _invUpdateCacheItem(item); _invWlCache=null; invReqCacheClear(); _invSnapSaveNow(); }
 let _invChkStation=null;
 function stockCheckSetStation(s){ _invChkStation=s; renderStockCheck(true); }
 async function renderStockCheck(keepPending){
@@ -5410,6 +5451,7 @@ async function renderStockCheck(keepPending){
   try{
     await _invLoadCfg();
     let wl=(await _invFetchWorklist()).slice(); const weekend=_invIsWeekendToday();
+    if(_invSnapStale){ _invFreshHook=()=>renderStockCheck(true); _invRefreshSilent(); }
     if(weekend) wl=_invApplyWeekend(wl);
     // แยกครัว (ข้อเรียกร้อง staff: ไม่ต้องเลื่อนหาของครัวตัวเอง)
     if(_invChkStation===null) _invChkStation=_invDefaultStation();
@@ -5420,7 +5462,7 @@ async function renderStockCheck(keepPending){
     if(fil.length>INV_CHECK_CAP){ fil=fil.slice(0,INV_CHECK_CAP); capped=true; }
     _invChkTotal=fil.length;
     fil.forEach(it=>{ _invWlMap[it.item_id]=it; });
-    let h='<div id="inv-savebar" style="display:none;position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:10px;box-shadow:var(--sh);"><span style="font-size:13px;font-weight:600;">นับแล้ว <span id="inv-pending-n">0</span> รายการ · ยังไม่บันทึก</span><button id="inv-savebtn" class="btn btn-sm" style="background:#fff;color:var(--navy);" onclick="invSaveAllCounts()">บันทึกทั้งหมด</button></div>';
+    let h=_invStaleNote()+'<div id="inv-savebar" style="display:none;position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:10px;box-shadow:var(--sh);"><span style="font-size:13px;font-weight:600;">นับแล้ว <span id="inv-pending-n">0</span> รายการ · ยังไม่บันทึก</span><button id="inv-savebtn" class="btn btn-sm" style="background:#fff;color:var(--navy);" onclick="invSaveAllCounts()">บันทึกทั้งหมด</button></div>';
     if(stations.length>1){ h+='<div class="scroll-x" style="margin-bottom:8px;">'+[['all','ทุกครัว']].concat(stations.map(s=>[s,s])).map(s=>'<span onclick="stockCheckSetStation(\''+esc_(s[0])+'\')" class="chip '+(_invChkStation===s[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:6px 12px;white-space:nowrap;">'+esc_(s[1])+'</span>').join('')+'</div>'; }
     if(weekend) h+='<div style="background:var(--info-bg);border-radius:var(--rsm);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--info);display:flex;align-items:center;gap:8px;"><span>🗓️</span><div><b>โหมดวันหยุด</b> — แสดงเฉพาะของจำเป็น + ใกล้หมด · ของแห้ง/ทั่วไปเลื่อนไปวันธรรมดา</div></div>';
     if(!totalDue){ el.innerHTML=h+'<div style="text-align:center;padding:36px 0;"><div style="font-size:42px;">✅</div><div style="font-weight:700;margin-top:8px;">ไม่มีรายการต้องตรวจ'+(weekend?'ตอนนี้':'วันนี้')+(_invChkStation!=='all'?' ('+esc_(_invChkStation)+')':'')+'</div><div class="t-cap" style="margin-top:4px;">'+(weekend?'โหมดวันหยุด — เช็คเฉพาะที่จำเป็น':'นับครบทุกอย่างแล้ว')+'</div></div>'; _invUpdateSaveBar(); return; }
@@ -5470,7 +5512,15 @@ async function invSaveAllCounts(){
   const btn=document.getElementById('inv-savebtn'); if(btn){ btn.disabled=true; btn.textContent='กำลังบันทึก...'; }
   try{
     const r=await invSubmit('inv_count_batch',{counts});
-    if(r&&r.ok){ toast('บันทึก '+ids.length+' รายการ ✓'); _invPending={}; _invInvalidate(); renderStockCheck(); }
+    if(r&&r.ok){
+      toast('บันทึก '+ids.length+' รายการ ✓');
+      // ② รู้ค่าที่นับอยู่แล้ว → patch cache เอง แสดงผลทันที ไม่ดึง 332 รายการใหม่ (usage ที่ backend เรียนรู้ตามมาเงียบ ๆ)
+      const nowIso=new Date().toISOString();
+      ids.forEach(id=>{ const p=_invPending[id]; const it=(_invItemsCache||[]).find(x=>x.item_id===id); if(p&&it){ it.prev_count_value=it.last_count_value; it.prev_count_at=it.last_count_at; it.last_count_value=p.value; it.last_count_at=nowIso; it.on_hand=p.value; it.received_since=0; } });
+      _invPending={}; _invWlCache=null; invReqCacheClear(); _invSnapSaveNow();
+      renderStockCheck();
+      _invRefreshSilent();
+    }
     else { toast('บันทึกไม่สำเร็จ — ลองใหม่'); if(btn){ btn.disabled=false; btn.textContent='บันทึกทั้งหมด'; } }
   }catch(e){ toast('เชื่อมต่อไม่ได้ — ลองใหม่'); if(btn){ btn.disabled=false; btn.textContent='บันทึกทั้งหมด'; } }
 }
@@ -5549,15 +5599,15 @@ async function invQuickCountSave(id){ const v=raw_('inv-quick-val'); if(v===''||
   // เตือนถ้ารายการนี้นับไปแล้ววันนี้ — ค่าใหม่จะทับค่าเดิม (last write wins)
   const it0=(_invItemsCache||[]).find(x=>x.item_id===id)||(_invWlMap&&_invWlMap[id])||{};
   if(it0.last_count_at && _invDaysSince(it0.last_count_at)===0 && !confirm('รายการนี้นับไปแล้ววันนี้ (ค่าเดิม '+rnd_(it0.last_count_value)+' '+(it0.unit||'')+')\nยืนยันบันทึกทับด้วยค่าใหม่?')) return;
-  const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('นับแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
+  const r=await invSubmit('inv_count',{item_id:id,value:Number(v),context:'manual',local_id:'q'+Date.now()+id}); if(r.ok){ _invSoftWrite(r.item); toast('นับแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
 function invQuickAdjust(id){ const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--amber);"><label class="t-label">ปรับยอด (+เพิ่ม / −ลด)</label><div style="display:flex;gap:8px;margin-bottom:8px;"><input class="fi" type="number" id="inv-adj-val" placeholder="+/- จำนวน" style="flex:1;"><input class="fi" id="inv-adj-reason" placeholder="เหตุผล" style="flex:1.4;"></div><button class="btn btn-navy btn-sm" style="width:100%;" onclick="invAdjustSave(\''+id+'\')">บันทึกการปรับ</button></div>'; const f=document.getElementById('inv-adj-val'); if(f)f.focus(); }
-async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ _invInvalidate(); toast('ปรับยอดแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
+async function invAdjustSave(id){ const v=raw_('inv-adj-val'); if(v===''||isNaN(Number(v))){ toast('ใส่จำนวนก่อน'); return; } const r=await invSubmit('inv_adjust',{item_id:id,qty_delta:Number(v),reason:raw_('inv-adj-reason').trim(),local_id:'a'+Date.now()+id}); if(r.ok){ _invSoftWrite(r.item); toast('ปรับยอดแล้ว ✓'); _invOpenDetail(id, r.item); } else toast('ผิดพลาด'); }
 /* ── รับของเข้า (แบบง่าย): บวกสต๊อก + ให้ระบบเรียนรู้อัตราใช้จาก นับ→รับ→นับ ── */
 function invQuickGoodsIn(id){ const it=_invWlMap[id]||((_invItemsCache||[]).find(x=>x.item_id===id))||{}; const el=document.getElementById('inv-quick'); el.innerHTML='<div class="card" style="border:1.5px solid var(--green);"><label class="t-label">📥 รับของเข้า — ได้มากี่ '+esc_(it.unit||'หน่วย')+'?</label><div style="display:flex;gap:8px;"><input class="fi" type="number" id="inv-gi-val" placeholder="จำนวนที่รับ" style="flex:1;"><button class="btn btn-sm" style="background:var(--green);color:#fff;" onclick="invGoodsInSave(\''+id+'\')">บันทึกรับของ</button></div><div class="fhint">ระบบจะบวกยอด + ใช้เรียนรู้อัตราการใช้ เพื่อคำนวณ min อัตโนมัติ</div></div>'; const f=document.getElementById('inv-gi-val'); if(f)f.focus(); }
 async function invGoodsInSave(id){
   const v=raw_('inv-gi-val'); if(v===''||isNaN(Number(v))||Number(v)<=0){ toast('ใส่จำนวนที่รับเข้าก่อน'); return; }
   const r=await invSubmit('inv_goodsin',{item_id:id,qty:Number(v),local_id:'g'+Date.now()+id});
-  if(r&&r.ok){ _invInvalidate(); toast('รับของแล้ว ✓ +'+rnd_(Number(v))); _invOpenDetail(id, r.item); }
+  if(r&&r.ok){ _invSoftWrite(r.item); toast('รับของแล้ว ✓ +'+rnd_(Number(v))); _invOpenDetail(id, r.item); }
   else if(String((r&&r.error)||'').indexOf('unknown action')>=0){ toast('⚠ ฟีเจอร์รับของต้องอัปเดต backend ก่อน — แจ้งเจ้าของ'); }
   else toast('ผิดพลาด: '+((r&&r.error)||''));
 }
@@ -5575,7 +5625,7 @@ async function invWasteSave(id){
   const v=raw_('inv-w-val'); if(v===''||isNaN(Number(v))||Number(v)<=0){ toast('ใส่จำนวนของเสียก่อน'); return; }
   if(!_invWasteReason){ toast('เลือกสาเหตุด้วยนะ'); return; }
   const r=await invSubmit('inv_waste',{item_id:id,qty:Number(v),reason:_invWasteReason,local_id:'w'+Date.now()+id});
-  if(r&&r.ok){ _invInvalidate(); toast('บันทึกของเสียแล้ว ✓ −'+rnd_(Number(v))+(r.cost?(' (฿'+rnd_(r.cost)+')'):'')); _invOpenDetail(id, r.item); }
+  if(r&&r.ok){ _invSoftWrite(r.item); toast('บันทึกของเสียแล้ว ✓ −'+rnd_(Number(v))+(r.cost?(' (฿'+rnd_(r.cost)+')'):'')); _invOpenDetail(id, r.item); }
   else if(String((r&&r.error)||'').indexOf('unknown action')>=0){ toast('⚠ ฟีเจอร์ของเสียต้องอัปเดต backend ก่อน — แจ้งเจ้าของ'); }
   else toast('ผิดพลาด: '+((r&&r.error)||''));
 }
@@ -5592,7 +5642,7 @@ async function renderStockConfig(){
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
-async function invCfgSave(key){ const v=raw_('cfg-'+key); const r=await invSubmit('inv_config_save',{key,value:v}); if(r&&r.ok){ _invCfgCache=null; toast('บันทึกแล้ว ✓'); } else toast('ผิดพลาด: '+((r&&r.error)||'')); }
+async function invCfgSave(key){ const v=raw_('cfg-'+key); const r=await invSubmit('inv_config_save',{key,value:v}); if(r&&r.ok){ _invCfgCache=null; try{localStorage.removeItem(INV_CFG_SNAP);}catch(e){} toast('บันทึกแล้ว ✓'); } else toast('ผิดพลาด: '+((r&&r.error)||'')); }
 
 /* ── AUDIT (owner) ── */
 async function renderStockAudit(){
@@ -5619,6 +5669,7 @@ async function renderStockDash(){
   el.innerHTML='<div class="t-cap" style="text-align:center;padding:20px 0;">กำลังโหลด...</div>';
   try{
     const items=await _invFetchItems(); const wl=await _invFetchWorklist();
+    if(_invSnapStale){ _invFreshHook=renderStockDash; _invRefreshSilent(); }
     let wsum=null; try{ wsum=await invGet('inv_waste_summary',{days:7},{silent:true}); }catch(e){}
     let ords=null; try{ ords=await invGet('inv_orders',{status:'open'},{silent:true}); }catch(e){}
     const isToday=iso=>{ if(!iso)return false; const d=new Date(iso),n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate(); };
