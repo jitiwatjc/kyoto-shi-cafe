@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260710-082252">
+<meta name="app-build" content="20260710-102158">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -5610,6 +5610,9 @@ async function renderStockAudit(){
 
 /* ── OWNER DASHBOARD (ภาพรวม + วันนี้ตรวจอะไร) — คำนวณจาก inv_items, ไม่ต้องแตะ backend ── */
 function stockJumpList(f){ _invFilter=f; _invStationFilter='all'; go('s-stock'); }
+let _invDashDynAll=false; // ขยาย/ย่อรายการรอบตรวจไดนามิกใน dashboard
+let _invDashTab='act';    // แท็บ dashboard: act ต้องจัดการ / chk การตรวจ / learn ระบบเรียนรู้ / money ของเสีย·มูลค่า
+function stockDashTab(t){ _invDashTab=t; renderStockDash(); }
 function _invDashRow(it,rightTxt){ return '<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="stockOpenDetail(\''+it.item_id+'\')"><span style="width:8px;height:8px;border-radius:50%;background:'+_invClassColor(it)+';flex-shrink:0;"></span><span style="flex:1;font-size:13px;">'+esc_(it.name)+'</span><span class="t-cap">'+rightTxt+'</span></div>'; }
 async function renderStockDash(){
   const el=document.getElementById('stock-dash-body'); if(!el)return;
@@ -5628,11 +5631,42 @@ async function renderStockDash(){
     const low=lowItems.length;
     const value=Math.round(items.reduce((s,i)=>s+Number(i.on_hand||0)*Number(i.cost_per_unit||0),0));
     const basePct=total?Math.round(everCounted.length/total*100):0;
+    // "ต้องตรวจวันนี้" = ตรวจแล้ววันนี้ + ที่ยังค้างในเวิร์กลิสต์ (ไดนามิกรายวัน + โหมดวันหยุด) — ไม่ใช่ทั้งคลัง
+    const weekend=_invIsWeekendToday();
+    const wlToday=weekend?_invApplyWeekend(wl):wl;
+    const dueToday=todayCounted.length+wlToday.length;
+    const openPos=(ords&&ords.orders?ords.orders:[]).filter(po=>(po.lines||[]).some(l=>l.status==='open'));
+    // รอบตรวจไดนามิก (ชิป hero + แท็บระบบเรียนรู้)
+    const dynEf=items.map(it=>({it,ef:_invEffFreq(it)}));
+    const byCover=(a,b)=>(a.ef.cover==null?9e9:a.ef.cover)-(b.ef.cover==null?9e9:b.ef.cover);
+    const dynUp=dynEf.filter(x=>x.ef.src==='up').sort(byCover);
+    const dynDown=dynEf.filter(x=>x.ef.src==='down').sort(byCover);
+    const dynSeed=dynEf.filter(x=>x.ef.src==='seed').length;
+    const learned=items.filter(i=>_invUsage(i)!=null).length;
+    // แยกครัว: ตรวจแล้ว/ต้องตรวจ "ของวันนี้" (ตามที่ owner ชี้ — status รายวัน ไม่ใช่ต่อทั้งคลัง)
     const stations={};
-    items.forEach(i=>{ const k=i.category||'อื่นๆ'; (stations[k]=stations[k]||{total:0,today:0,ever:0}); stations[k].total++; if(isToday(i.last_count_at))stations[k].today++; if(i.last_count_at)stations[k].ever++; });
+    todayCounted.forEach(i=>{ const k=i.category||'อื่นๆ'; const s=(stations[k]=stations[k]||{due:0,today:0}); s.today++; s.due++; });
+    wlToday.forEach(i=>{ const k=i.category||'อื่นๆ'; const s=(stations[k]=stations[k]||{due:0,today:0}); s.due++; });
     let h='';
-    h+='<div class="card" style="background:var(--ink2);color:#fff;"><div style="font-size:12px;opacity:.7;">ตรวจแล้ววันนี้</div><div style="font-size:30px;font-weight:800;color:#fff;">'+todayCounted.length+' <span style="font-size:14px;font-weight:500;opacity:.7;">/ '+total+' รายการ</span></div><div style="font-size:12px;opacity:.7;margin-top:2px;">ค้างตรวจอีก '+wl.length+' · ใกล้หมด '+low+' · จะหมดเร็ว '+soonItems.length+'</div></div>';
-    // ปุ่มสั่งของ/รับของ เด่นๆ (owner เข้าถึงง่าย)
+    // HERO — สถานะการตรวจ "ของวันนี้" (ตัวหาร = ที่ต้องตรวจวันนี้ ไม่ใช่ทั้งคลัง) + ชิปกระโดดเข้าแท็บ
+    const donePct=dueToday?Math.round(todayCounted.length/dueToday*100):0;
+    const hchip=(txt,tab,alert)=>'<span onclick="stockDashTab(\''+tab+'\')" style="cursor:pointer;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:99px;'+(alert?'background:#E8B4AC;color:#5A1E15;':'background:rgba(255,255,255,.12);color:#F5F1EA;')+'">'+txt+'</span>';
+    h+='<div class="card" style="background:var(--ink2);color:#fff;">'
+      +'<div style="font-size:12px;opacity:.7;">การตรวจวันนี้'+(weekend?' · 🗓️ โหมดวันหยุด':'')+'</div>'
+      +'<div style="font-size:30px;font-weight:800;color:#fff;">'+todayCounted.length+' <span style="font-size:14px;font-weight:500;opacity:.7;">/ '+dueToday+' ที่ต้องตรวจวันนี้</span></div>'
+      +'<div style="height:7px;border-radius:4px;background:rgba(255,255,255,.16);margin:8px 0 10px;"><div style="height:7px;width:'+donePct+'%;background:var(--navy);border-radius:4px;"></div></div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+      +hchip('⚠ ใกล้หมด '+low,'act',low>0)
+      +hchip('🔶 จะหมดเร็ว '+soonItems.length,'act',false)
+      +hchip('🟡 รอรับ '+openPos.length+' ใบ','act',false)
+      +hchip('🔄 รอบขยับ '+(dynUp.length+dynDown.length),'learn',false)
+      +'</div>'
+      +'<div style="font-size:11px;opacity:.55;margin-top:8px;">ค้างตรวจอีก '+wlToday.length+' · ทั้งคลัง '+total+' รายการ · รอบตรวจไดนามิก แต่ละวันไม่เท่ากัน</div></div>';
+    // แท็บ 4 ตัว (redesign ก.ค. 2026 — สรุปเสมอด้านบน + เนื้อหาแยกตามคำถาม)
+    const dtabs=[['act','🔥 ต้องจัดการ'],['chk','✓ การตรวจ'],['learn','🔄 ระบบเรียนรู้'],['money','🗑️ ของเสีย·มูลค่า']];
+    h+='<div class="scroll-x" style="margin-bottom:10px;">'+dtabs.map(t=>'<span onclick="stockDashTab(\''+t[0]+'\')" class="chip '+(_invDashTab===t[0]?'chip-navy':'chip-gray')+'" style="cursor:pointer;font-size:12px;padding:7px 13px;white-space:nowrap;">'+t[1]+'</span>').join('')+'</div>';
+    if(_invDashTab==='act'){
+    // ปุ่มสั่งของ/รับของ = ทางลัดนำทางไปหน้าสั่งของ (ไม่ทำ action บน dashboard)
     h+='<div style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn" style="flex:1;background:var(--navy);color:#fff;padding:11px;" onclick="_invOrderTab=\'cart\';go(\'s-stock-order\')">🛒 สั่งของ</button><button class="btn" style="flex:1;background:var(--green);color:#fff;padding:11px;" onclick="_invOrderTab=\'recv\';go(\'s-stock-order\')">📥 รับของ</button></div>';
     // ⚠ ต้องสั่ง — list จริง กดเข้ารายการได้
     h+='<div class="t-sect" style="color:var(--red);">⚠ ใกล้หมด / ต้องสั่ง ('+low+')</div>';
@@ -5642,19 +5676,36 @@ async function renderStockDash(){
     // 🔶 จะหมดเร็ว ๆ นี้ (คาดการณ์จากอัตราใช้ที่เรียนรู้)
     if(soonItems.length){ h+='<div class="t-sect" style="color:var(--amber);">🔶 จะหมดเร็วๆ นี้ ('+soonItems.length+')</div><div class="card" style="padding:0;overflow:hidden;">'+soonItems.slice(0,6).map(it=>{const dc=_invDaysCover(it);return _invDashRow(it,'เหลือ '+rnd_(it.on_hand)+' '+esc_(it.unit)+(dc!=null?' · ~'+Math.round(dc)+' วัน':''));}).join('')+'</div>';
       if(soonItems.length>6) h+='<div class="t-cap" style="text-align:center;padding:4px 0 8px;cursor:pointer;color:var(--info);" onclick="stockJumpList(\'soon\')">ดูทั้งหมด '+soonItems.length+' รายการ ›</div>'; }
-    const openPos=(ords&&ords.orders?ords.orders:[]).filter(po=>(po.lines||[]).some(l=>l.status==='open'));
     if(openPos.length){
       h+='<div class="t-sect" style="color:var(--amber);">🟡 สั่งแล้ว รอรับ ('+openPos.length+' ใบ) <span style="font-weight:400;text-transform:none;color:var(--info);">— แตะเพื่อรับ/ยกเลิก ›</span></div>';
       openPos.slice(0,6).forEach(po=>{ const ol=(po.lines||[]).filter(l=>l.status==='open'); h+='<div class="card" style="padding:10px 13px;cursor:pointer;" onclick="_invOrderTab=\'recv\';go(\'s-stock-order\')"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="flex:1;font-size:13px;font-weight:600;">'+esc_(po.supplier)+(po.kitchen?(' · '+esc_(po.kitchen)):'')+'</span><span class="t-cap">'+_invShortDate(po.created_at)+' ›</span></div><div class="t-cap">'+ol.map(l=>esc_(l.name)+(l.qty_ordered!==''&&l.qty_ordered!=null?(' '+rnd_(l.qty_ordered)):'')).join(' · ')+'</div></div>'; });
     }
-    h+='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;">ความคืบหน้าตั้งต้น (นับครั้งแรก)</span><span class="t-cap">'+everCounted.length+'/'+total+'</span></div><div style="height:8px;background:var(--surface2);border-radius:4px;"><div style="height:8px;width:'+basePct+'%;background:var(--green);border-radius:4px;"></div></div><div class="t-cap" style="margin-top:4px;">'+basePct+'% · ยังไม่เคยนับ '+never+' รายการ</div></div>';
-    h+='<div class="t-sect">ภาพรวม Stock Health <span style="font-weight:400;text-transform:none;">(แตะการ์ดเพื่อดูรายการ)</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
-    h+='<div class="card" style="margin:0;padding:12px;cursor:pointer;" onclick="stockJumpList(\'all\')"><div class="t-cap">รายการทั้งหมด</div><div style="font-size:22px;font-weight:700;">'+total+'</div><div class="t-cap" style="color:var(--info);">ดูรายการ ›</div></div>';
-    h+='<div class="card" style="margin:0;padding:12px;cursor:pointer;'+(low?'border:1px solid var(--red);':'')+'" onclick="stockJumpList(\'low\')"><div class="t-cap">ใกล้หมด</div><div style="font-size:22px;font-weight:700;color:'+(low?'var(--red)':'var(--ink)')+';">'+low+'</div><div class="t-cap" style="color:var(--info);">ดูรายการ ›</div></div>';
-    h+='<div class="card" style="margin:0;padding:12px;cursor:pointer;" onclick="stockJumpList(\'never\')"><div class="t-cap">ยังไม่เคยนับ</div><div style="font-size:22px;font-weight:700;color:var(--amber);">'+never+'</div><div class="t-cap" style="color:var(--info);">ดูรายการ ›</div></div>';
+    }
+    if(_invDashTab==='learn'){
+    // ระบบรู้จักอัตราใช้แค่ไหน + สถานะนับตั้งต้น
+    const covPct=total?Math.round(learned/total*100):0;
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;">ระบบรู้จักอัตราใช้แล้ว</span><span class="t-cap">'+learned+'/'+total+'</span></div><div style="height:8px;background:var(--surface2);border-radius:4px;"><div style="height:8px;width:'+covPct+'%;background:var(--green);border-radius:4px;"></div></div><div class="t-cap" style="margin-top:4px;">🌱 อีก '+dynSeed+' รายการจะรู้เองเมื่อนับครบ 2 รอบ + กดรับของ'+(never===0?' · นับตั้งต้นครบ '+total+'/'+total+' ✓':'')+'</div></div>';
+    if(never>0) h+='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;">ความคืบหน้าตั้งต้น (นับครั้งแรก)</span><span class="t-cap">'+everCounted.length+'/'+total+'</span></div><div style="height:8px;background:var(--surface2);border-radius:4px;"><div style="height:8px;width:'+basePct+'%;background:var(--green);border-radius:4px;"></div></div><div class="t-cap" style="margin-top:4px;cursor:pointer;color:var(--info);" onclick="stockJumpList(\'never\')">'+basePct+'% · ยังไม่เคยนับ '+never+' รายการ — ดูรายการ ›</div></div>';
+    const fmtEf=ef=>ef.base+'→'+(ef.days<=1?'ทุกวัน':ef.days+' วัน');
+    const fmtU=it=>{const u=_invUsage(it);return u?(' · ใช้ '+(Math.round(u*100)/100)+'/วัน'):'';};
+    const upShow=_invDashDynAll?dynUp:dynUp.slice(0,6), dnShow=_invDashDynAll?dynDown:dynDown.slice(0,4);
+    h+='<div class="t-sect" style="color:var(--navy);">↑ ตรวจถี่ขึ้น — ใช้เร็วกว่ารอบเดิม ('+dynUp.length+')</div>';
+    if(!dynUp.length) h+='<div class="t-cap" style="padding:2px 2px 8px;">ยังไม่มี — จะขึ้นเองเมื่อระบบเห็นของที่ใช้เร็วกว่ารอบของ class</div>';
+    else h+='<div class="card" style="padding:0;overflow:hidden;border:1px solid var(--navy-lt);">'+upShow.map(x=>_invDashRow(x.it,'↑ '+fmtEf(x.ef)+fmtU(x.it))).join('')+'</div>';
+    h+='<div class="t-sect" style="color:var(--green);">↓ ผ่อนรอบ — ใช้ช้า คืนคิวตรวจ ('+dynDown.length+')</div>';
+    if(!dynDown.length) h+='<div class="t-cap" style="padding:2px 2px 8px;">ยังไม่มี</div>';
+    else h+='<div class="card" style="padding:0;overflow:hidden;">'+dnShow.map(x=>_invDashRow(x.it,'↓ '+fmtEf(x.ef)+fmtU(x.it))).join('')+'</div>';
+    const dynHidden=(dynUp.length-upShow.length)+(dynDown.length-dnShow.length);
+    if(!_invDashDynAll&&dynHidden>0) h+='<div class="t-cap" style="text-align:center;padding:4px 0 8px;cursor:pointer;color:var(--info);" onclick="_invDashDynAll=true;renderStockDash()">ดูทั้งหมด (อีก '+dynHidden+' รายการ) ›</div>';
+    else if(_invDashDynAll&&(dynUp.length>6||dynDown.length>4)) h+='<div class="t-cap" style="text-align:center;padding:4px 0 8px;cursor:pointer;color:var(--info);" onclick="_invDashDynAll=false;renderStockDash()">ย่อรายการ ‹</div>';
+    h+='<div style="font-size:12px;background:var(--info-bg);color:var(--info);border-radius:8px;padding:8px 11px;">ของสด 🥬 ล็อกตรวจทุกวันเสมอ จึงไม่อยู่ในลิสต์ขยับรอบ</div>';
+    }
+    if(_invDashTab==='money'){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
     h+='<div class="card" style="margin:0;padding:12px;"><div class="t-cap">มูลค่าสต๊อก</div><div style="font-size:20px;font-weight:700;">฿'+rnd_(value)+'</div><div class="t-cap">จากทุน/หน่วยที่ใส่ไว้</div></div>';
+    h+='<div class="card" style="margin:0;padding:12px;cursor:pointer;" onclick="stockJumpList(\'all\')"><div class="t-cap">รายการทั้งหมด</div><div style="font-size:22px;font-weight:700;">'+total+'</div><div class="t-cap" style="color:var(--info);">ดูรายการ ›</div></div>';
     h+='</div>';
-    if(!value) h+='<div class="t-cap" style="margin:-4px 0 10px;font-style:italic;">มูลค่า ฿0 — ยังไม่ได้ใส่ทุน/หน่วย จะคำนวณได้เมื่อใส่ทุน</div>';
+    if(!value) h+='<div class="t-cap" style="margin:-4px 0 10px;font-style:italic;">มูลค่า ฿0 — ยังไม่ได้ใส่ทุน/หน่วย จะคำนวณได้เมื่อใส่ทุน (ใส่เฉพาะของแพงก่อนก็ได้)</div>';
     // ซ่อน waste ของ item ที่ถูกลบถาวร (hard delete) — ชื่อ resolve ไม่ได้ backend เลย fallback เป็นรหัส INV-xxxx
     // (ของจริงจะ archive ไม่ลบ → ชื่อ resolve ได้เสมอ · เคสนี้เกิดเฉพาะข้อมูลเทสต์ที่ลบทิ้ง)
     const wItems=((wsum&&wsum.items)||[]).filter(w=>!/^INV-\d+$/i.test(String(w.name||'').trim()));
@@ -5665,12 +5716,16 @@ async function renderStockDash(){
       if(rk.length) h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">'+rk.map(k=>'<span class="chip chip-gray" style="font-size:11px;">'+esc_(k)+' '+rnd_(rs[k])+'</span>').join('')+'</div>';
       h+='<div class="card" style="padding:0;overflow:hidden;">'+wItems.slice(0,6).map(w=>'<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);"><span style="flex:1;font-size:13px;">'+esc_(w.name)+'</span><span class="t-cap">'+rnd_(w.qty)+' '+esc_(w.unit||'')+' · ฿'+rnd_(w.cost)+'</span></div>').join('')+'</div>';
     }
+    }
+    if(_invDashTab==='chk'){
     h+='<div class="t-sect">ตรวจแล้ววันนี้ · แยกครัว</div>';
-    h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);padding:0 0 5px;"><span>ครัว</span><span>ตรวจแล้ว / ทั้งหมด</span></div>';
-    Object.keys(stations).forEach(k=>{ const s=stations[k]; const pct=s.total?Math.round(s.today/s.total*100):0; h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><span style="width:76px;font-size:12.5px;">'+esc_(k)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;"><div style="height:7px;width:'+pct+'%;background:var(--navy);border-radius:4px;"></div></div><span class="t-cap" style="width:52px;text-align:right;">'+s.today+' / '+s.total+'</span></div>'; });
+    h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);padding:0 0 5px;"><span>ครัว</span><span>ตรวจแล้ว / ต้องตรวจวันนี้</span></div>';
+    Object.keys(stations).forEach(k=>{ const s=stations[k]; const pct=s.due?Math.round(s.today/s.due*100):0; h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;"><span style="width:76px;font-size:12.5px;">'+esc_(k)+'</span><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;"><div style="height:7px;width:'+pct+'%;background:var(--navy);border-radius:4px;"></div></div><span class="t-cap" style="width:52px;text-align:right;">'+s.today+' / '+s.due+'</span></div>'; });
+    if(!Object.keys(stations).length) h+='<div class="t-cap" style="text-align:center;padding:8px 0;">วันนี้ไม่มีรายการต้องตรวจ</div>';
     h+='<div class="t-sect">✓ ที่ตรวจไปแล้ววันนี้ ('+todayCounted.length+' รายการ)</div>';
     if(!todayCounted.length){ h+='<div class="t-cap" style="text-align:center;padding:14px 0;">ยังไม่มีการตรวจวันนี้</div>'; }
     else { h+='<div class="card" style="padding:0;overflow:hidden;">'+todayCounted.sort((a,b)=>new Date(b.last_count_at)-new Date(a.last_count_at)).slice(0,40).map(i=>_invDashRow(i,rnd_(i.last_count_value)+' '+esc_(i.unit)+' · '+_invShortDate(i.last_count_at))).join('')+'</div>'; }
+    }
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="alert alert-danger" style="font-size:13px;">เชื่อมต่อไม่ได้</div>'; }
 }
