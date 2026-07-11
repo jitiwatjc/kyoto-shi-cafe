@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260710-155542">
+<meta name="app-build" content="20260711-222746">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -5869,7 +5869,7 @@ async function orderSend(){
   const stn=_invDefaultStation();
   const lines=ids.map(id=>({item_id:id, qty:_invCart[id].qty}));
   const items=await _invFetchItems(); const byId={}; items.forEach(i=>byId[i.item_id]=i);
-  const r=await invSubmit('inv_order_create',{kitchen:(stn==='all'?'':stn), lines});
+  const r=await invSubmit('inv_order_create',{kitchen:(stn==='all'?'':stn), lines, local_id:'ord'+Date.now()+'_'+((currentUser&&currentUser.empId)||'')});
   if(!r||!r.ok){ toast(String((r&&r.error)||'').indexOf('unknown')>=0?'⚠ ต้องอัปเดต backend ก่อน':'ส่งไม่สำเร็จ'); return; }
   const groups={}; ids.forEach(id=>{ const it=byId[id]||{}; const sup=(it.supplier||'ไม่ระบุซัพ'); (groups[sup]=groups[sup]||[]).push({it,qty:_invCart[id].qty}); });
   const t=new Date(); const dstr=t.getDate()+'/'+(t.getMonth()+1);
