@@ -70,15 +70,14 @@
   .irow.sold .thumb{filter:grayscale(1) brightness(.6)}
   .irow.sold .nm{color:var(--faint);text-decoration:line-through}
 
-  /* sold switch */
-  .sw{position:relative;width:46px;height:26px;flex:none;cursor:pointer}
-  .sw input{opacity:0;width:0;height:0}
-  .sw .tr{position:absolute;inset:0;background:#3a352c;border-radius:20px;transition:.2s}
-  .sw .tr::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
-    background:#8d8371;transition:.2s}
-  .sw input:checked+.tr{background:var(--hanko)}
-  .sw input:checked+.tr::after{transform:translateX(20px);background:#fff}
-  .swlab{font-size:9.5px;color:var(--faint);text-align:center;margin-top:3px}
+  /* sold status button */
+  .soldbtn{min-width:80px;height:40px;padding:0 12px;border-radius:12px;border:1px solid;cursor:pointer;
+    font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;
+    gap:6px;flex:none;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .soldbtn:active{transform:scale(.95)}
+  .soldbtn .dot{width:8px;height:8px;border-radius:50%;background:#8aa86b;box-shadow:0 0 7px rgba(138,168,107,.9)}
+  .soldbtn.avail{background:rgba(138,168,107,.1);border-color:rgba(138,168,107,.5);color:#adc78f}
+  .soldbtn.out{background:var(--hanko);border-color:#c25743;color:#fff;box-shadow:0 3px 10px rgba(166,58,40,.35)}
 
   .ebtn{border:1px solid var(--line);background:transparent;color:var(--gold);width:34px;height:34px;
     border-radius:10px;font-size:14px;cursor:pointer;flex:none}
@@ -335,9 +334,8 @@ function render(){
         +'<div class="inf"><div class="nm">'+it.th+'</div>'
         +'<div class="sb">'+pr+(tags.length?' · <span class="tag">'+tags.join(' ')+'</span>':'')
         +((it.photos&&it.photos.length)?' · 📷'+it.photos.length:'')+'</div></div>'
-        +'<div><label class="sw"><input type="checkbox" '+(it.sold?'checked':'')
-        +' onchange="tglSold('+ci+','+ii+',this.checked)"><span class="tr"></span></label>'
-        +'<div class="swlab">หมด</div></div>'
+        +'<button class="soldbtn '+(it.sold?'out':'avail')+'" onclick="tglSold('+ci+','+ii+','+(it.sold?0:1)+')">'
+        +(it.sold?'✕ หมด':'<span class="dot"></span>ขายอยู่')+'</button>'
         +'<button class="ebtn" onclick="openE('+ci+','+ii+')">✎</button>'
         +'</div>';
     });
