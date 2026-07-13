@@ -1,0 +1,119 @@
+{
+  "updated": "2026-07-13",
+  "categories": [
+    {
+      "id": "rice", "no": "01",
+      "t": {"th": "จานด่วน · ราดข้าว", "en": "Rice Plates"},
+      "sub": "QUICK RICE",
+      "note": {"th": "ทุกจาน: เพิ่มน้ำซุป + ไข่ดาว 15.-", "en": "Any plate: add soup + fried egg 15.-"},
+      "items": [
+        {"id": "r1", "th": "พริกเกลือหมูกรอบ", "en": "Salt-Chili Crispy Pork", "price": 99, "g": "g-noodle", "e": "🥓", "sig": 1, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "r2", "th": "ผัดกะเพราหมูสับ", "en": "Minced Pork Basil", "price": 79, "g": "g-basil", "e": "🌿", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "r3", "th": "ผัดกะเพราไก่กรอบ", "en": "Crispy Chicken Basil", "price": 89, "g": "g-basil", "e": "🍗", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "r4", "th": "ผัดกะเพราหมูกรอบ", "en": "Crispy Pork Basil", "price": 99, "g": "g-basil", "e": "🥓", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "r5", "th": "ผัดกะเพรากุ้ง", "en": "Shrimp Basil", "price": 99, "g": "g-basil", "e": "🦐", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "r6", "th": "ผัดคะน้าหมูกรอบ", "en": "Crispy Pork & Chinese Kale", "price": 99, "g": "g-salad", "e": "🥬", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []}
+      ]
+    },
+    {
+      "id": "noodle", "no": "02",
+      "t": {"th": "เส้น", "en": "Noodles"},
+      "sub": "NOODLES",
+      "items": [
+        {"id": "n1", "th": "ราดหน้าทะเล", "en": "Seafood Noodles in Gravy", "price": 129, "g": "g-noodle", "e": "🍜", "sig": 1, "hot": 0, "sold": 0, "feat": 1, "photos": [],
+         "d": {"th": "เลือกเส้นหมี่ หรือเส้นใหญ่กรอบ ราดซอสทะเลเข้มข้น", "en": "Thin or crispy wide noodles in rich seafood gravy"}},
+        {"id": "n2", "th": "ยากิโซบะ", "en": "Yakisoba", "price": 159, "g": "g-noodle", "e": "🍝", "sig": 1, "hot": 0, "sold": 0, "feat": 1, "photos": [],
+         "d": {"th": "เส้นผัดซอสสไตล์ญี่ปุ่น หอมกระทะ", "en": "Japanese stir-fried noodles, wok-fragrant"}},
+        {"id": "n3", "th": "มาม่าผัดขี้เมาไข่กุ้ง", "en": "Drunken Mama Noodles, Shrimp & Egg", "from": 119, "g": "g-noodle", "e": "🔥", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": [],
+         "opts": [
+           {"th": "ไก่คาราเกะ", "en": "Chicken Karaage", "price": 119},
+           {"th": "หมูทงคัตสึ", "en": "Pork Tonkatsu", "price": 139},
+           {"th": "กุ้งเทมปุระ", "en": "Shrimp Tempura", "price": 149},
+           {"th": "★ เนื้อออสเตรเลียแบล็คแองกัส", "en": "★ Black Angus Beef", "price": 189},
+           {"th": "★ เนื้อเสือร้องไห้วากิว", "en": "★ Wagyu Beef", "price": 229}
+         ]}
+      ]
+    },
+    {
+      "id": "don", "no": "03",
+      "t": {"th": "ข้าวหน้าญี่ปุ่น", "en": "Japanese Rice Bowls"},
+      "sub": "RICE BOWLS",
+      "items": [
+        {"id": "d1", "th": "ข้าวไข่ข้น", "en": "Creamy Egg Rice", "from": 99, "g": "g-egg", "e": "🍳", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": [],
+         "opts": [
+           {"th": "เบค่อน", "en": "Bacon", "price": 99},
+           {"th": "ไก่คาราเกะ", "en": "Chicken Karaage", "price": 139},
+           {"th": "หมูทงคัตสึ", "en": "Pork Tonkatsu", "price": 149},
+           {"th": "กุ้ง", "en": "Shrimp", "price": 149}
+         ]},
+        {"id": "d2", "th": "ข้าวแกงกะหรี่", "en": "Japanese Curry Rice", "from": 159, "g": "g-curry", "e": "🍛", "sig": 1, "hot": 0, "sold": 0, "feat": 0, "photos": [],
+         "opts": [
+           {"th": "ไก่คาราเกะ", "en": "Chicken Karaage", "price": 159},
+           {"th": "หมูทงคัตสึ", "en": "Pork Tonkatsu", "price": 169},
+           {"th": "กุ้งเทมปุระ", "en": "Shrimp Tempura", "price": 179},
+           {"th": "★ เนื้อออสเตรเลียแบล็คแองกัส", "en": "★ Black Angus Beef", "price": 199},
+           {"th": "★ เนื้อเสือร้องไห้วากิว", "en": "★ Wagyu Beef", "price": 229}
+         ]},
+        {"id": "d3", "th": "ข้าวด้ง", "en": "Donburi", "from": 119, "g": "g-fish", "e": "🍚", "sig": 1, "hot": 0, "sold": 0, "feat": 1, "photos": [],
+         "d": {"th": "ท็อปแซลมอนเบิร์นหอมกลิ่นไฟ บนข้าวญี่ปุ่นร้อน ๆ", "en": "Try the torched salmon over hot Japanese rice"},
+         "opts": [
+           {"th": "ไก่คาราเกะ", "en": "Chicken Karaage", "price": 119},
+           {"th": "หมูทงคัตสึ", "en": "Pork Tonkatsu", "price": 129},
+           {"th": "กุ้งเทมปุระ", "en": "Shrimp Tempura", "price": 139},
+           {"th": "★ แซลมอนเบิร์น", "en": "★ Burnt Salmon", "price": 199}
+         ]}
+      ]
+    },
+    {
+      "id": "plate", "no": "04",
+      "t": {"th": "ข้าวจานเดียว", "en": "One-Plate Rice"},
+      "sub": "RICE DISH",
+      "items": [
+        {"id": "p1", "th": "ข้าวผัดมันเนื้อวากิว ท็อปเสือร้องไห้", "en": "Wagyu-Fat Fried Rice, Grilled Beef", "price": 269, "g": "g-beef", "e": "🥩", "sig": 1, "hot": 0, "sold": 0, "feat": 1, "photos": [],
+         "d": {"th": "ข้าวผัดมันวากิวหอมกรุ่น ท็อปเนื้อเสือร้องไห้ย่างนุ่มฉ่ำ", "en": "Fragrant rice fried in wagyu fat, topped with grilled beef"}},
+        {"id": "p2", "th": "ข้าวไก่ทอดซอสเทอริยากิ", "en": "Teriyaki Fried-Chicken Rice", "price": 89, "g": "g-rice", "e": "🍗", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "p3", "th": "ข้าวยำไก่แซ่บ", "en": "Spicy Chicken Salad Rice", "price": 89, "g": "g-salad", "e": "🥗", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "p4", "th": "ข้าวหมูทงคัตสึ", "en": "Tonkatsu Rice", "price": 139, "g": "g-rice", "e": "🐖", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "p5", "th": "ข้าวเปล่า", "en": "Steamed Rice", "price": 20, "g": "g-rice", "e": "🍚", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []}
+      ]
+    },
+    {
+      "id": "yum", "no": "05",
+      "t": {"th": "ยำ · เนื้อย่าง", "en": "Thai Salads & Grilled Beef"},
+      "sub": "SALAD & BEEF",
+      "items": [
+        {"id": "y1", "th": "น้ำตกเนื้อแบล็คแองกัส", "en": "Black Angus Beef Namtok", "price": 159, "g": "g-beef", "e": "🥩", "sig": 1, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "y2", "th": "ยำวุ้นเส้นซีฟู้ด", "en": "Spicy Glass-Noodle Seafood Salad", "price": 169, "g": "g-salad", "e": "🦐", "sig": 1, "hot": 1, "sold": 0, "feat": 1, "photos": [],
+         "d": {"th": "ยำแซ่บซีฟู้ดแน่น รสจัดถึงใจ", "en": "Zesty Thai salad loaded with seafood"}},
+        {"id": "y3", "th": "เนื้อแบล็คแองกัสจิ้มแจ่ว", "en": "Black Angus with Jaew Dip", "price": 219, "g": "g-beef", "e": "🥩", "sig": 1, "hot": 0, "sold": 0, "feat": 1, "photos": [],
+         "d": {"th": "เนื้อแบล็คแองกัสย่าง เสิร์ฟพร้อมแจ่วสูตรร้าน", "en": "Grilled Black Angus with house jaew dipping sauce"}},
+        {"id": "y4", "th": "ยำปลาทูน่า", "en": "Spicy Tuna Salad", "price": 209, "g": "g-fish", "e": "🐟", "sig": 0, "hot": 1, "sold": 0, "feat": 0, "photos": []},
+        {"id": "y5", "th": "ยำสลัดผลไม้แซลมอน", "en": "Salmon & Fruit Salad", "price": 219, "g": "g-fish", "e": "🍣", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []}
+      ]
+    },
+    {
+      "id": "snack", "no": "06",
+      "t": {"th": "ของทานเล่น", "en": "Snacks & Sides"},
+      "sub": "SNACKS",
+      "items": [
+        {"id": "s1", "th": "เฟรนช์ฟรายส์", "en": "French Fries", "price": 69, "g": "g-snack", "e": "🍟", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "s2", "th": "เกี๊ยวซ่า 4 ชิ้น", "en": "Gyoza (4 pcs)", "price": 69, "g": "g-snack", "e": "🥟", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "s3", "th": "ไก่คาราเกะ", "en": "Chicken Karaage", "price": 79, "g": "g-snack", "e": "🍗", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "s4", "th": "ทาโกยากิ", "en": "Takoyaki", "price": 79, "g": "g-snack", "e": "🐙", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "s5", "th": "ไส้กรอกแดงทอดกรอบ", "en": "Crispy Red Sausage", "price": 89, "g": "g-snack", "e": "🌭", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "s6", "th": "ครีมโคร็อคเกะมันปูหิมะ", "en": "Snow-Crab Cream Croquette", "price": 109, "g": "g-snack", "e": "🦀", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "s7", "th": "เกี๊ยวซ่า 8 ชิ้น", "en": "Gyoza (8 pcs)", "price": 119, "g": "g-snack", "e": "🥟", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []}
+      ]
+    },
+    {
+      "id": "burger", "no": "07",
+      "t": {"th": "เบอร์เกอร์ · ซุป", "en": "Burgers & Soup"},
+      "sub": "BURGER & SOUP",
+      "items": [
+        {"id": "b1", "th": "เบอร์เกอร์หมู", "en": "Pork Burger", "price": 59, "g": "g-burger", "e": "🍔", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "b2", "th": "เบอร์เกอร์เนื้อ", "en": "Beef Burger", "price": 69, "g": "g-burger", "e": "🍔", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []},
+        {"id": "b3", "th": "ซุปมิโซะ / ดาชิ", "en": "Miso / Dashi Soup", "price": 25, "g": "g-soup", "e": "🍲", "sig": 0, "hot": 0, "sold": 0, "feat": 0, "photos": []}
+      ]
+    }
+  ]
+}

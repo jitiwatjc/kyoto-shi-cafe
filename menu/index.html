@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kyoto Shi Cafe Rayong — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#131210; --bg2:#191713; --card:#1f1c17; --card2:#26221b;
+    --ink:#ece5d6; --muted:#9a8f7c; --faint:#6e6555;
+    --gold:#c9a25e; --gold-l:#e8cf9a; --hanko:#a63a28; --matcha:#8aa86b;
+    --line:rgba(201,162,94,.18);
+    --serif:'Cormorant Garamond','Yu Mincho','YuMincho','Noto Serif JP','Hiragino Mincho ProN',Georgia,serif;
+    --sans:'Noto Sans Thai','Segoe UI','Leelawadee UI','Hiragino Kaku Gothic ProN',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body.noscroll{overflow:hidden}
+
+  [data-en]{display:none}
+  body.lang-en [data-en]{display:inline} body.lang-en [data-th]{display:none}
+
+  #progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:99;
+    background:linear-gradient(90deg,var(--gold),var(--gold-l))}
+
+  /* ---------- top bar ---------- */
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;
+    justify-content:space-between;padding:12px 18px;transition:background .3s,box-shadow .3s}
+  #topbar.solid{background:rgba(19,18,16,.92);backdrop-filter:blur(10px);box-shadow:0 1px 0 var(--line)}
+  .logo{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}
+  .logo .nm{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:2px}
+  .logo .nm small{display:block;font-family:var(--sans);font-size:9px;letter-spacing:2.5px;color:var(--muted);font-weight:400}
+  .lang{display:flex;gap:4px}
+  .lang button{border:1px solid rgba(236,229,214,.25);background:rgba(19,18,16,.35);color:var(--ink);
+    padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;font-family:var(--sans)}
+  .lang button.on{background:var(--gold);border-color:var(--gold);color:#231a0c}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:88vh;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:90px 20px 70px;overflow:hidden;
+    background:radial-gradient(90% 70% at 50% 0%,#221e16 0%,var(--bg) 70%)}
+  .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.16;animation:float 11s ease-in-out infinite}
+  .blob.b1{width:420px;height:420px;background:var(--gold);top:-140px;left:-120px}
+  .blob.b2{width:380px;height:380px;background:var(--matcha);bottom:-160px;right:-110px;animation-delay:-5s}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(28px)}}
+  .vkanji{position:absolute;right:4vw;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;
+    font-family:var(--serif);font-size:clamp(60px,9vw,100px);font-weight:800;letter-spacing:8px;
+    color:transparent;-webkit-text-stroke:1px rgba(201,162,94,.22);user-select:none;pointer-events:none}
+  .hero h1{font-family:var(--serif);font-size:clamp(44px,9vw,80px);font-weight:600;letter-spacing:5px;
+    line-height:1.05;margin:10px 0 4px;background:linear-gradient(180deg,#f5edd9,#cbb684);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .ray{font-family:var(--serif);font-size:15px;letter-spacing:9px;color:var(--muted);margin-top:8px;text-indent:9px}
+  .hero .kata{font-size:12px;letter-spacing:7px;color:var(--gold);margin-top:12px;text-indent:7px}
+  .hero .sub{font-size:14px;color:var(--muted);letter-spacing:2px;margin-top:16px}
+  .shimmer{width:70px;height:1px;margin:26px auto 0;position:relative;overflow:hidden;background:rgba(201,162,94,.25)}
+  .shimmer::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--gold-l),transparent);
+    animation:sh 2.6s ease-in-out infinite;transform:translateX(-100%)}
+  @keyframes sh{60%,100%{transform:translateX(100%)}}
+  .hero .hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--faint);
+    font-size:11px;letter-spacing:3px;animation:bob 2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
+
+  /* ---------- chips nav ---------- */
+  #chips{position:sticky;top:0;z-index:55;background:rgba(19,18,16,.93);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:64px 0 0}
+  #chips .row{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 12px;scrollbar-width:none;-ms-overflow-style:none}
+  #chips .row::-webkit-scrollbar{display:none}
+  #chips a{flex:0 0 auto;text-decoration:none;color:var(--muted);border:1px solid rgba(236,229,214,.14);
+    padding:7px 15px;border-radius:20px;font-size:12.5px;font-weight:600;white-space:nowrap;transition:.2s}
+  #chips a.on{color:#231a0c;background:var(--gold);border-color:var(--gold)}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1100px;margin:0 auto;padding:8px 18px 80px}
+  section{scroll-margin-top:118px}
+  .shead{display:flex;align-items:center;gap:14px;margin:52px 2px 8px}
+  .shead .no{font-family:var(--serif);font-size:40px;font-weight:700;line-height:1;
+    color:transparent;-webkit-text-stroke:1px rgba(201,162,94,.45)}
+  .shead h2{font-size:22px;font-weight:800;letter-spacing:.5px}
+  .shead .sub{font-size:10px;letter-spacing:4px;color:var(--faint);margin-top:3px;text-transform:uppercase}
+  .shead .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+  .snote{font-size:12px;color:var(--matcha);margin:2px 2px 16px;letter-spacing:.3px}
+
+  /* ---------- signature carousel ---------- */
+  .sigwrap{position:relative;margin-top:14px}
+  #sigrow{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 2px 18px;scrollbar-width:none}
+  #sigrow::-webkit-scrollbar{display:none}
+  .scard{flex:0 0 78%;max-width:330px;scroll-snap-align:start;position:relative;border-radius:20px;
+    overflow:hidden;cursor:pointer;box-shadow:0 14px 34px rgba(0,0,0,.45);
+    border:1px solid rgba(201,162,94,.16);transition:transform .25s,border-color .25s}
+  .scard:hover{transform:translateY(-5px);border-color:rgba(201,162,94,.5)}
+  @media(min-width:640px){.scard{flex-basis:330px}}
+  .scard .ph{aspect-ratio:4/4.6;display:flex;align-items:center;justify-content:center;font-size:86px;position:relative}
+  .scard .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,5,.92) 0%,rgba(10,8,5,.28) 52%,rgba(10,8,5,.05) 75%)}
+  .scard .txt{position:absolute;left:0;right:0;bottom:0;padding:18px 18px 16px}
+  .scard .nm{font-size:17px;font-weight:800;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+  .scard .ds{font-size:12px;color:rgba(236,229,214,.75);margin-top:5px;line-height:1.5}
+  .scard .pr{margin-top:12px;display:inline-block;background:var(--gold);color:#231a0c;
+    font-weight:800;font-size:17px;padding:5px 16px;border-radius:22px;letter-spacing:.3px;
+    box-shadow:0 3px 12px rgba(0,0,0,.45)}
+  .arrow{position:absolute;top:42%;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
+    background:rgba(19,18,16,.8);color:var(--gold);font-size:16px;cursor:pointer;z-index:5;display:none}
+  @media(min-width:760px){.arrow{display:block}}
+  .arrow.l{left:-14px}.arrow.r{right:-14px}
+  .arrow:hover{background:var(--gold);color:#231a0c}
+
+  .stamp{position:absolute;top:12px;left:12px;width:36px;height:36px;background:var(--hanko);
+    border-radius:7px;display:flex;align-items:center;justify-content:center;z-index:4;
+    font-family:var(--serif);font-size:19px;font-weight:800;color:#f6ede0;
+    transform:rotate(-6deg);box-shadow:0 3px 10px rgba(0,0,0,.4)}
+  .hotchip{position:absolute;top:14px;right:12px;z-index:4;background:rgba(10,8,5,.65);border:1px solid rgba(192,72,58,.6);
+    color:#e88c7d;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;backdrop-filter:blur(4px)}
+
+  /* ---------- grid tiles ---------- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:14px}
+  @media(min-width:600px){.grid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
+  .tile{background:var(--card);border:1px solid rgba(236,229,214,.07);border-radius:16px;overflow:hidden;
+    cursor:pointer;position:relative;transition:transform .25s,border-color .25s,box-shadow .25s}
+  .tile:hover{transform:translateY(-4px);border-color:rgba(201,162,94,.45);box-shadow:0 12px 28px rgba(0,0,0,.4)}
+  .tile .phw{overflow:hidden;position:relative}
+  .tile .ph{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:56px;transition:transform .5s}
+  .tile:hover .ph{transform:scale(1.07)}
+  .tile .stamp{width:30px;height:30px;font-size:16px;border-radius:6px;top:9px;left:9px}
+  .tile .hotchip{top:11px;right:9px}
+  .tile .info{padding:12px 13px 14px}
+  .tile .nm{font-size:13.5px;font-weight:700;line-height:1.35;min-height:36px}
+  .tile .pr{margin-top:9px;display:inline-flex;align-items:baseline;gap:5px;
+    background:var(--gold);color:#231a0c;font-weight:800;font-size:15px;
+    padding:4px 13px;border-radius:20px;letter-spacing:.3px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  .tile .pr .fr{font-size:10px;color:rgba(35,26,12,.65);font-weight:700}
+  .tile .opt{font-size:10.5px;color:var(--faint);margin-top:5px;line-height:1.5}
+  .tile.sold .ph{filter:grayscale(.9) brightness(.55)}
+  .tile.sold .info{opacity:.45}
+  .ribbon{position:absolute;top:14px;right:-34px;transform:rotate(38deg);background:#4a423a;color:#ded5c4;
+    font-size:10px;font-weight:700;padding:4px 40px;z-index:5;letter-spacing:1px}
+
+  /* photo placeholder gradients + real photos */
+  .ph{position:relative}
+  .ph::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.16),transparent 55%)}
+  .ph.haspic::after{background:none}
+  .ph .cam{position:absolute;bottom:7px;right:9px;font-size:9px;letter-spacing:1.5px;color:rgba(255,255,255,.45);z-index:2}
+  .ph .pimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .g-beef{background:linear-gradient(140deg,#7a3322,#3c170e)}
+  .g-basil{background:linear-gradient(140deg,#55702f,#293c16)}
+  .g-noodle{background:linear-gradient(140deg,#b0762c,#644013)}
+  .g-curry{background:linear-gradient(140deg,#b57722,#6a4112)}
+  .g-egg{background:linear-gradient(140deg,#cf9d33,#846016)}
+  .g-rice{background:linear-gradient(140deg,#a08753,#584627)}
+  .g-salad{background:linear-gradient(140deg,#5f7f34,#32471a)}
+  .g-fish{background:linear-gradient(140deg,#b76245,#682f1f)}
+  .g-snack{background:linear-gradient(140deg,#b97f34,#6b4716)}
+  .g-burger{background:linear-gradient(140deg,#7c4c2a,#422615)}
+  .g-soup{background:linear-gradient(140deg,#8a6f42,#4a3a22)}
+
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .6s ease}
+  .rv.in{opacity:1;transform:none}
+
+  /* ---------- modal ---------- */
+  #mback{position:fixed;inset:0;z-index:90;background:rgba(8,7,5,.7);backdrop-filter:blur(6px);
+    display:none;align-items:flex-end;justify-content:center}
+  @media(min-width:640px){#mback{align-items:center}}
+  #mback.open{display:flex}
+  .msheet{width:100%;max-width:480px;max-height:92vh;overflow-y:auto;background:var(--bg2);
+    border:1px solid rgba(201,162,94,.25);border-radius:22px 22px 0 0;animation:up .3s ease}
+  @media(min-width:640px){.msheet{border-radius:22px}}
+  @keyframes up{from{transform:translateY(50px);opacity:0}to{transform:none;opacity:1}}
+  .mgal{position:relative;overflow:hidden;border-radius:22px 22px 0 0}
+  .mslides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
+  .mslides::-webkit-scrollbar{display:none}
+  .mslide{flex:0 0 100%;aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;
+    font-size:92px;scroll-snap-align:center;position:relative}
+  .mslide .big{display:inline-block}
+  .mslide img{width:100%;height:100%;object-fit:cover;display:block}
+  .garr{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;
+    background:rgba(8,7,5,.55);color:#ece5d6;cursor:pointer;z-index:6;font-size:14px;
+    display:flex;align-items:center;justify-content:center;transition:.2s}
+  .garr.l{left:10px}.garr.r{right:10px}
+  .garr:hover{background:var(--gold);color:#231a0c}
+  .gdots{position:absolute;bottom:11px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:6;pointer-events:none}
+  .gdots span{width:7px;height:7px;border-radius:4px;background:rgba(236,229,214,.45);transition:.25s}
+  .gdots span.on{background:var(--gold);width:20px}
+  .mgal .stamp{top:12px;left:12px}
+  .mx{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:none;
+    background:rgba(8,7,5,.6);color:#ece5d6;font-size:15px;cursor:pointer;z-index:6}
+  .mbody{padding:20px 22px 30px}
+  .mtags{display:flex;gap:7px;margin-bottom:10px}
+  .mtag{font-size:10px;font-weight:800;padding:4px 11px;border-radius:20px;letter-spacing:1px}
+  .mtag.sig{background:var(--hanko);color:#f6ede0}
+  .mtag.hot{background:rgba(192,72,58,.18);border:1px solid rgba(192,72,58,.55);color:#e88c7d}
+  .mtag.so{background:#4a423a;color:#ded5c4}
+  .mname{font-size:21px;font-weight:800;line-height:1.3}
+  .malt{font-size:12px;color:var(--faint);margin-top:5px;line-height:1.6}
+  .mdesc{font-size:13.5px;color:var(--muted);line-height:1.7;margin-top:12px}
+  .mopts{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .mopts:empty{display:none}
+  .mopts .ttl{font-size:11px;letter-spacing:2px;color:var(--gold);font-weight:700;margin-bottom:10px}
+  .orow{display:flex;align-items:baseline;gap:8px;padding:7px 0;font-size:13.5px}
+  .orow .dots{flex:1;border-bottom:1px dotted rgba(154,143,124,.4);transform:translateY(-3px)}
+  .orow .op{font-weight:800;color:#f2dfae;font-size:15.5px;letter-spacing:.3px}
+  .mprice:not(:empty){margin-top:18px;display:inline-block;background:var(--gold);color:#231a0c;
+    font-weight:800;font-size:22px;padding:8px 24px;border-radius:28px;letter-spacing:.5px;
+    box-shadow:0 4px 14px rgba(0,0,0,.4)}
+  .mnote{margin-top:10px;font-size:12px;color:var(--matcha)}
+
+  #top{position:fixed;right:18px;bottom:20px;width:42px;height:42px;border-radius:50%;z-index:70;
+    border:1px solid var(--gold);background:rgba(19,18,16,.85);color:var(--gold);font-size:16px;
+    cursor:pointer;opacity:0;pointer-events:none;transition:.3s}
+  #top.show{opacity:1;pointer-events:auto}
+  #top:hover{background:var(--gold);color:#231a0c}
+
+  footer{border-top:1px solid var(--line);text-align:center;padding:44px 20px 54px;color:var(--muted);font-size:12.5px;line-height:2}
+  footer .fj{font-family:var(--serif);letter-spacing:6px;color:var(--gold);font-size:13px;text-indent:6px}
+  footer .fb{font-family:var(--serif);font-size:26px;font-weight:600;letter-spacing:4px;color:var(--ink)}
+</style>
+</head>
+<body class="lang-th">
+
+<div id="progress"></div>
+
+<header id="topbar">
+  <a class="logo" href="#">
+    <span class="nm">KYOTO SHI CAFE<small>RAYONG</small></span>
+  </a>
+  <div class="lang">
+    <button class="on" onclick="setLang('th',this)">ไทย</button>
+    <button onclick="setLang('en',this)">EN</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="vkanji">キョウトシ</div>
+  <h1>Kyoto Shi Cafe</h1>
+  <div class="ray">RAYONG</div>
+  <div class="kata">キョウトシ カフェ</div>
+  <div class="shimmer"></div>
+  <div class="sub">
+    <span data-th>เกียวโตชิคาเฟ่ ระยอง · คาเฟ่ & ครัวญี่ปุ่น</span>
+    <span data-en>JAPANESE CAFÉ &amp; KITCHEN · RAYONG</span>
+  </div>
+  <div class="hint">
+    <span data-th>เลื่อนดูเมนู ↓</span><span data-en>SCROLL ↓</span>
+  </div>
+</section>
+
+<!-- CHIPS NAV -->
+<nav id="chips"><div class="row" id="chiprow"></div></nav>
+
+<main class="wrap">
+
+  <!-- SIGNATURE -->
+  <section id="c-sig">
+    <div class="shead rv">
+      <span class="no">★</span>
+      <div>
+        <h2><span data-th>เมนูแนะนำของร้าน</span><span data-en>House Signatures</span></h2>
+        <div class="sub">SIGNATURE</div>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="sigwrap rv">
+      <button class="arrow l" onclick="slide(-1)">❮</button>
+      <button class="arrow r" onclick="slide(1)">❯</button>
+      <div id="sigrow"></div>
+    </div>
+  </section>
+
+  <div id="sections"></div>
+
+</main>
+
+<footer>
+  <div class="fj">RAYONG</div>
+  <div class="fb">KYOTO SHI CAFE</div>
+  <div style="margin-top:12px">
+    <span data-th>สั่งล่วงหน้าผ่าน LINE · รับที่ร้านได้เลย</span>
+    <span data-en>Pre-order via LINE · ready for pickup</span>
+  </div>
+  <div style="opacity:.55;margin-top:14px">© Kyoto Shi Cafe Rayong · เกียวโตชิคาเฟ่ ระยอง</div>
+</footer>
+
+<!-- MODAL -->
+<div id="mback" onclick="if(event.target===this)closeM()">
+  <div class="msheet" role="dialog" aria-modal="true">
+    <div class="mgal">
+      <button class="mx" onclick="closeM()">✕</button>
+      <div class="mslides" id="mslides" onscroll="galScroll()"></div>
+      <span class="stamp" id="mstamp" style="display:none">★</span>
+      <button class="garr l" id="garrL" onclick="galGo(-1)">❮</button>
+      <button class="garr r" id="garrR" onclick="galGo(1)">❯</button>
+      <div class="gdots" id="gdots"></div>
+    </div>
+    <div class="mbody">
+      <div class="mtags" id="mtags"></div>
+      <h3 class="mname" id="mname"></h3>
+      <div class="malt" id="malt"></div>
+      <p class="mdesc" id="mdesc"></p>
+      <div class="mopts" id="mopts"></div>
+      <div class="mprice" id="mprice"></div>
+      <div class="mnote" id="mnote"></div>
+    </div>
+  </div>
+</div>
+
+<button id="top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+/* ═══════════ DATA ═══════════
+   ข้อมูลจริงโหลดสดจาก menu.json (แก้ผ่าน admin.html → ลูกค้าเห็นใน ~1 นาที)
+   FB คือ fallback ฝังไว้กรณีโหลดไม่สำเร็จเท่านั้น */
+var LANG='th';
+var UI={
+  from:{th:'เริ่มต้น',en:'from'},
+  sold:{th:'วันนี้หมด',en:'SOLD OUT'},
+  hot:{th:'เผ็ด 🌶',en:'Spicy 🌶'},
+  choose:{th:'เลือกได้',en:'CHOOSE ONE'},
+  sig:{th:'★ เมนูแนะนำ',en:'★ SIGNATURE'}
+};
+var CATS=[];
+
+function t(o){return o?(o[LANG]||o.th||''):''}
+function priceHTML(it){
+  if(it.from)return '<span class="fr">'+t(UI.from)+'</span> ฿'+it.from;
+  return '฿'+it.price;
+}
+function firstPhoto(it){return (it.photos&&it.photos.length)?it.photos[0]:null}
+function phBlock(it,cls,fs){
+  var p=firstPhoto(it);
+  if(p)return '<div class="ph haspic '+cls+'"><img class="pimg" src="'+p+'" alt="" loading="lazy"></div>';
+  return '<div class="ph '+cls+' '+it.g+'">'+it.e+'<span class="cam">PHOTO</span></div>';
+}
+function optPreview(it){
+  if(!it.opts)return'';
+  var names=it.opts.map(function(o){return t(o).replace('★ ','★')}).join(' · ');
+  return '<div class="opt">'+names+'</div>';
+}
+function featList(){
+  var a=[];
+  CATS.forEach(function(c,ci){c.items.forEach(function(it,ii){
+    if(it.feat&&!it.sold)a.push({ci:ci,ii:ii,it:it});
+  })});
+  return a;
+}
+
+/* ═══════════ RENDER ═══════════ */
+function renderChips(){
+  var h='<a href="#c-sig" data-sec="c-sig">'+(LANG==='th'?'★ แนะนำ':'★ Signature')+'</a>';
+  CATS.forEach(function(c){h+='<a href="#c-'+c.id+'" data-sec="c-'+c.id+'">'+t(c.t)+'</a>'});
+  document.getElementById('chiprow').innerHTML=h;
+}
+function renderSig(){
+  var h='';
+  featList().forEach(function(f,i){
+    var it=f.it;
+    h+='<div class="scard rv" style="transition-delay:'+(i*70)+'ms" onclick="openM('+f.ci+','+f.ii+')">'
+      +phBlock(it,'')
+      +'<span class="stamp">★</span><div class="scrim"></div>'
+      +'<div class="txt"><div class="nm">'+t(it)+'</div><div class="ds">'+(it.d?t(it.d):'')+'</div>'
+      +'<div class="pr">'+priceHTML(it)+'</div></div></div>';
+  });
+  document.getElementById('sigrow').innerHTML=h;
+}
+function renderSections(){
+  var h='';
+  CATS.forEach(function(c,ci){
+    h+='<section id="c-'+c.id+'">'
+      +'<div class="shead rv"><span class="no">'+c.no+'</span><div><h2>'+t(c.t)+'</h2>'
+      +'<div class="sub">'+(c.sub||'')+'</div></div><div class="rule"></div></div>'
+      +(c.note?'<div class="snote rv">◦ '+t(c.note)+'</div>':'')
+      +'<div class="grid">';
+    c.items.forEach(function(it,ii){
+      h+='<div class="tile rv'+(it.sold?' sold':'')+'" style="transition-delay:'+((ii%4)*60)+'ms" onclick="openM('+ci+','+ii+')">'
+        +'<div class="phw">'+phBlock(it,'')
+        +(it.sig?'<span class="stamp">★</span>':'')
+        +(it.hot&&!it.sig?'<span class="hotchip">'+t(UI.hot)+'</span>':'')
+        +(it.sold?'<div class="ribbon">'+t(UI.sold)+'</div>':'')
+        +'</div><div class="info"><div class="nm">'+t(it)+'</div>'
+        +'<div class="pr">'+priceHTML(it)+'</div>'+optPreview(it)+'</div></div>';
+    });
+    h+='</div></section>';
+  });
+  document.getElementById('sections').innerHTML=h;
+}
+
+/* ═══════════ MODAL + GALLERY ═══════════ */
+function openM(ci,ii){
+  var cat=CATS[ci],it=cat.items[ii];
+  var photos=(it.photos&&it.photos.length)?it.photos:[0,1,2];
+  var sh='';
+  photos.forEach(function(p,i){
+    if(typeof p==='string'){
+      sh+='<div class="mslide"><img src="'+p+'" alt="" loading="lazy"></div>';
+    }else{
+      var tw=['','transform:scale(1.22)','transform:rotate(-10deg) scale(.92)'][i%3]||'';
+      sh+='<div class="mslide ph '+it.g+'" style="filter:brightness('+(1-(i%3)*.07)+')">'
+        +'<span class="big" style="'+tw+'">'+it.e+'</span>'
+        +'<span class="cam">PHOTO '+(i+1)+' / '+photos.length+'</span></div>';
+    }
+  });
+  var sl=document.getElementById('mslides');
+  sl.innerHTML=sh;sl.scrollLeft=0;
+  var dh='';photos.forEach(function(_,i){dh+='<span'+(i?'':' class="on"')+'></span>'});
+  document.getElementById('gdots').innerHTML=photos.length>1?dh:'';
+  document.getElementById('garrL').style.display=photos.length>1?'flex':'none';
+  document.getElementById('garrR').style.display=photos.length>1?'flex':'none';
+  document.getElementById('mstamp').style.display=it.sig?'flex':'none';
+
+  var tags='';
+  if(it.sig)tags+='<span class="mtag sig">'+t(UI.sig)+'</span>';
+  if(it.hot)tags+='<span class="mtag hot">'+t(UI.hot)+'</span>';
+  if(it.sold)tags+='<span class="mtag so">'+t(UI.sold)+'</span>';
+  document.getElementById('mtags').innerHTML=tags;
+  document.getElementById('mname').textContent=t(it);
+  document.getElementById('malt').textContent=(LANG==='th'?it.en:it.th)||'';
+  document.getElementById('mdesc').textContent=it.d?t(it.d):'';
+  var oh='';
+  if(it.opts&&it.opts.length){
+    oh='<div class="ttl">'+t(UI.choose)+'</div>';
+    it.opts.forEach(function(o){
+      oh+='<div class="orow"><span>'+t(o)+'</span><span class="dots"></span><span class="op">฿'+o.price+'</span></div>';
+    });
+  }
+  document.getElementById('mopts').innerHTML=oh;
+  document.getElementById('mprice').innerHTML=(it.opts&&it.opts.length)?'':'฿'+(it.price||it.from);
+  document.getElementById('mnote').textContent=cat.note?('◦ '+t(cat.note)):'';
+  document.getElementById('mback').classList.add('open');
+  document.body.classList.add('noscroll');
+}
+function closeM(){
+  document.getElementById('mback').classList.remove('open');
+  document.body.classList.remove('noscroll');
+}
+function galGo(d){
+  var sl=document.getElementById('mslides');
+  sl.scrollBy({left:d*sl.clientWidth,behavior:'smooth'});
+}
+var gtick=false;
+function galScroll(){
+  if(gtick)return;gtick=true;
+  requestAnimationFrame(function(){
+    var sl=document.getElementById('mslides');
+    var idx=Math.round(sl.scrollLeft/sl.clientWidth);
+    document.querySelectorAll('#gdots span').forEach(function(dd,i){dd.classList.toggle('on',i===idx)});
+    gtick=false;
+  });
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeM()});
+
+/* ═══════════ INTERACTIONS ═══════════ */
+function slide(dir){document.getElementById('sigrow').scrollBy({left:dir*340,behavior:'smooth'})}
+function setLang(l,btn){
+  LANG=l;document.body.className='lang-'+l;
+  document.querySelectorAll('.lang button').forEach(function(b){b.classList.remove('on')});
+  btn.classList.add('on');
+  renderAll();
+}
+var io;
+function setupReveal(){
+  if(io)io.disconnect();
+  io=new IntersectionObserver(function(es){
+    es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target)}});
+  },{threshold:.08});
+  document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
+}
+function renderAll(){renderChips();renderSig();renderSections();setupReveal();spy()}
+
+function spy(){
+  var pos=window.scrollY+140;
+  var cur='c-sig';
+  document.querySelectorAll('main section').forEach(function(s){if(s.offsetTop<=pos)cur=s.id});
+  document.querySelectorAll('#chiprow a').forEach(function(a){
+    a.classList.toggle('on',a.getAttribute('data-sec')===cur);
+  });
+}
+var tick=false;
+window.addEventListener('scroll',function(){
+  if(tick)return;tick=true;
+  requestAnimationFrame(function(){
+    var y=window.scrollY;
+    document.getElementById('topbar').classList.toggle('solid',y>50);
+    document.getElementById('top').classList.toggle('show',y>700);
+    var d=document.documentElement;
+    var p=y/(d.scrollHeight-d.clientHeight)*100;
+    document.getElementById('progress').style.width=p+'%';
+    spy();tick=false;
+  });
+});
+
+/* ═══════════ LOAD ═══════════ */
+var FB={"categories":[
+ {"id":"rice","no":"01","t":{"th":"จานด่วน · ราดข้าว","en":"Rice Plates"},"sub":"QUICK RICE",
+  "note":{"th":"ทุกจาน: เพิ่มน้ำซุป + ไข่ดาว 15.-","en":"Any plate: add soup + fried egg 15.-"},
+  "items":[
+   {"id":"r1","th":"พริกเกลือหมูกรอบ","en":"Salt-Chili Crispy Pork","price":99,"g":"g-noodle","e":"🥓","sig":1},
+   {"id":"r2","th":"ผัดกะเพราหมูสับ","en":"Minced Pork Basil","price":79,"g":"g-basil","e":"🌿","hot":1},
+   {"id":"r3","th":"ผัดกะเพราไก่กรอบ","en":"Crispy Chicken Basil","price":89,"g":"g-basil","e":"🍗","hot":1},
+   {"id":"r4","th":"ผัดกะเพราหมูกรอบ","en":"Crispy Pork Basil","price":99,"g":"g-basil","e":"🥓","hot":1},
+   {"id":"r5","th":"ผัดกะเพรากุ้ง","en":"Shrimp Basil","price":99,"g":"g-basil","e":"🦐","hot":1},
+   {"id":"r6","th":"ผัดคะน้าหมูกรอบ","en":"Crispy Pork & Chinese Kale","price":99,"g":"g-salad","e":"🥬"}]},
+ {"id":"noodle","no":"02","t":{"th":"เส้น","en":"Noodles"},"sub":"NOODLES","items":[
+   {"id":"n1","th":"ราดหน้าทะเล","en":"Seafood Noodles in Gravy","price":129,"g":"g-noodle","e":"🍜","sig":1,"feat":1,
+    "d":{"th":"เลือกเส้นหมี่ หรือเส้นใหญ่กรอบ ราดซอสทะเลเข้มข้น","en":"Thin or crispy wide noodles in rich seafood gravy"}},
+   {"id":"n2","th":"ยากิโซบะ","en":"Yakisoba","price":159,"g":"g-noodle","e":"🍝","sig":1,"feat":1,
+    "d":{"th":"เส้นผัดซอสสไตล์ญี่ปุ่น หอมกระทะ","en":"Japanese stir-fried noodles, wok-fragrant"}},
+   {"id":"n3","th":"มาม่าผัดขี้เมาไข่กุ้ง","en":"Drunken Mama Noodles, Shrimp & Egg","from":119,"g":"g-noodle","e":"🔥","hot":1,
+    "opts":[{"th":"ไก่คาราเกะ","en":"Chicken Karaage","price":119},{"th":"หมูทงคัตสึ","en":"Pork Tonkatsu","price":139},
+     {"th":"กุ้งเทมปุระ","en":"Shrimp Tempura","price":149},{"th":"★ เนื้อออสเตรเลียแบล็คแองกัส","en":"★ Black Angus Beef","price":189},
+     {"th":"★ เนื้อเสือร้องไห้วากิว","en":"★ Wagyu Beef","price":229}]}]},
+ {"id":"don","no":"03","t":{"th":"ข้าวหน้าญี่ปุ่น","en":"Japanese Rice Bowls"},"sub":"RICE BOWLS","items":[
+   {"id":"d1","th":"ข้าวไข่ข้น","en":"Creamy Egg Rice","from":99,"g":"g-egg","e":"🍳",
+    "opts":[{"th":"เบค่อน","en":"Bacon","price":99},{"th":"ไก่คาราเกะ","en":"Chicken Karaage","price":139},
+     {"th":"หมูทงคัตสึ","en":"Pork Tonkatsu","price":149},{"th":"กุ้ง","en":"Shrimp","price":149}]},
+   {"id":"d2","th":"ข้าวแกงกะหรี่","en":"Japanese Curry Rice","from":159,"g":"g-curry","e":"🍛","sig":1,
+    "opts":[{"th":"ไก่คาราเกะ","en":"Chicken Karaage","price":159},{"th":"หมูทงคัตสึ","en":"Pork Tonkatsu","price":169},
+     {"th":"กุ้งเทมปุระ","en":"Shrimp Tempura","price":179},{"th":"★ เนื้อออสเตรเลียแบล็คแองกัส","en":"★ Black Angus Beef","price":199},
+     {"th":"★ เนื้อเสือร้องไห้วากิว","en":"★ Wagyu Beef","price":229}]},
+   {"id":"d3","th":"ข้าวด้ง","en":"Donburi","from":119,"g":"g-fish","e":"🍚","sig":1,"feat":1,
+    "d":{"th":"ท็อปแซลมอนเบิร์นหอมกลิ่นไฟ บนข้าวญี่ปุ่นร้อน ๆ","en":"Try the torched salmon over hot Japanese rice"},
+    "opts":[{"th":"ไก่คาราเกะ","en":"Chicken Karaage","price":119},{"th":"หมูทงคัตสึ","en":"Pork Tonkatsu","price":129},
+     {"th":"กุ้งเทมปุระ","en":"Shrimp Tempura","price":139},{"th":"★ แซลมอนเบิร์น","en":"★ Burnt Salmon","price":199}]}]},
+ {"id":"plate","no":"04","t":{"th":"ข้าวจานเดียว","en":"One-Plate Rice"},"sub":"RICE DISH","items":[
+   {"id":"p1","th":"ข้าวผัดมันเนื้อวากิว ท็อปเสือร้องไห้","en":"Wagyu-Fat Fried Rice, Grilled Beef","price":269,"g":"g-beef","e":"🥩","sig":1,"feat":1,
+    "d":{"th":"ข้าวผัดมันวากิวหอมกรุ่น ท็อปเนื้อเสือร้องไห้ย่างนุ่มฉ่ำ","en":"Fragrant rice fried in wagyu fat, topped with grilled beef"}},
+   {"id":"p2","th":"ข้าวไก่ทอดซอสเทอริยากิ","en":"Teriyaki Fried-Chicken Rice","price":89,"g":"g-rice","e":"🍗"},
+   {"id":"p3","th":"ข้าวยำไก่แซ่บ","en":"Spicy Chicken Salad Rice","price":89,"g":"g-salad","e":"🥗","hot":1},
+   {"id":"p4","th":"ข้าวหมูทงคัตสึ","en":"Tonkatsu Rice","price":139,"g":"g-rice","e":"🐖"},
+   {"id":"p5","th":"ข้าวเปล่า","en":"Steamed Rice","price":20,"g":"g-rice","e":"🍚"}]},
+ {"id":"yum","no":"05","t":{"th":"ยำ · เนื้อย่าง","en":"Thai Salads & Grilled Beef"},"sub":"SALAD & BEEF","items":[
+   {"id":"y1","th":"น้ำตกเนื้อแบล็คแองกัส","en":"Black Angus Beef Namtok","price":159,"g":"g-beef","e":"🥩","sig":1,"hot":1},
+   {"id":"y2","th":"ยำวุ้นเส้นซีฟู้ด","en":"Spicy Glass-Noodle Seafood Salad","price":169,"g":"g-salad","e":"🦐","sig":1,"hot":1,"feat":1,
+    "d":{"th":"ยำแซ่บซีฟู้ดแน่น รสจัดถึงใจ","en":"Zesty Thai salad loaded with seafood"}},
+   {"id":"y3","th":"เนื้อแบล็คแองกัสจิ้มแจ่ว","en":"Black Angus with Jaew Dip","price":219,"g":"g-beef","e":"🥩","sig":1,"feat":1,
+    "d":{"th":"เนื้อแบล็คแองกัสย่าง เสิร์ฟพร้อมแจ่วสูตรร้าน","en":"Grilled Black Angus with house jaew dipping sauce"}},
+   {"id":"y4","th":"ยำปลาทูน่า","en":"Spicy Tuna Salad","price":209,"g":"g-fish","e":"🐟","hot":1},
+   {"id":"y5","th":"ยำสลัดผลไม้แซลมอน","en":"Salmon & Fruit Salad","price":219,"g":"g-fish","e":"🍣"}]},
+ {"id":"snack","no":"06","t":{"th":"ของทานเล่น","en":"Snacks & Sides"},"sub":"SNACKS","items":[
+   {"id":"s1","th":"เฟรนช์ฟรายส์","en":"French Fries","price":69,"g":"g-snack","e":"🍟"},
+   {"id":"s2","th":"เกี๊ยวซ่า 4 ชิ้น","en":"Gyoza (4 pcs)","price":69,"g":"g-snack","e":"🥟"},
+   {"id":"s3","th":"ไก่คาราเกะ","en":"Chicken Karaage","price":79,"g":"g-snack","e":"🍗"},
+   {"id":"s4","th":"ทาโกยากิ","en":"Takoyaki","price":79,"g":"g-snack","e":"🐙"},
+   {"id":"s5","th":"ไส้กรอกแดงทอดกรอบ","en":"Crispy Red Sausage","price":89,"g":"g-snack","e":"🌭"},
+   {"id":"s6","th":"ครีมโคร็อคเกะมันปูหิมะ","en":"Snow-Crab Cream Croquette","price":109,"g":"g-snack","e":"🦀"},
+   {"id":"s7","th":"เกี๊ยวซ่า 8 ชิ้น","en":"Gyoza (8 pcs)","price":119,"g":"g-snack","e":"🥟"}]},
+ {"id":"burger","no":"07","t":{"th":"เบอร์เกอร์ · ซุป","en":"Burgers & Soup"},"sub":"BURGER & SOUP","items":[
+   {"id":"b1","th":"เบอร์เกอร์หมู","en":"Pork Burger","price":59,"g":"g-burger","e":"🍔"},
+   {"id":"b2","th":"เบอร์เกอร์เนื้อ","en":"Beef Burger","price":69,"g":"g-burger","e":"🍔"},
+   {"id":"b3","th":"ซุปมิโซะ / ดาชิ","en":"Miso / Dashi Soup","price":25,"g":"g-soup","e":"🍲"}]}
+]};
+
+CATS=FB.categories;
+renderAll();
+/* โหลดข้อมูลสดจาก menu.json (cache-bust ทุกครั้ง → เห็นเมนูล่าสุดเสมอ) */
+fetch('menu.json?t='+Date.now(),{cache:'no-store'})
+  .then(function(r){if(!r.ok)throw 0;return r.json()})
+  .then(function(j){if(j&&j.categories&&j.categories.length){CATS=j.categories;renderAll();}})
+  .catch(function(){/* ใช้ FB ต่อ */});
+</script>
+</body>
+</html>
