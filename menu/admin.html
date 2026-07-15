@@ -84,6 +84,32 @@
   .addbtn{display:block;width:calc(100% - 28px);margin:10px 14px 14px;border:1px dashed rgba(201,162,94,.4);
     background:transparent;color:var(--gold);padding:10px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer}
 
+  /* poster manager */
+  .promo{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:14px;overflow:hidden}
+  .promo .chead{display:flex;align-items:center;gap:10px;padding:14px 16px}
+  .promo .chead .ic{color:var(--gold);font-size:16px}
+  .promo .chead .cn{font-size:15px;font-weight:800;flex:1}
+  .promo .chead .cnt{font-size:11px;color:var(--faint)}
+  .promo .pdesc{font-size:11.5px;color:var(--muted);padding:0 16px 10px;line-height:1.6;margin-top:-4px}
+  .prow2{display:flex;gap:12px;padding:8px 14px;border-top:1px solid rgba(236,229,214,.05);align-items:center}
+  .prow2 .pth{width:58px;height:82px;border-radius:9px;flex:none;overflow:hidden;position:relative;
+    background:#26221b;display:flex;align-items:center;justify-content:center}
+  .prow2 .pth img{width:100%;height:100%;object-fit:cover}
+  .prow2 .pth .ord{position:absolute;top:3px;left:4px;font-size:10px;color:var(--gold-l);font-weight:800;
+    background:rgba(8,7,5,.6);border-radius:5px;padding:1px 5px}
+  .prow2 .pmid{flex:1;min-width:0}
+  .tagpick{display:flex;gap:5px;margin-bottom:7px}
+  .tagpick button{border:1px solid var(--line);background:var(--bg2);color:var(--muted);
+    padding:5px 10px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer}
+  .tagpick button.on{background:var(--gold);color:#231a0c;border-color:var(--gold)}
+  .tagpick button.on.new{background:var(--hanko);color:#fff;border-color:var(--hanko)}
+  .plink{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+    padding:7px 9px;font-size:12px;font-family:var(--sans)}
+  .pacts{display:flex;flex-direction:column;gap:5px;flex:none}
+  .pacts button{width:34px;height:24px;border:1px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:7px;font-size:12px;cursor:pointer}
+  .pacts button.del{color:var(--red);border-color:rgba(192,72,58,.4)}
+
   /* g swatches (reuse gradients) */
   .g-beef{background:linear-gradient(140deg,#7a3322,#3c170e)} .g-basil{background:linear-gradient(140deg,#55702f,#293c16)}
   .g-noodle{background:linear-gradient(140deg,#b0762c,#644013)} .g-curry{background:linear-gradient(140deg,#b57722,#6a4112)}
@@ -265,6 +291,7 @@
 </div>
 
 <div id="toast"></div>
+<input type="file" id="posterFile" accept="image/*" multiple style="display:none" onchange="pickPoster(this)">
 
 <script>
 /* ═══════════ CONFIG ═══════════ */
@@ -307,7 +334,7 @@ function boot(){
   document.getElementById('app').innerHTML='<p style="color:var(--muted);text-align:center;padding:30px">กำลังโหลดเมนู...</p>';
   fetch(API+JSON_PATH+'?ref='+BRANCH,{headers:hd()})
     .then(function(r){if(!r.ok)throw 0;return r.json()})
-    .then(function(j){SHA=j.sha;DATA=JSON.parse(b64d(j.content));render();})
+    .then(function(j){SHA=j.sha;DATA=JSON.parse(b64d(j.content));if(!DATA.posters)DATA.posters=[];render();})
     .catch(function(){document.getElementById('app').innerHTML=
       '<p style="color:#e8a49b;text-align:center;padding:30px">โหลด menu.json ไม่สำเร็จ — เช็คอินเทอร์เน็ต/Token แล้วรีเฟรช</p>'});
 }
@@ -318,8 +345,42 @@ function thumbHTML(it){
   if(p){var src=PREVIEW[p]||p;return '<div class="thumb"><img src="'+src+'"></div>'}
   return '<div class="thumb '+(it.g||'g-rice')+'">'+(it.e||'🍽')+'</div>';
 }
+function allItems(){
+  var a=[{v:'',th:'— ไม่ลิงก์เมนู —'}];
+  DATA.categories.forEach(function(c){c.items.forEach(function(it){a.push({v:it.id,th:it.th})})});
+  return a;
+}
+function promoHTML(){
+  var ps=DATA.posters||[];
+  var h='<div class="promo"><div class="chead"><span class="ic">✦</span>'
+    +'<span class="cn">โปสเตอร์ไฮไลท์</span><span class="cnt">'+ps.length+' ใบ</span></div>'
+    +'<div class="pdesc">โชว์ก่อนเมนู (ปก → โปสเตอร์ → เมนู) · ปัดซ้ายขวาได้ · แนะนำอัปรูปแนวตั้ง A4</div>';
+  ps.forEach(function(p,i){
+    var src=PREVIEW[p.img]||p.img;
+    var opts=allItems().map(function(o){
+      return '<option value="'+o.v+'"'+(o.v===(p.go||'')?' selected':'')+'>'+o.th+'</option>';
+    }).join('');
+    h+='<div class="prow2">'
+      +'<div class="pth"><span class="ord">'+(i+1)+'</span><img src="'+src+'"></div>'
+      +'<div class="pmid"><div class="tagpick">'
+        +'<button class="'+(!p.tag?'on':'')+'" onclick="posterTag('+i+',\'\')">ไม่มีป้าย</button>'
+        +'<button class="new '+(p.tag==='new'?'on':'')+'" onclick="posterTag('+i+',\'new\')">NEW</button>'
+        +'<button class="'+(p.tag==='rec'?'on':'')+'" onclick="posterTag('+i+',\'rec\')">แนะนำ</button>'
+      +'</div>'
+      +'<select class="plink" onchange="posterLink('+i+',this.value)">'+opts+'</select>'
+      +'</div>'
+      +'<div class="pacts">'
+        +'<button onclick="movePoster('+i+',-1)" title="ขึ้น">↑</button>'
+        +'<button onclick="movePoster('+i+',1)" title="ลง">↓</button>'
+        +'<button class="del" onclick="removePoster('+i+')" title="ลบ">🗑</button>'
+      +'</div></div>';
+  });
+  h+='<button class="addbtn" onclick="document.getElementById(\'posterFile\').click()">+ เพิ่มโปสเตอร์ (อัปรูป)</button>'
+    +'</div>';
+  return h;
+}
 function render(){
-  var h='';
+  var h=promoHTML();
   DATA.categories.forEach(function(c,ci){
     h+='<div class="cat'+(ci===0?' open':'')+'" id="cat'+ci+'">'
       +'<div class="chead" onclick="tgl('+ci+')"><span class="no">'+(c.no||'')+'</span>'
@@ -356,6 +417,34 @@ function markDirty(){
 function tglSold(ci,ii,v){
   DATA.categories[ci].items[ii].sold=v?1:0;
   markDirty();render();
+}
+
+/* ═══════════ POSTERS ═══════════ */
+function pickPoster(inp){
+  var files=Array.prototype.slice.call(inp.files||[]);
+  if(!files.length)return;
+  toast('กำลังย่อรูปโปสเตอร์...');
+  var chain=Promise.resolve();
+  files.forEach(function(f){
+    chain=chain.then(function(){return compress(f,1400)}).then(function(dataUrl){
+      var name='photos/poster-'+Date.now()+'-'+Math.floor(Math.random()*999)+'.jpg';
+      PENDING.push({name:name,b64:dataUrl.split(',')[1]});
+      PREVIEW[name]=dataUrl;
+      DATA.posters.push({id:'ps'+Date.now().toString(36),img:name,tag:'',go:''});
+    });
+  });
+  chain.then(function(){inp.value='';markDirty();render();toast('เพิ่มโปสเตอร์แล้ว — จะอัปตอนกดบันทึก')});
+}
+function posterTag(i,tag){DATA.posters[i].tag=tag;markDirty();render()}
+function posterLink(i,v){DATA.posters[i].go=v;markDirty()}
+function movePoster(i,d){
+  var a=DATA.posters,ni=i+d;
+  if(ni<0||ni>=a.length)return;
+  var tmp=a[i];a[i]=a[ni];a[ni]=tmp;markDirty();render();
+}
+function removePoster(i){
+  if(!confirm('ลบโปสเตอร์ใบนี้?'))return;
+  DATA.posters.splice(i,1);markDirty();render();
 }
 
 /* ═══════════ EDIT MODAL ═══════════ */
@@ -436,11 +525,11 @@ function pickPhotos(inp){
   });
   chain.then(function(){inp.value='';toast('เพิ่มรูปแล้ว — จะอัปโหลดตอนกดบันทึก')});
 }
-function compress(file){
+function compress(file,max){
   return new Promise(function(res,rej){
     var img=new Image();
     img.onload=function(){
-      var mx=900,sc=Math.min(1,mx/Math.max(img.width,img.height));
+      var mx=max||900,sc=Math.min(1,mx/Math.max(img.width,img.height));
       var c=document.createElement('canvas');
       c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
@@ -510,6 +599,7 @@ function saveAll(){
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>กำลังบันทึก...';
   var used={};
   DATA.categories.forEach(function(c){c.items.forEach(function(it){(it.photos||[]).forEach(function(p){used[p]=1})})});
+  (DATA.posters||[]).forEach(function(p){if(p.img)used[p.img]=1});
   var ups=PENDING.filter(function(p){return used[p.name]});   /* อัปเฉพาะรูปที่ยังถูกใช้ */
   var chain=Promise.resolve();
   ups.forEach(function(p,i){
