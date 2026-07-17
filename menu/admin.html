@@ -109,6 +109,28 @@
   .pacts button{width:34px;height:24px;border:1px solid var(--line);background:transparent;color:var(--muted);
     border-radius:7px;font-size:12px;cursor:pointer}
   .pacts button.del{color:var(--red);border-color:rgba(192,72,58,.4)}
+  /* bean/grade swatches + drink gradients */
+  .sw{position:relative;box-shadow:inset 0 -5px 12px rgba(0,0,0,.35)}
+  .sw.g1{background:linear-gradient(145deg,#c2cd86,#94a552)} .sw.g2{background:linear-gradient(145deg,#82b257,#4f7c2e)} .sw.g3{background:linear-gradient(145deg,#4f7f34,#243f18)}
+  .g-coffee{background:linear-gradient(140deg,#6b4326,#2c1a10)} .g-espr{background:linear-gradient(140deg,#4a2c17,#1c0f07)}
+  .g-mocha{background:linear-gradient(140deg,#5a3a24,#241207)} .g-matcha{background:linear-gradient(140deg,#5f7f34,#2c451c)}
+  .g-tea{background:linear-gradient(140deg,#a5732f,#4a3113)} .g-milk{background:linear-gradient(140deg,#9a7b4a,#4a3a22)}
+  #bback,#gback,#fback{position:fixed;inset:0;z-index:90;background:rgba(8,7,5,.75);display:none;align-items:flex-end;justify-content:center}
+  @media(min-width:640px){#bback,#gback,#fback{align-items:center}}
+  #bback.open,#gback.open,#fback.open{display:flex}
+  /* fish gradients */
+  .g-salmon{background:linear-gradient(140deg,#e08a52,#8a3f22)} .g-akami{background:linear-gradient(140deg,#b3453f,#5e1c1a)}
+  .g-otoro{background:linear-gradient(140deg,#e39a86,#a24b45)} .g-hama{background:linear-gradient(140deg,#d8c39e,#8a7350)}
+  .g-hotate{background:linear-gradient(140deg,#e8ddc4,#a99a76)} .g-ikura{background:linear-gradient(140deg,#e8853a,#a5401a)}
+  .g-fish{background:linear-gradient(140deg,#b76245,#682f1f)}
+  .grouphead{display:flex;align-items:center;gap:10px;margin:20px 2px 10px}
+  .grouphead .ge{font-size:18px}
+  .grouphead .gn{font-size:14px;font-weight:800;color:var(--gold);letter-spacing:.5px}
+  .grouphead .gr{flex:1;height:1px;background:var(--line)}
+  .toolrow{display:flex;justify-content:flex-end;margin:0 0 12px}
+  .plink2{background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+    padding:6px 8px;font-size:11.5px;font-family:var(--sans);margin-bottom:6px;width:100%}
+  .rangerow{display:flex;align-items:center;gap:10px} .rangerow input[type=range]{flex:1;accent-color:#c9a25e} .rangerow .rv{width:38px;text-align:right;font-size:12px;color:var(--gold-l)}
 
   /* g swatches (reuse gradients) */
   .g-beef{background:linear-gradient(140deg,#7a3322,#3c170e)} .g-basil{background:linear-gradient(140deg,#55702f,#293c16)}
@@ -261,6 +283,20 @@
       <label class="chk"><input type="checkbox" id="fFeat"> โชว์การ์ดใหญ่ด้านบน</label>
     </div>
 
+    <div class="fld" id="modsWrap" style="display:none">
+      <label>ตัวปรับได้ (เครื่องดื่ม) — ติ๊กกลุ่มที่ลูกค้าปรับได้</label>
+      <div class="chks" id="modsChks"></div>
+    </div>
+
+    <div class="fld" id="fishWrap" style="display:none">
+      <label>🍣 ปลาดิบในจาน (สำหรับเซ็ต/ด้งปลาดิบ — ลูกค้าแตะดูรายละเอียดปลาได้ + มีรายการ "เพิ่มปลา" อัตโนมัติ)</label>
+      <div id="fishChks"></div>
+      <div class="frow" style="margin-top:8px">
+        <div class="fld"><label>เสิร์ฟ (ไทย) เช่น 1 คน · 9 คำ</label><input type="text" id="fServeTh"></div>
+        <div class="fld"><label>Serves (EN)</label><input type="text" id="fServeEn"></div>
+      </div>
+    </div>
+
     <div class="frow">
       <div class="fld"><label>อิโมจิ (ใช้ตอนยังไม่มีรูป)</label><input type="text" id="fEmoji" maxlength="4"></div>
       <div class="fld"><label>สีพื้น placeholder</label>
@@ -287,6 +323,91 @@
       <button class="prim" onclick="applyE()">ตกลง</button>
       <button class="rm" onclick="removeItem()" title="ลบเมนูนี้">🗑</button>
     </div>
+  </div>
+</div>
+
+<!-- BEAN EDIT -->
+<div id="bback" onclick="if(event.target===this)closeSheet('bback')">
+  <div class="esheet">
+    <h3><span>🫘 เมล็ดกาแฟ</span><button onclick="closeSheet('bback')">✕</button></h3>
+    <div class="fld"><label>ชื่อเมล็ด</label><input type="text" id="bNm" placeholder="House Blend"></div>
+    <div class="frow">
+      <div class="fld"><label>แหล่ง/คำโปรย (ไทย)</label><input type="text" id="bOthai"></div>
+      <div class="fld"><label>Origin (EN)</label><input type="text" id="bOen"></div>
+    </div>
+    <div class="frow">
+      <div class="fld"><label>ระดับคั่ว 0=อ่อน 100=เข้ม</label><input type="number" id="bRoast" min="0" max="100"></div>
+      <div class="fld"><label>ราคาเพิ่มเมื่อเลือก (บาท)</label><input type="number" id="bAdd" min="0"></div>
+    </div>
+    <div class="fld"><label>โน้ตรสชาติ ไทย (คั่นด้วย ,)</label><input type="text" id="bNthai" placeholder="ช็อกโกแลต, คาราเมล, ถั่วคั่ว"></div>
+    <div class="fld"><label>Flavor notes EN (comma)</label><input type="text" id="bNen" placeholder="Chocolate, Caramel, Nutty"></div>
+    <div class="fld"><label>คำอธิบาย (ไทย)</label><textarea id="bDthai"></textarea></div>
+    <div class="fld"><label>Description (EN)</label><textarea id="bDen"></textarea></div>
+    <div class="fld"><label>สีพื้นการ์ด</label>
+      <select id="bG"><option value="g-coffee">กาแฟ (น้ำตาล)</option><option value="g-espr">คั่วเข้ม</option><option value="g-tea">คั่วอ่อน (ทอง)</option><option value="g-mocha">ม็อคค่า</option></select>
+    </div>
+    <div class="ebar"><button class="prim" onclick="applyBean()">ตกลง</button></div>
+  </div>
+</div>
+
+<!-- GRADE EDIT -->
+<div id="gback" onclick="if(event.target===this)closeSheet('gback')">
+  <div class="esheet">
+    <h3><span>🍵 เกรดมัทฉะ</span><button onclick="closeSheet('gback')">✕</button></h3>
+    <div class="frow">
+      <div class="fld"><label>ชื่อเกรด (EN)</label><input type="text" id="gNm" placeholder="Premium"></div>
+      <div class="fld"><label>ชื่อไทย</label><input type="text" id="gSub" placeholder="พรีเมียม"></div>
+    </div>
+    <div class="frow">
+      <div class="fld"><label>ราคาเพิ่ม (บาท)</label><input type="number" id="gPrice" min="0"></div>
+      <div class="fld"><label>สีวงกลม</label><select id="gSw"><option value="g1">อ่อน</option><option value="g2">กลาง</option><option value="g3">เข้ม</option></select></div>
+    </div>
+    <div class="fld"><label>เหมาะกับ (ไทย)</label><input type="text" id="gUthai"></div>
+    <div class="fld"><label>For (EN)</label><input type="text" id="gUen"></div>
+    <div class="fld"><label>คำอธิบาย (ไทย)</label><textarea id="gDthai"></textarea></div>
+    <div class="fld"><label>Description (EN)</label><textarea id="gDen"></textarea></div>
+    <label style="font-size:11.5px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px">คุณลักษณะ (0–100)</label>
+    <div class="frow">
+      <div class="fld"><label>ขม</label><input type="number" id="gBit" min="0" max="100"></div>
+      <div class="fld"><label>อูมามิ</label><input type="number" id="gUm" min="0" max="100"></div>
+      <div class="fld"><label>สีเข้ม</label><input type="number" id="gCol" min="0" max="100"></div>
+    </div>
+    <div class="ebar"><button class="prim" onclick="applyGrade()">ตกลง</button></div>
+  </div>
+</div>
+
+<!-- FISH EDIT -->
+<div id="fback" onclick="if(event.target===this)closeSheet('fback')">
+  <div class="esheet">
+    <h3><span>🍣 ปลาดิบ</span><button onclick="closeSheet('fback')">✕</button></h3>
+    <div class="frow">
+      <div class="fld"><label>ชื่อปลา (ไทย)</label><input type="text" id="fhNm" placeholder="แซลมอน"></div>
+      <div class="fld"><label>ป้ายอังกฤษ (ตัวพิมพ์ใหญ่)</label><input type="text" id="fhEn" placeholder="SALMON"></div>
+    </div>
+    <div class="frow">
+      <div class="fld"><label>อิโมจิ</label><input type="text" id="fhE" maxlength="4"></div>
+      <div class="fld"><label>สีพื้นการ์ด</label>
+        <select id="fhG"><option value="g-salmon">ส้มแซลมอน</option><option value="g-akami">แดงทูน่า</option>
+        <option value="g-otoro">ชมพูโอโทโร่</option><option value="g-hama">ครีมฮามาจิ</option>
+        <option value="g-hotate">ขาวหอยเชลล์</option><option value="g-ikura">ส้มไข่ปลา</option><option value="g-fish">ส้มอิฐ</option></select></div>
+    </div>
+    <div class="frow">
+      <div class="fld"><label>ความมัน 0=น้อย 100=มาก</label><input type="number" id="fhFat" min="0" max="100"></div>
+      <div class="fld"><label>ราคาเพิ่มต่อส่วน (บาท)</label><input type="number" id="fhAdd" min="0"></div>
+    </div>
+    <div class="frow">
+      <div class="fld"><label>ปริมาณต่อส่วน (ไทย) เช่น 50 กรัม</label><input type="text" id="fhPth"></div>
+      <div class="fld"><label>Portion (EN) e.g. 50g</label><input type="text" id="fhPen"></div>
+    </div>
+    <div class="frow">
+      <div class="fld"><label>แหล่งที่มา (ไทย)</label><input type="text" id="fhOth" placeholder="นอร์เวย์"></div>
+      <div class="fld"><label>Origin (EN)</label><input type="text" id="fhOen" placeholder="Norway"></div>
+    </div>
+    <div class="fld"><label>โน้ตรสชาติ ไทย (คั่นด้วย ,)</label><input type="text" id="fhNth" placeholder="มันเยอะ, ละมุน"></div>
+    <div class="fld"><label>Notes EN (comma)</label><input type="text" id="fhNen" placeholder="Fatty, Silky"></div>
+    <div class="fld"><label>คำอธิบาย (ไทย)</label><textarea id="fhDth"></textarea></div>
+    <div class="fld"><label>Description (EN)</label><textarea id="fhDen"></textarea></div>
+    <div class="ebar"><button class="prim" onclick="applyFish()">ตกลง</button></div>
   </div>
 </div>
 
@@ -334,7 +455,10 @@ function boot(){
   document.getElementById('app').innerHTML='<p style="color:var(--muted);text-align:center;padding:30px">กำลังโหลดเมนู...</p>';
   fetch(API+JSON_PATH+'?ref='+BRANCH,{headers:hd()})
     .then(function(r){if(!r.ok)throw 0;return r.json()})
-    .then(function(j){SHA=j.sha;DATA=JSON.parse(b64d(j.content));if(!DATA.posters)DATA.posters=[];render();})
+    .then(function(j){SHA=j.sha;DATA=JSON.parse(b64d(j.content));
+      if(!DATA.posters)DATA.posters=[];if(!DATA.beans)DATA.beans=[];if(!DATA.grades)DATA.grades=[];if(!DATA.modGroups)DATA.modGroups={};
+      if(!DATA.fish)DATA.fish=[];if(!DATA.groups)DATA.groups=[];
+      render();})
     .catch(function(){document.getElementById('app').innerHTML=
       '<p style="color:#e8a49b;text-align:center;padding:30px">โหลด menu.json ไม่สำเร็จ — เช็คอินเทอร์เน็ต/Token แล้วรีเฟรช</p>'});
 }
@@ -346,23 +470,34 @@ function thumbHTML(it){
   return '<div class="thumb '+(it.g||'g-rice')+'">'+(it.e||'🍽')+'</div>';
 }
 function allItems(){
-  var a=[{v:'',th:'— ไม่ลิงก์เมนู —'}];
-  DATA.categories.forEach(function(c){c.items.forEach(function(it){a.push({v:it.id,th:it.th})})});
+  var a=[{v:'',th:'— แตะแล้วไม่ไปไหน —'}];
+  (DATA.groups||[]).forEach(function(g){a.push({v:'cat:'+g.id,th:'→ เปิดหมวด: '+((g.t&&g.t.th)||g.id)})});
+  DATA.categories.forEach(function(c){c.items.forEach(function(it){a.push({v:it.id,th:'→ เมนู: '+it.th})})});
+  return a;
+}
+function posterPlaces(){
+  var a=[{v:'',th:'🏠 หน้าแรก (ไฮไลท์รวม)'}];
+  (DATA.groups||[]).forEach(function(g){a.push({v:g.id,th:(g.e||'')+' หมวด'+((g.t&&g.t.th)?': '+g.t.th:'')})});
   return a;
 }
 function promoHTML(){
   var ps=DATA.posters||[];
   var h='<div class="promo"><div class="chead"><span class="ic">✦</span>'
     +'<span class="cn">โปสเตอร์ไฮไลท์</span><span class="cnt">'+ps.length+' ใบ</span></div>'
-    +'<div class="pdesc">โชว์ก่อนเมนู (ปก → โปสเตอร์ → เมนู) · ปัดซ้ายขวาได้ · แนะนำอัปรูปแนวตั้ง A4</div>';
+    +'<div class="pdesc">เลือกได้ว่าโชว์หน้าแรก หรือไฮไลท์ของหมวดไหน · แนะนำรูปแนวตั้ง A4</div>';
   ps.forEach(function(p,i){
     var src=PREVIEW[p.img]||p.img;
     var opts=allItems().map(function(o){
       return '<option value="'+o.v+'"'+(o.v===(p.go||'')?' selected':'')+'>'+o.th+'</option>';
     }).join('');
+    var places=posterPlaces().map(function(o){
+      return '<option value="'+o.v+'"'+(o.v===(p.cat||'')?' selected':'')+'>'+o.th+'</option>';
+    }).join('');
     h+='<div class="prow2">'
       +'<div class="pth"><span class="ord">'+(i+1)+'</span><img src="'+src+'"></div>'
-      +'<div class="pmid"><div class="tagpick">'
+      +'<div class="pmid">'
+      +'<select class="plink2" onchange="posterCat('+i+',this.value)">'+places+'</select>'
+      +'<div class="tagpick">'
         +'<button class="'+(!p.tag?'on':'')+'" onclick="posterTag('+i+',\'\')">ไม่มีป้าย</button>'
         +'<button class="new '+(p.tag==='new'?'on':'')+'" onclick="posterTag('+i+',\'new\')">NEW</button>'
         +'<button class="'+(p.tag==='rec'?'on':'')+'" onclick="posterTag('+i+',\'rec\')">แนะนำ</button>'
@@ -379,31 +514,61 @@ function promoHTML(){
     +'</div>';
   return h;
 }
-function render(){
-  var h=promoHTML();
-  DATA.categories.forEach(function(c,ci){
-    h+='<div class="cat'+(ci===0?' open':'')+'" id="cat'+ci+'">'
-      +'<div class="chead" onclick="tgl('+ci+')"><span class="no">'+(c.no||'')+'</span>'
-      +'<span class="cn">'+c.t.th+'</span><span class="cnt">'+c.items.length+' รายการ</span>'
-      +'<span class="car">❯</span></div><div class="cbody">';
-    c.items.forEach(function(it,ii){
-      var pr=it.opts&&it.opts.length?('เริ่ม ฿'+(it.from||minOpt(it))):('฿'+(it.price||0));
-      var tags=[];
-      if(it.sig)tags.push('★');if(it.hot)tags.push('🌶');if(it.feat)tags.push('การ์ดใหญ่');
-      h+='<div class="irow'+(it.sold?' sold':'')+'">'
-        +thumbHTML(it)
-        +'<div class="inf"><div class="nm">'+it.th+'</div>'
-        +'<div class="sb">'+pr+(tags.length?' · <span class="tag">'+tags.join(' ')+'</span>':'')
-        +((it.photos&&it.photos.length)?' · 📷'+it.photos.length:'')+'</div></div>'
-        +'<button class="soldbtn '+(it.sold?'out':'avail')+'" onclick="tglSold('+ci+','+ii+','+(it.sold?0:1)+')">'
-        +(it.sold?'✕ หมด':'<span class="dot"></span>ขายอยู่')+'</button>'
-        +'<button class="ebtn" onclick="openE('+ci+','+ii+')">✎</button>'
-        +'</div>';
-    });
-    h+='<button class="addbtn" onclick="addItem('+ci+')">+ เพิ่มเมนูในหมวดนี้</button>'
-      +'</div></div>';
+function catBlockHTML(c,ci,open){
+  var h='<div class="cat'+(open?' open':'')+'" id="cat'+ci+'">'
+    +'<div class="chead" onclick="tgl('+ci+')"><span class="no">'+(c.no||'')+'</span>'
+    +'<span class="cn">'+c.t.th+'</span><span class="cnt">'+c.items.length+' รายการ</span>'
+    +'<span class="car">❯</span></div><div class="cbody">';
+  c.items.forEach(function(it,ii){
+    var pr=it.opts&&it.opts.length?('เริ่ม ฿'+(it.from||minOpt(it))):('฿'+(it.price||0));
+    var tags=[];
+    if(it.sig)tags.push('★');if(it.hot)tags.push('🌶');if(it.mods&&it.mods.length)tags.push('⚙'+it.mods.length);
+    if(it.fish&&it.fish.length)tags.push('🍣'+it.fish.length);
+    h+='<div class="irow'+(it.sold?' sold':'')+'">'
+      +thumbHTML(it)
+      +'<div class="inf"><div class="nm">'+it.th+'</div>'
+      +'<div class="sb">'+pr+(tags.length?' · <span class="tag">'+tags.join(' ')+'</span>':'')
+      +((it.photos&&it.photos.length)?' · 📷'+it.photos.length:'')+'</div></div>'
+      +'<button class="soldbtn '+(it.sold?'out':'avail')+'" onclick="tglSold('+ci+','+ii+','+(it.sold?0:1)+')">'
+      +(it.sold?'✕ หมด':'<span class="dot"></span>ขายอยู่')+'</button>'
+      +'<button class="ebtn" onclick="openE('+ci+','+ii+')">✎</button>'
+      +'</div>';
   });
+  h+='<button class="addbtn" onclick="addItem('+ci+')">+ เพิ่มเมนูในหมวดนี้</button></div></div>';
+  return h;
+}
+function render(){
+  var h='<div class="toolrow"><button class="hbtn" onclick="resetAllSold()">↺ รีเซ็ตของหมดทั้งหมด</button></div>'
+    +promoHTML()+fishAdminHTML()+beansAdminHTML()+gradesAdminHTML();
+  var first=true;
+  if(DATA.groups&&DATA.groups.length){
+    DATA.groups.forEach(function(g){
+      var blocks='';
+      DATA.categories.forEach(function(c,ci){
+        if(c.group!==g.id)return;
+        blocks+=catBlockHTML(c,ci,first);first=false;
+      });
+      if(blocks)h+='<div class="grouphead"><span class="ge">'+(g.e||'')+'</span><span class="gn">'+((g.t&&g.t.th)||g.id)+'</span><span class="gr"></span></div>'+blocks;
+    });
+    /* หมวดที่ไม่มี group (กันตกหล่น) */
+    var orphan='';
+    DATA.categories.forEach(function(c,ci){
+      if(c.group&&DATA.groups.some(function(g){return g.id===c.group}))return;
+      orphan+=catBlockHTML(c,ci,false);
+    });
+    if(orphan)h+='<div class="grouphead"><span class="ge">❓</span><span class="gn">ยังไม่จัดกลุ่ม</span><span class="gr"></span></div>'+orphan;
+  }else{
+    DATA.categories.forEach(function(c,ci){h+=catBlockHTML(c,ci,ci===0)});
+  }
   document.getElementById('app').innerHTML=h;
+}
+function resetAllSold(){
+  if(!confirm('เปิดขายทุกเมนู + ปลาทุกตัว (ล้างสถานะ "หมด" ทั้งหมด)?'))return;
+  var n=0;
+  DATA.categories.forEach(function(c){c.items.forEach(function(it){if(it.sold){it.sold=0;n++}})});
+  (DATA.fish||[]).forEach(function(f){if(f.sold){f.sold=0;n++}});
+  if(!n)return toast('ไม่มีรายการที่หมดอยู่');
+  markDirty();render();toast('เปิดขายกลับ '+n+' รายการ — กดบันทึกเพื่อขึ้นเว็บ');
 }
 function tgl(ci){document.getElementById('cat'+ci).classList.toggle('open')}
 function minOpt(it){var m=1e9;(it.opts||[]).forEach(function(o){if(o.price<m)m=o.price});return m===1e9?0:m}
@@ -437,6 +602,7 @@ function pickPoster(inp){
 }
 function posterTag(i,tag){DATA.posters[i].tag=tag;markDirty();render()}
 function posterLink(i,v){DATA.posters[i].go=v;markDirty()}
+function posterCat(i,v){DATA.posters[i].cat=v;markDirty()}
 function movePoster(i,d){
   var a=DATA.posters,ni=i+d;
   if(ni<0||ni>=a.length)return;
@@ -446,6 +612,137 @@ function removePoster(i){
   if(!confirm('ลบโปสเตอร์ใบนี้?'))return;
   DATA.posters.splice(i,1);markDirty();render();
 }
+
+/* ═══════════ BEANS + GRADES MANAGER ═══════════ */
+function beansAdminHTML(){
+  var bs=DATA.beans||[];
+  var h='<div class="promo"><div class="chead"><span class="ic">🫘</span><span class="cn">เมล็ดกาแฟ</span><span class="cnt">'+bs.length+' ตัว</span></div>'
+    +'<div class="pdesc">โชว์หน้าเครื่องดื่ม + เป็นตัวเลือก "เลือกเมล็ด" ในเมนูกาแฟ</div>';
+  bs.forEach(function(b,i){
+    h+='<div class="prow2"><div class="pth '+(b.g||'')+'" style="width:50px;height:50px;border-radius:50%;font-size:22px">🫘</div>'
+      +'<div class="pmid"><div style="font-size:14px;font-weight:800">'+b.nm+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+((b.orig&&b.orig.th)||'')+' · '+(b.add?'+'+b.add:'รวมในราคา')+'</div></div>'
+      +'<div class="pacts"><button onclick="moveBean('+i+',-1)">↑</button><button onclick="moveBean('+i+',1)">↓</button>'
+      +'<button onclick="openBeanEdit('+i+')" style="color:var(--gold)">✎</button><button class="del" onclick="delBean('+i+')">🗑</button></div></div>';
+  });
+  return h+'<button class="addbtn" onclick="addBean()">+ เพิ่มเมล็ด</button></div>';
+}
+function gradesAdminHTML(){
+  var gs=DATA.grades||[];
+  var h='<div class="promo"><div class="chead"><span class="ic">🍵</span><span class="cn">เกรดมัทฉะ</span><span class="cnt">'+gs.length+' เกรด</span></div>'
+    +'<div class="pdesc">โชว์หน้าเครื่องดื่ม + เป็นตัวเลือก "เกรดมัทฉะ" ในเมนูมัทฉะ</div>';
+  gs.forEach(function(g,i){
+    h+='<div class="prow2"><div class="pth sw '+(g.sw||'g1')+'" style="width:50px;height:50px;border-radius:50%"></div>'
+      +'<div class="pmid"><div style="font-size:14px;font-weight:800">'+g.nm+' <span style="font-size:11px;color:var(--muted)">'+(g.thsub||'')+'</span></div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+(g.price?'+'+g.price:'รวมในราคา')+'</div></div>'
+      +'<div class="pacts"><button onclick="moveGrade('+i+',-1)">↑</button><button onclick="moveGrade('+i+',1)">↓</button>'
+      +'<button onclick="openGradeEdit('+i+')" style="color:var(--gold)">✎</button><button class="del" onclick="delGrade('+i+')">🗑</button></div></div>';
+  });
+  return h+'<button class="addbtn" onclick="addGrade()">+ เพิ่มเกรด</button></div>';
+}
+var BE=-1, GE=-1;
+function openBeanEdit(i){
+  BE=i;var b=DATA.beans[i];
+  V('bNm',b.nm);V('bOthai',b.orig?b.orig.th:'');V('bOen',b.orig?b.orig.en:'');
+  V('bRoast',Math.round((b.roast||.5)*100));V('bAdd',b.add||0);
+  V('bNthai',(b.notes&&b.notes.th||[]).join(', '));V('bNen',(b.notes&&b.notes.en||[]).join(', '));
+  V('bDthai',b.desc?b.desc.th:'');V('bDen',b.desc?b.desc.en:'');V('bG',b.g||'g-coffee');
+  openSheet('bback');
+}
+function addBean(){DATA.beans.push({id:'bn'+Date.now().toString(36),nm:'',add:0,roast:.5,g:'g-coffee',orig:{th:'',en:''},notes:{th:[],en:[]},desc:{th:'',en:''}});BE=DATA.beans.length-1;openBeanEdit(BE);}
+function applyBean(){
+  var nm=GV('bNm').trim();if(!nm)return toast('ใส่ชื่อเมล็ดก่อน');
+  var b=DATA.beans[BE];b.nm=nm;
+  b.orig={th:GV('bOthai').trim(),en:GV('bOen').trim()};
+  b.roast=Math.max(0,Math.min(1,(+GV('bRoast')||50)/100));b.add=+GV('bAdd')||0;b.g=GV('bG');
+  b.notes={th:splitc(GV('bNthai')),en:splitc(GV('bNen'))};
+  b.desc={th:GV('bDthai').trim(),en:GV('bDen').trim()};
+  markDirty();render();closeSheet('bback');
+}
+function delBean(i){if(!confirm('ลบเมล็ดนี้?'))return;DATA.beans.splice(i,1);markDirty();render();}
+function moveBean(i,d){var a=DATA.beans,n=i+d;if(n<0||n>=a.length)return;var t=a[i];a[i]=a[n];a[n]=t;markDirty();render();}
+function openGradeEdit(i){
+  GE=i;var g=DATA.grades[i];
+  V('gNm',g.nm);V('gSub',g.thsub||'');V('gPrice',g.price||0);V('gSw',g.sw||'g1');
+  V('gUthai',g.use?g.use.th:'');V('gUen',g.use?g.use.en:'');
+  V('gDthai',g.desc?g.desc.th:'');V('gDen',g.desc?g.desc.en:'');
+  var b=g.bars||{};V('gBit',Math.round((b.bitter||0)*100));V('gUm',Math.round((b.umami||0)*100));V('gCol',Math.round((b.color||0)*100));
+  openSheet('gback');
+}
+function addGrade(){DATA.grades.push({id:'gr'+Date.now().toString(36),nm:'',thsub:'',sw:'g1',price:0,use:{th:'',en:''},desc:{th:'',en:''},bars:{bitter:.3,umami:.5,color:.5}});GE=DATA.grades.length-1;openGradeEdit(GE);}
+function applyGrade(){
+  var nm=GV('gNm').trim();if(!nm)return toast('ใส่ชื่อเกรดก่อน');
+  var g=DATA.grades[GE];g.nm=nm;g.thsub=GV('gSub').trim();g.price=+GV('gPrice')||0;g.sw=GV('gSw');
+  g.use={th:GV('gUthai').trim(),en:GV('gUen').trim()};g.desc={th:GV('gDthai').trim(),en:GV('gDen').trim()};
+  g.bars={bitter:pc('gBit'),umami:pc('gUm'),color:pc('gCol')};
+  markDirty();render();closeSheet('gback');
+}
+function delGrade(i){if(!confirm('ลบเกรดนี้?'))return;DATA.grades.splice(i,1);markDirty();render();}
+function moveGrade(i,d){var a=DATA.grades,n=i+d;if(n<0||n>=a.length)return;var t=a[i];a[i]=a[n];a[n]=t;markDirty();render();}
+
+/* ═══════════ FISH MANAGER (ปลาดิบ — หมุนเวียนตามนำเข้า) ═══════════ */
+function fishAdminHTML(){
+  var fs=DATA.fish||[];
+  var h='<div class="promo"><div class="chead"><span class="ic">🍣</span><span class="cn">ปลาดิบ (ซาชิมิ)</span><span class="cnt">'+fs.length+' ชนิด</span></div>'
+    +'<div class="pdesc">โชว์หน้า "ปลาของเรา" ในหมวดอาหารญี่ปุ่น + เป็นรายการ "เพิ่มปลา" ในเซ็ต/ด้ง · ปลาหมด = กดปุ่มขวา</div>';
+  fs.forEach(function(f,i){
+    h+='<div class="prow2"><div class="pth '+(f.g||'g-fish')+'" style="width:46px;height:46px;border-radius:10px;font-size:20px">'+(f.e||'🐟')+'</div>'
+      +'<div class="pmid"><div style="font-size:13.5px;font-weight:800'+(f.sold?';text-decoration:line-through;color:var(--faint)':'')+'">'+f.nm+'</div>'
+      +'<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+((f.portion&&f.portion.th)||'')+' · +'+(f.add||0)+((f.orig&&f.orig.th)?' · '+f.orig.th:'')+'</div></div>'
+      +'<button class="soldbtn '+(f.sold?'out':'avail')+'" style="min-width:70px;height:34px;font-size:11px" onclick="tglFishSold('+i+')">'
+      +(f.sold?'✕ หมด':'<span class="dot"></span>มี')+'</button>'
+      +'<div class="pacts"><button onclick="openFishEdit('+i+')" style="color:var(--gold)">✎</button>'
+      +'<button class="del" onclick="delFish('+i+')">🗑</button></div></div>';
+  });
+  return h+'<button class="addbtn" onclick="addFish()">+ เพิ่มปลา</button></div>';
+}
+var FE=-1;
+function tglFishSold(i){DATA.fish[i].sold=DATA.fish[i].sold?0:1;markDirty();render();}
+function openFishEdit(i){
+  FE=i;var f=DATA.fish[i];
+  V('fhNm',f.nm);V('fhEn',f.en||'');V('fhE',f.e||'🐟');V('fhG',f.g||'g-fish');
+  V('fhFat',Math.round((f.fat||.5)*100));V('fhAdd',f.add||0);
+  V('fhPth',f.portion?f.portion.th:'');V('fhPen',f.portion?f.portion.en:'');
+  V('fhOth',f.orig?f.orig.th:'');V('fhOen',f.orig?f.orig.en:'');
+  V('fhNth',(f.notes&&f.notes.th||[]).join(', '));V('fhNen',(f.notes&&f.notes.en||[]).join(', '));
+  V('fhDth',f.desc?f.desc.th:'');V('fhDen',f.desc?f.desc.en:'');
+  openSheet('fback');
+}
+function addFish(){
+  DATA.fish.push({id:'fs'+Date.now().toString(36),nm:'',en:'',e:'🐟',g:'g-fish',fat:.5,add:0,sold:0,
+    portion:{th:'',en:''},orig:{th:'',en:''},notes:{th:[],en:[]},desc:{th:'',en:''}});
+  FE=DATA.fish.length-1;openFishEdit(FE);
+}
+function applyFish(){
+  var nm=GV('fhNm').trim();if(!nm)return toast('ใส่ชื่อปลาก่อน');
+  var f=DATA.fish[FE];f.nm=nm;f.en=GV('fhEn').trim();f.e=GV('fhE').trim()||'🐟';f.g=GV('fhG');
+  f.fat=Math.max(0,Math.min(1,(+GV('fhFat')||50)/100));f.add=+GV('fhAdd')||0;
+  f.portion={th:GV('fhPth').trim(),en:GV('fhPen').trim()};
+  f.orig={th:GV('fhOth').trim(),en:GV('fhOen').trim()};
+  f.notes={th:splitc(GV('fhNth')),en:splitc(GV('fhNen'))};
+  f.desc={th:GV('fhDth').trim(),en:GV('fhDen').trim()};
+  markDirty();render();closeSheet('fback');
+}
+function delFish(i){
+  var f=DATA.fish[i];
+  var used=[];
+  DATA.categories.forEach(function(c){c.items.forEach(function(it){
+    if(it.fish&&it.fish.some(function(x){return x.f===f.id}))used.push(it.th);
+  })});
+  if(used.length&&!confirm('ปลานี้ถูกใช้ใน: '+used.join(', ')+'\nลบแล้วจะหายจากจานพวกนั้นด้วย — ลบเลยไหม?'))return;
+  if(!used.length&&!confirm('ลบ "'+f.nm+'"?'))return;
+  DATA.categories.forEach(function(c){c.items.forEach(function(it){
+    if(it.fish)it.fish=it.fish.filter(function(x){return x.f!==f.id});
+  })});
+  DATA.fish.splice(i,1);markDirty();render();
+}
+/* helpers */
+function V(id,v){document.getElementById(id).value=v==null?'':v;}
+function GV(id){return document.getElementById(id).value;}
+function pc(id){return Math.max(0,Math.min(1,(+GV(id)||0)/100));}
+function splitc(s){return s.split(',').map(function(x){return x.trim()}).filter(Boolean);}
+function openSheet(id){document.getElementById(id).classList.add('open');document.body.classList.add('noscroll');}
+function closeSheet(id){document.getElementById(id).classList.remove('open');document.body.classList.remove('noscroll');}
 
 /* ═══════════ EDIT MODAL ═══════════ */
 function openE(ci,ii){
@@ -475,7 +772,29 @@ function fill(it){
   EDITOPTS=(it.opts||[]).map(function(o){return{th:o.th,en:o.en,price:o.price}});
   EDITPHOTOS=(it.photos||[]).slice();
   setPT(it.opts&&it.opts.length?1:0);
-  renderOpts();renderPhotos();
+  renderOpts();renderPhotos();renderModsChks(it.mods||[]);renderFishChks(it);
+}
+function renderFishChks(it){
+  var fs=DATA.fish||[],wrap=document.getElementById('fishWrap');
+  if(!fs.length){wrap.style.display='none';return;}
+  wrap.style.display='';
+  var sel={};(it.fish||[]).forEach(function(x){sel[x.f]=x.n||''});
+  document.getElementById('fishChks').innerHTML=fs.map(function(f){
+    var on=sel.hasOwnProperty(f.id);
+    return '<div class="oprow"><label class="chk" style="flex:1;min-width:0"><input type="checkbox" class="fchk" value="'+f.id+'"'+(on?' checked':'')+'> '+f.nm+'</label>'
+      +'<input class="opr fcnt" data-f="'+f.id+'" type="number" min="0" placeholder="คำ" value="'+(on&&sel[f.id]?sel[f.id]:'')+'"></div>';
+  }).join('');
+  V('fServeTh',it.serve?it.serve.th:'');V('fServeEn',it.serve?it.serve.en:'');
+}
+function renderModsChks(sel){
+  var mg=DATA.modGroups||{},keys=Object.keys(mg),wrap=document.getElementById('modsWrap');
+  if(!keys.length){wrap.style.display='none';return;}
+  wrap.style.display='';sel=sel||[];
+  document.getElementById('modsChks').innerHTML=keys.map(function(k){
+    var lb=(mg[k].lb&&mg[k].lb.th)||k;
+    var hint=(k.indexOf('temp')===0&&mg[k].opts)?' ('+mg[k].opts.map(function(o){return o.th}).join('/')+')':'';
+    return '<label class="chk"><input type="checkbox" value="'+k+'"'+(sel.indexOf(k)>=0?' checked':'')+'> '+lb+hint+'</label>';
+  }).join('');
 }
 function setPT(mode){
   document.getElementById('ptSingle').classList.toggle('on',!mode);
@@ -555,6 +874,21 @@ function applyE(){
   it.e=document.getElementById('fEmoji').value.trim()||'🍽';
   it.g=document.getElementById('fG').value;
   it.photos=EDITPHOTOS.slice();
+  var mods=[].slice.call(document.querySelectorAll('#modsChks input:checked')).map(function(c){return c.value});
+  if(mods.length)it.mods=mods;else delete it.mods;
+  /* ปลาในจาน */
+  if((DATA.fish||[]).length){
+    var fsel=[];
+    [].slice.call(document.querySelectorAll('#fishChks .fchk:checked')).forEach(function(cb){
+      var cnt=document.querySelector('#fishChks .fcnt[data-f="'+cb.value+'"]');
+      var n=cnt?+cnt.value:0;
+      var entry={f:cb.value};if(n>0)entry.n=n;
+      fsel.push(entry);
+    });
+    if(fsel.length)it.fish=fsel;else delete it.fish;
+    var svt=GV('fServeTh').trim(),sve=GV('fServeEn').trim();
+    if(svt||sve)it.serve={th:svt,en:sve};else delete it.serve;
+  }
   if(PTMODE){
     it.opts=EDITOPTS.filter(function(o){return o.th&&o.price>0});
     if(!it.opts.length)return toast('ใส่ตัวเลือกอย่างน้อย 1 รายการ (ชื่อ+ราคา)');
