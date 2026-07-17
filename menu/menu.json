@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-15",
+ "updated": "2026-07-17",
  "posters": [
   {
    "id": "psmrlt33re",
@@ -36,15 +36,21 @@
      "g": "g-noodle",
      "e": "🥓",
      "sig": 1,
-     "hot": 0,
+     "hot": 1,
      "sold": 0,
      "feat": 0,
-     "photos": []
+     "photos": [
+      "photos/saltchilicrisp-1784305962512-956.jpg"
+     ],
+     "d": {
+      "th": "หมูกรอบชิ้นพอดีคำ ผัดกับพริกสด กระเทียมหอม ๆ และเครื่องปรุงรสกลมกล่อม กรอบ เค็ม เผ็ด หอม อร่อยเข้มข้น กินคู่กับข้าวสวยร้อน ๆ ลงตัวทุกคำ 🤤🍚",
+      "en": "Crispy, juicy pork belly stir-fried with fresh chili, fragrant garlic, and savory seasonings. Served over hot steamed rice for a perfectly satisfying meal! 🍚✨"
+     }
     },
     {
      "id": "r2",
      "th": "ผัดกะเพราหมูสับ",
-     "en": "Minced Pork Basil",
+     "en": "🌶️🐷 Thai Basil Minced Pork with Rice",
      "price": 79,
      "g": "g-basil",
      "e": "🌿",
@@ -52,7 +58,13 @@
      "hot": 1,
      "sold": 0,
      "feat": 0,
-     "photos": []
+     "photos": [
+      "photos/thaibasilmince-1784306226689-36.jpg"
+     ],
+     "d": {
+      "th": "หมูสับผัดกะเพราร้อน ๆ หอมใบกะเพราและพริกกระเทียม รสชาติเข้มข้น เผ็ดจัดจ้านแบบไทยแท้ เสิร์ฟคู่กับข้าวสวยร้อน ๆ เมนูง่าย ๆ แต่อร่อยจนหยุดไม่ได้ 🤤🍚",
+      "en": "Savory minced pork stir-fried with fresh Thai basil, chili, and garlic. Bold, aromatic, and deliciously spicy, served over hot steamed rice."
+     }
     },
     {
      "id": "r3",
