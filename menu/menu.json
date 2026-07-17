@@ -132,7 +132,7 @@
     {
      "id": "n1",
      "th": "ราดหน้าทะเล",
-     "en": "Seafood Noodles in Gravy",
+     "en": "🍜✨ Thai Noodles with Savory Gravy",
      "price": 129,
      "g": "g-noodle",
      "e": "🍜",
@@ -140,10 +140,12 @@
      "hot": 0,
      "sold": 0,
      "feat": 1,
-     "photos": [],
+     "photos": [
+      "photos/thainoodleswit-1784306441227-961.jpg"
+     ],
      "d": {
-      "th": "เลือกเส้นหมี่ หรือเส้นใหญ่กรอบ ราดซอสทะเลเข้มข้น",
-      "en": "Thin or crispy wide noodles in rich seafood gravy"
+      "th": "น้ำราดหน้าร้อน ๆ รสชาติกลมกล่อม หอมละมุน พร้อมผักสดกรุบกรอบ เลือกความอร่อยได้ตามชอบ ทั้งเส้นใหญ่ทอดกรอบหรือเส้นหมี่เหนียวนุ่ม อิ่มอร่อยลงตัวทุกคำ 🤤",
+      "en": "Enjoy a rich and flavorful Thai-style gravy with crisp vegetables. Choose between crispy wide rice noodles or soft rice vermicelli for your perfect bowl!"
      }
     },
     {
