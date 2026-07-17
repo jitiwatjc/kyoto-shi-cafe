@@ -150,8 +150,8 @@
     },
     {
      "id": "n2",
-     "th": "ยากิโซบะ",
-     "en": "Yakisoba",
+     "th": "🍜🧡 ยากิโซบะมายองเนสไข่กุ้ง",
+     "en": "🍜🧡 Yakisoba with Mayonnaise & Tobiko",
      "price": 159,
      "g": "g-noodle",
      "e": "🍝",
@@ -159,10 +159,12 @@
      "hot": 0,
      "sold": 0,
      "feat": 1,
-     "photos": [],
+     "photos": [
+      "photos/yakisobawithma-1784307411936-563.jpg"
+     ],
      "d": {
-      "th": "เส้นผัดซอสสไตล์ญี่ปุ่น หอมกระทะ",
-      "en": "Japanese stir-fried noodles, wok-fragrant"
+      "th": "เส้นยากิโซบะเหนียวนุ่ม ผัดซอสเข้มข้นหอมกระทะ ท็อปด้วยมายองเนสเนียนละมุนและไข่กุ้งกรุบ ๆ เพิ่มทั้งความมัน ความหอม และรสชาติสไตล์ญี่ปุ่นในทุกคำ 🇯🇵✨",
+      "en": "Soft and chewy noodles stir-fried in a rich, savory Yakisoba sauce, topped with creamy mayonnaise and crunchy tobiko for extra flavor and texture."
      }
     },
     {
