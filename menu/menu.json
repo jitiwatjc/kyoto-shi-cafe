@@ -169,8 +169,8 @@
     },
     {
      "id": "n3",
-     "th": "มาม่าผัดขี้เมาไข่กุ้ง",
-     "en": "Drunken Mama Noodles, Shrimp & Egg",
+     "th": "🌶️🍜 มาม่าผัดขี้เมาไข่กุ้ง",
+     "en": "🌶️🍜 Spicy Stir-Fried Instant Noodles with Tobiko",
      "from": 119,
      "g": "g-noodle",
      "e": "🔥",
@@ -178,7 +178,12 @@
      "hot": 1,
      "sold": 0,
      "feat": 0,
-     "photos": [],
+     "photos": [
+      "photos/spicystirfried-1784307587688-491.jpg",
+      "photos/spicystirfried-1784307587738-96.jpg",
+      "photos/spicystirfried-1784307587781-253.jpg",
+      "photos/spicystirfried-1784307587820-891.jpg"
+     ],
      "opts": [
       {
        "th": "ไก่คาราเกะ",
@@ -205,7 +210,11 @@
        "en": "★ Wagyu Beef",
        "price": 229
       }
-     ]
+     ],
+     "d": {
+      "th": "เส้นมาม่าเหนียวนุ่ม ผัดขี้เมารสจัดจ้าน หอมพริก กระเทียม และใบกะเพรา เพิ่มความกรุบด้วยไข่กุ้งทุกคำ เผ็ด หอม เข้มข้น ถูกใจสายแซ่บ 🔥🧡",
+      "en": "Springy instant noodles stir-fried with chili, garlic, and Thai basil, then topped with crunchy tobiko. Bold, aromatic, and deliciously spicy!"
+     }
     }
    ]
   },
