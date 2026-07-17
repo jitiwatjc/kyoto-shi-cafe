@@ -500,15 +500,17 @@
    "items": [
     {
      "id": "n2",
-     "th": "ยากิโซบะ",
-     "en": "Yakisoba",
+     "th": "🍜🧡 ยากิโซบะมายองเนสไข่กุ้ง",
+     "en": "🍜🧡 Yakisoba with Mayonnaise & Tobiko",
      "price": 159,
      "g": "g-noodle",
      "e": "🍝",
      "sig": 1,
      "hot": 0,
      "sold": 0,
-     "photos": [],
+     "photos": [
+      "photos/yakisobawithma-1784307411936-563.jpg"
+     ],
      "d": {
       "th": "เส้นผัดซอสสไตล์ญี่ปุ่น หอมกระทะ",
       "en": "Japanese stir-fried noodles, wok-fragrant"
@@ -618,22 +620,26 @@
      "g": "g-noodle",
      "e": "🥓",
      "sig": 1,
-     "hot": 0,
+     "hot": 1,
      "sold": 0,
-     "photos": [],
+     "photos": [
+      "photos/saltchilicrisp-1784305962512-956.jpg"
+     ],
      "feat": 0
     },
     {
      "id": "r2",
      "th": "ผัดกะเพราหมูสับ",
-     "en": "Minced Pork Basil",
+     "en": "🌶️🐷 Thai Basil Minced Pork with Rice",
      "price": 79,
      "g": "g-basil",
      "e": "🌿",
      "sig": 0,
      "hot": 1,
      "sold": 0,
-     "photos": [],
+     "photos": [
+      "photos/thaibasilmince-1784306226689-36.jpg"
+     ],
      "feat": 0
     },
     {
@@ -702,14 +708,16 @@
     {
      "id": "n1",
      "th": "ราดหน้าทะเล",
-     "en": "Seafood Noodles in Gravy",
+     "en": "🍜✨ Thai Noodles with Savory Gravy",
      "price": 129,
      "g": "g-noodle",
      "e": "🍜",
      "sig": 1,
      "hot": 0,
      "sold": 0,
-     "photos": [],
+     "photos": [
+      "photos/thainoodleswit-1784306441227-961.jpg"
+     ],
      "d": {
       "th": "เลือกเส้นหมี่ หรือเส้นใหญ่กรอบ ราดซอสทะเลเข้มข้น",
       "en": "Thin or crispy wide noodles in rich seafood gravy"
@@ -718,15 +726,20 @@
     },
     {
      "id": "n3",
-     "th": "มาม่าผัดขี้เมาไข่กุ้ง",
-     "en": "Drunken Mama Noodles, Shrimp & Egg",
+     "th": "🌶️🍜 มาม่าผัดขี้เมาไข่กุ้ง",
+     "en": "🌶️🍜 Spicy Stir-Fried Instant Noodles with Tobiko",
      "from": 119,
      "g": "g-noodle",
      "e": "🔥",
      "sig": 0,
      "hot": 1,
      "sold": 0,
-     "photos": [],
+     "photos": [
+      "photos/spicystirfried-1784307587688-491.jpg",
+      "photos/spicystirfried-1784307587738-96.jpg",
+      "photos/spicystirfried-1784307587781-253.jpg",
+      "photos/spicystirfried-1784307587820-891.jpg"
+     ],
      "opts": [
       {
        "th": "ไก่คาราเกะ",
