@@ -62,8 +62,14 @@
      "sig": 0,
      "hot": 0,
      "sold": 0,
-     "photos": [],
-     "feat": 0
+     "photos": [
+      "photos/gyoza4pcs-1784312889454-807.jpg"
+     ],
+     "feat": 0,
+     "d": {
+      "th": "เกี๊ยวซ่าไส้แน่น ทอดจนด้านนอกเหลืองกรอบ แต่ยังคงความนุ่มฉ่ำด้านใน เสิร์ฟร้อน ๆ พร้อมซอสจิ้มรสกลมกล่อม เป็นเมนูทานเล่นที่อร่อยเพลินจนหมดจาน ✨",
+      "en": "Golden and crispy on the outside, tender and juicy on the inside. Served hot with savory dipping sauce—the perfect Japanese appetizer!"
+     }
     },
     {
      "id": "s7",
@@ -106,29 +112,42 @@
     },
     {
      "id": "s6",
-     "th": "ครีมโคร็อคเกะมันปูหิมะ",
-     "en": "Snow-Crab Cream Croquette",
+     "th": "🦀✨ ครีมโคร็อกเกะมันปูหิมะ",
+     "en": "🦀✨ Snow Crab Cream Croquette",
      "price": 109,
      "g": "g-snack",
      "e": "🦀",
      "sig": 0,
      "hot": 0,
      "sold": 0,
-     "photos": [],
-     "feat": 0
+     "photos": [
+      "photos/snowcrabcreamc-1784312354515-944.jpg"
+     ],
+     "feat": 0,
+     "d": {
+      "th": "แป้งด้านนอกทอดจนเหลืองทองกรอบเบา ๆ ซ่อนครีมมันปูหิมะเนื้อเนียนละมุนไว้ด้านใน หอมมัน รสชาติเข้มข้น กรอบนอกครีมมี่ด้านใน สไตล์ญี่ปุ่นแท้ ๆ 🇯🇵🤍",
+      "en": "A golden and crispy Japanese croquette filled with rich, creamy snow crab filling. Crispy on the outside and irresistibly smooth on the inside!"
+     }
     },
     {
      "id": "b1",
-     "th": "เบอร์เกอร์หมู",
-     "en": "Pork Burger",
+     "th": "🍔🐷 เบอร์เกอร์หมู",
+     "en": "🍔🐷 Pork Burger",
      "price": 59,
      "g": "g-burger",
      "e": "🍔",
      "sig": 0,
      "hot": 0,
      "sold": 0,
-     "photos": [],
-     "feat": 0
+     "photos": [
+      "photos/porkburger-1784312602854-297.jpg",
+      "photos/porkburger-1784312602937-589.jpg"
+     ],
+     "feat": 0,
+     "d": {
+      "th": "ขนมปังเบอร์เกอร์เนื้อนุ่ม สอดไส้หมูเนื้อแน่นฉ่ำ ๆ พร้อมผักสดและซอสสูตรพิเศษของร้าน รสชาติกลมกล่อม อร่อยเต็มคำ กินง่าย แต่อิ่มกำลังดี ✨",
+      "en": "A soft burger bun filled with a juicy pork patty, fresh vegetables, and our special savory sauce. Delicious, satisfying, and packed with flavor in every bite!"
+     }
     },
     {
      "id": "b2",
