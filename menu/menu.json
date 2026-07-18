@@ -1814,6 +1814,43 @@
     "en": "Japanese yellowtail with pale pink flesh and delicate marbling. Naturally buttery and gently sweet, with a firm yet silky texture, clean umami and a smooth finish—ideal for sashimi."
    },
    "img": "photos/fish-1784372645297-246.jpg"
+  },
+  {
+   "id": "fsmrq9opna",
+   "nm": "โฮตาเตะ (หอยเชลล์ฮอกไกโด)",
+   "en": "HOTATE SCALLOP",
+   "e": "🐚",
+   "g": "g-hotate",
+   "fat": 0.1,
+   "add": 79,
+   "sold": 0,
+   "portion": {
+    "th": "1 ตัว",
+    "en": ""
+   },
+   "orig": {
+    "th": "ฮอกไกโด ประเทศญี่ปุ่น",
+    "en": "Hokkaido, Japan"
+   },
+   "notes": {
+    "th": [
+     "หวานธรรมชาติ",
+     "อวบเด้ง",
+     "เนียนนุ่ม",
+     "อูมามิละมุน"
+    ],
+    "en": [
+     "Naturally Sweet",
+     "Plump",
+     "Silky",
+     "Delicate Umami"
+    ]
+   },
+   "desc": {
+    "th": "โฮตาเตะหรือหอยเชลล์ฮอกไกโด เนื้อสีขาวมุก อวบฉ่ำ รสหวานธรรมชาติ เนื้อแน่นเด้งแต่เนียนนุ่ม พร้อมอูมามิละมุนและกลิ่นทะเลสะอาด เหมาะสำหรับรับประทานแบบซาชิมิ",
+    "en": "Hokkaido hotate with pearly-white flesh and natural sweetness. Plump, juicy and silky, with delicate umami and a clean ocean-fresh finish—ideal for sashimi."
+   },
+   "img": "photos/fish-1784373276804-29.jpg"
   }
  ]
 }
