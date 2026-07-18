@@ -242,6 +242,51 @@
       }
      ],
      "price": 189
+    },
+    {
+     "id": "xmrqm8tn2",
+     "th": "ซาชิมิคลาสสิกทรีโอ",
+     "en": "Classic Trio Sashimi",
+     "d": {
+      "th": "ซาชิมิสามชนิดยอดนิยม ได้แก่ แซลมอน ทูน่าอาคามิ และฮามาจิ อย่างละ 50 กรัม พร้อมไข่ปลาบินสีส้ม 10 กรัม ได้ทั้งสีสันและรสสัมผัสที่หลากหลาย",
+      "en": "A classic trio of salmon, tuna akami, and hamachi sashimi, 50 g each, finished with 10 g of orange tobiko for added color and texture."
+     },
+     "sig": 0,
+     "hot": 0,
+     "e": "🍽",
+     "g": "g-rice",
+     "photos": [
+      "photos/classictriosas-1784394213446-529.jpg"
+     ],
+     "fish": [
+      {
+       "f": "salmon"
+      },
+      {
+       "f": "fsmrq8f408"
+      },
+      {
+       "f": "fsmrq9bhgb"
+      }
+     ],
+     "price": 239
+    },
+    {
+     "id": "xmrqmal9b",
+     "th": "ซาชิมิสโนว์โอเชียนมิกซ์",
+     "en": "Snow Ocean Mix Sashimi",
+     "d": {
+      "th": "ทูน่าอาคามิ แซลมอน และฮามาจิซาชิมิอย่างละ 50 กรัม จับคู่กับอาคาเอบิ 1 ตัว ก้ามปูหิมะ 1 อัน และไข่ปลาบินสีส้ม 10 กรัม ครบทั้งสีสันและเนื้อสัมผัสในจานเดียว",
+      "en": "Akami tuna, salmon, and hamachi sashimi, 50 g each, paired with one akaebi, one snow crab claw, and 10 g of orange tobiko for a colorful variety of flavors and textures."
+     },
+     "sig": 0,
+     "hot": 0,
+     "e": "🍽",
+     "g": "g-rice",
+     "photos": [
+      "photos/snowoceanmixsa-1784394284998-8.jpg"
+     ],
+     "price": 309
     }
    ]
   },
