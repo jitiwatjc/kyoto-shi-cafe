@@ -1851,6 +1851,43 @@
     "en": "Hokkaido hotate with pearly-white flesh and natural sweetness. Plump, juicy and silky, with delicate umami and a clean ocean-fresh finish—ideal for sashimi."
    },
    "img": "photos/fish-1784373276804-29.jpg"
+  },
+  {
+   "id": "fsmrq9xt4b",
+   "nm": "อิคุระ (ไข่ปลาแซลมอน)",
+   "en": "IKURA",
+   "e": "🐟",
+   "g": "g-salmon",
+   "fat": 0.01,
+   "add": 49,
+   "sold": 0,
+   "portion": {
+    "th": "10 กรัม",
+    "en": ""
+   },
+   "orig": {
+    "th": "ญี่ปุ่น",
+    "en": "Japan"
+   },
+   "notes": {
+    "th": [
+     "เค็มละมุน",
+     "อูมามิเข้ม",
+     "เม็ดเด้งแตก",
+     "หอมทะเล"
+    ],
+    "en": [
+     "Gently Briny",
+     "Rich Umami",
+     "Popping",
+     "Ocean-Fresh"
+    ]
+   },
+   "desc": {
+    "th": "อิคุระหรือไข่ปลาแซลมอน เม็ดสีส้มอำพันใส อวบเด้งและแตกเบา ๆ ในปาก ให้รสเค็มละมุน อูมามิเข้มข้น พร้อมกลิ่นทะเลสดสะอาดและรสหวานมันเล็กน้อย",
+    "en": "Ikura features translucent amber-orange pearls that pop delicately in the mouth, releasing rich umami, gentle brininess and a subtle natural sweetness with a clean ocean-fresh finish."
+   },
+   "img": "photos/fish-1784373930768-466.jpg"
   }
  ]
 }
