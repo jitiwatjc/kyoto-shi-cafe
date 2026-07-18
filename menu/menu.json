@@ -1888,6 +1888,43 @@
     "en": "Ikura features translucent amber-orange pearls that pop delicately in the mouth, releasing rich umami, gentle brininess and a subtle natural sweetness with a clean ocean-fresh finish."
    },
    "img": "photos/fish-1784373930768-466.jpg"
+  },
+  {
+   "id": "fsmrqagk6u",
+   "nm": "อาคาเอบิ (กุ้งแดงอาร์เจนตินา)",
+   "en": "AKAEBI RED SHRIMP",
+   "e": "🦐",
+   "g": "g-fish",
+   "fat": 0.5,
+   "add": 39,
+   "sold": 0,
+   "portion": {
+    "th": "1 ตัว",
+    "en": ""
+   },
+   "orig": {
+    "th": "อาร์เจนตินา",
+    "en": "Argentina"
+   },
+   "notes": {
+    "th": [
+     "หวานมัน",
+     "เนื้อแน่นฉ่ำ",
+     "เด้งนุ่ม",
+     "อูมามิเข้ม"
+    ],
+    "en": [
+     "Naturally Sweet",
+     "Meaty",
+     "Juicy",
+     "Rich Umami"
+    ]
+   },
+   "desc": {
+    "th": "อาคาเอบิหรือกุ้งแดงอาร์เจนตินา มีเปลือกสีแดงเข้มตามธรรมชาติ เนื้ออวบแน่นสีขาวอมชมพู รสหวานมันชัดเจน เนื้อฉ่ำเด้งแต่ยังนุ่มละมุน พร้อมอูมามิเข้มและกลิ่นทะเลสะอาด เหมาะสำหรับรับประทานแบบซาชิมิ",
+    "en": "Akaebi, or Argentine red shrimp, has naturally deep-red shells and plump, pearly flesh. Sweet, meaty and juicy with a tender bite, rich umami and a clean ocean-fresh finish—ideal for sashimi."
+   },
+   "img": "photos/fish-1784374679828-485.jpg"
   }
  ]
 }
