@@ -1382,6 +1382,48 @@
     "en": "Light roast with bright acidity and fruity notes, followed by chocolate and caramel. Smooth, silky and refreshing—best enjoyed black or iced."
    },
    "img": "photos/bean-1784357227430-674.jpg"
+  },
+  {
+   "id": "bnmrq0ga2h",
+   "nm": "Gesha Ethiopia",
+   "add": 35,
+   "roast": 0.25,
+   "g": "g-tea",
+   "orig": {
+    "th": "SNNPR Bench Maji · Gesha Karmach Natural G1",
+    "en": "SNNPR Bench Maji · Gesha Karmach Natural G1"
+   },
+   "notes": {
+    "th": [
+     "ดอกไม้สีเหลือง",
+     "เกรปฟรุต",
+     "แบล็กเบอร์รี",
+     "สตรอว์เบอร์รี",
+     "แอปเปิลแดง",
+     "แอปริคอต",
+     "มะม่วง",
+     "เสาวรส",
+     "พลัม",
+     "ชาเอิร์ลเกรย์"
+    ],
+    "en": [
+     "Yellow Floral",
+     "Grapefruit",
+     "Blackberry",
+     "Strawberry",
+     "Red Apple",
+     "Apricot",
+     "Mango",
+     "Passion Fruit",
+     "Plum",
+     "Earl Grey"
+    ]
+   },
+   "desc": {
+    "th": "เกชาเอธิโอเปียคั่วอ่อนถึงกลาง หอมดอกไม้สีเหลืองและชาเอิร์ลเกรย์ สดใสด้วยเกรปฟรุต เบอร์รี และผลไม้เมืองร้อน รสหวานฉ่ำ ซับซ้อน พร้อมอาฟเตอร์เทสต์หวานยาว เหมาะดื่มดำทั้งร้อนและเย็น",
+    "en": "Light-to-medium roast Ethiopian Gesha with yellow florals and Earl Grey, layered with grapefruit, berries and tropical fruits. Juicy, complex and aromatic with a long, sweet aftertaste. Best enjoyed black, hot or iced."
+   },
+   "img": "photos/bean-1784357801435-875.jpg"
   }
  ],
  "grades": [
