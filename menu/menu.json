@@ -197,85 +197,51 @@
    },
    "items": [
     {
-     "id": "set_a",
-     "th": "เซ็ตซาชิมิ A",
-     "en": "Sashimi Set A",
-     "price": 199,
-     "g": "g-salmon",
-     "e": "🍣",
+     "id": "xmrqm2784",
+     "th": "ซาชิมิแซลมอนสตาร์ต",
+     "en": "Salmon Start Sashimi",
+     "d": {
+      "th": "ชุดเริ่มต้นสีสันสดใส ประกอบด้วยแซลมอนซาชิมิ 50 กรัม ปูอัด 2 เส้น และไข่ปลาบินสีส้ม 10 กรัม จัดเสิร์ฟบนจานซาชิมิซิกเนเจอร์",
+      "en": "A colorful starter featuring 50 g of salmon sashimi, two crab sticks, and 10 g of orange tobiko, served in our signature sashimi presentation."
+     },
+     "sig": 1,
+     "hot": 0,
+     "e": "🍽",
+     "g": "g-rice",
+     "photos": [
+      "photos/salmonstartsas-1784393902860-593.jpg"
+     ],
+     "fish": [
+      {
+       "f": "salmon"
+      }
+     ],
+     "price": 149
+    },
+    {
+     "id": "xmrqm40n3",
+     "th": "ซาชิมิดูโอ้สุดคุ้ม",
+     "en": "Duo Value Sashimi",
+     "d": {
+      "th": "แซลมอนและทูน่าอาคามิซาชิมิอย่างละ 50 กรัม เสริมด้วยไข่หวาน 35 กรัม และไข่ปลาบินสีส้ม 10 กรัม ครบรสในจานเดียว",
+      "en": "A satisfying duo of 50 g salmon and 50 g tuna akami sashimi, complemented by 35 g Japanese sweet omelet and 10 g orange tobiko."
+     },
      "sig": 0,
      "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "serve": {
-      "th": "1 คน · 9 คำ",
-      "en": "1 person · 9 pc"
-     },
-     "d": {
-      "th": "เซ็ตเริ่มต้น 3 ชนิดยอดนิยม สดใหม่ทุกวัน",
-      "en": "Starter set — 3 popular cuts, fresh daily."
-     },
+     "e": "🍽",
+     "g": "g-rice",
+     "photos": [
+      "photos/duovaluesashim-1784393988691-208.jpg"
+     ],
      "fish": [
       {
-       "f": "salmon",
-       "n": 3
-      }
-     ],
-     "feat": 0
-    },
-    {
-     "id": "set_b",
-     "th": "เซ็ตซาชิมิ B รวมมิตร",
-     "en": "Sashimi Set B",
-     "price": 359,
-     "g": "g-hama",
-     "e": "🍣",
-     "sig": 1,
-     "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "serve": {
-      "th": "2 คน · 15 คำ",
-      "en": "2 persons · 15 pc"
-     },
-     "d": {
-      "th": "5 ชนิดจัดเต็ม เหมาะแบ่งกันทาน",
-      "en": "Five cuts, great to share."
-     },
-     "fish": [
+       "f": "salmon"
+      },
       {
-       "f": "salmon",
-       "n": 3
+       "f": "fsmrq8f408"
       }
      ],
-     "feat": 0
-    },
-    {
-     "id": "set_p",
-     "th": "เซ็ตพรีเมียม โอโทโร่",
-     "en": "Premium Otoro Set",
-     "price": 590,
-     "g": "g-otoro",
-     "e": "🍣",
-     "sig": 1,
-     "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "serve": {
-      "th": "2 คน · จัดเต็มพรีเมียม",
-      "en": "2 persons · premium"
-     },
-     "d": {
-      "th": "นำโดยโอโทโร่มันละลาย เสริมด้วยหอยเชลล์และไข่ปลา",
-      "en": "Led by melting otoro, with scallop & ikura."
-     },
-     "fish": [
-      {
-       "f": "salmon",
-       "n": 3
-      }
-     ],
-     "feat": 0
+     "price": 189
     }
    ]
   },
