@@ -342,7 +342,12 @@
     <div class="fld"><label>Flavor notes EN (comma)</label><input type="text" id="bNen" placeholder="Chocolate, Caramel, Nutty"></div>
     <div class="fld"><label>คำอธิบาย (ไทย)</label><textarea id="bDthai"></textarea></div>
     <div class="fld"><label>Description (EN)</label><textarea id="bDen"></textarea></div>
-    <div class="fld"><label>สีพื้นการ์ด</label>
+    <div class="fld">
+      <label>รูปเมล็ด (ถ้ามี จะใช้แทนไอคอน)</label>
+      <div class="pgrid" id="bPic"></div>
+      <label class="upbtn">📷 รูปเมล็ด<input type="file" id="bPhoto" accept="image/*" onchange="pickShowcasePhoto(this,'bean')"></label>
+    </div>
+    <div class="fld"><label>สีพื้นการ์ด (ใช้ตอนไม่มีรูป)</label>
       <select id="bG"><option value="g-coffee">กาแฟ (น้ำตาล)</option><option value="g-espr">คั่วเข้ม</option><option value="g-tea">คั่วอ่อน (ทอง)</option><option value="g-mocha">ม็อคค่า</option></select>
     </div>
     <div class="ebar"><button class="prim" onclick="applyBean()">ตกลง</button></div>
@@ -370,6 +375,11 @@
       <div class="fld"><label>ขม</label><input type="number" id="gBit" min="0" max="100"></div>
       <div class="fld"><label>อูมามิ</label><input type="number" id="gUm" min="0" max="100"></div>
       <div class="fld"><label>สีเข้ม</label><input type="number" id="gCol" min="0" max="100"></div>
+    </div>
+    <div class="fld">
+      <label>รูปเกรดมัทฉะ (ถ้ามี จะใช้แทนวงกลมสี)</label>
+      <div class="pgrid" id="gPic"></div>
+      <label class="upbtn">📷 รูปมัทฉะ<input type="file" id="gPhoto" accept="image/*" onchange="pickShowcasePhoto(this,'grade')"></label>
     </div>
     <div class="ebar"><button class="prim" onclick="applyGrade()">ตกลง</button></div>
   </div>
@@ -406,6 +416,11 @@
     <div class="fld"><label>Notes EN (comma)</label><input type="text" id="fhNen" placeholder="Fatty, Silky"></div>
     <div class="fld"><label>คำอธิบาย (ไทย)</label><textarea id="fhDth"></textarea></div>
     <div class="fld"><label>Description (EN)</label><textarea id="fhDen"></textarea></div>
+    <div class="fld">
+      <label>รูปปลา (ถ้ามี จะใช้แทนไอคอน)</label>
+      <div class="pgrid" id="fhPic"></div>
+      <label class="upbtn">📷 รูปปลา<input type="file" id="fhPhoto" accept="image/*" onchange="pickShowcasePhoto(this,'fish')"></label>
+    </div>
     <div class="ebar"><button class="prim" onclick="applyFish()">ตกลง</button></div>
   </div>
 </div>
@@ -618,7 +633,9 @@ function beansAdminHTML(){
   var h='<div class="promo"><div class="chead"><span class="ic">🫘</span><span class="cn">เมล็ดกาแฟ</span><span class="cnt">'+bs.length+' ตัว</span></div>'
     +'<div class="pdesc">โชว์หน้าเครื่องดื่ม + เป็นตัวเลือก "เลือกเมล็ด" ในเมนูกาแฟ</div>';
   bs.forEach(function(b,i){
-    h+='<div class="prow2"><div class="pth '+(b.g||'')+'" style="width:50px;height:50px;border-radius:50%;font-size:22px">🫘</div>'
+    var bsrc=b.img?(PREVIEW[b.img]||b.img):null;
+    var bthumb=bsrc?'<div class="pth" style="width:50px;height:50px;border-radius:50%;overflow:hidden"><img src="'+bsrc+'"></div>':'<div class="pth '+(b.g||'')+'" style="width:50px;height:50px;border-radius:50%;font-size:22px">🫘</div>';
+    h+='<div class="prow2">'+bthumb
       +'<div class="pmid"><div style="font-size:14px;font-weight:800">'+b.nm+'</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+((b.orig&&b.orig.th)||'')+' · '+(b.add?'+'+b.add:'รวมในราคา')+'</div></div>'
       +'<div class="pacts"><button onclick="moveBean('+i+',-1)">↑</button><button onclick="moveBean('+i+',1)">↓</button>'
@@ -631,7 +648,9 @@ function gradesAdminHTML(){
   var h='<div class="promo"><div class="chead"><span class="ic">🍵</span><span class="cn">เกรดมัทฉะ</span><span class="cnt">'+gs.length+' เกรด</span></div>'
     +'<div class="pdesc">โชว์หน้าเครื่องดื่ม + เป็นตัวเลือก "เกรดมัทฉะ" ในเมนูมัทฉะ</div>';
   gs.forEach(function(g,i){
-    h+='<div class="prow2"><div class="pth sw '+(g.sw||'g1')+'" style="width:50px;height:50px;border-radius:50%"></div>'
+    var gsrc=g.img?(PREVIEW[g.img]||g.img):null;
+    var gthumb=gsrc?'<div class="pth" style="width:50px;height:50px;border-radius:50%;overflow:hidden"><img src="'+gsrc+'"></div>':'<div class="pth sw '+(g.sw||'g1')+'" style="width:50px;height:50px;border-radius:50%"></div>';
+    h+='<div class="prow2">'+gthumb
       +'<div class="pmid"><div style="font-size:14px;font-weight:800">'+g.nm+' <span style="font-size:11px;color:var(--muted)">'+(g.thsub||'')+'</span></div>'
       +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+(g.price?'+'+g.price:'รวมในราคา')+'</div></div>'
       +'<div class="pacts"><button onclick="moveGrade('+i+',-1)">↑</button><button onclick="moveGrade('+i+',1)">↓</button>'
@@ -646,6 +665,7 @@ function openBeanEdit(i){
   V('bRoast',Math.round((b.roast||.5)*100));V('bAdd',b.add||0);
   V('bNthai',(b.notes&&b.notes.th||[]).join(', '));V('bNen',(b.notes&&b.notes.en||[]).join(', '));
   V('bDthai',b.desc?b.desc.th:'');V('bDen',b.desc?b.desc.en:'');V('bG',b.g||'g-coffee');
+  EDIMG.bean=b.img||'';renderShowcasePic('bean');
   openSheet('bback');
 }
 function addBean(){DATA.beans.push({id:'bn'+Date.now().toString(36),nm:'',add:0,roast:.5,g:'g-coffee',orig:{th:'',en:''},notes:{th:[],en:[]},desc:{th:'',en:''}});BE=DATA.beans.length-1;openBeanEdit(BE);}
@@ -656,6 +676,7 @@ function applyBean(){
   b.roast=Math.max(0,Math.min(1,(+GV('bRoast')||50)/100));b.add=+GV('bAdd')||0;b.g=GV('bG');
   b.notes={th:splitc(GV('bNthai')),en:splitc(GV('bNen'))};
   b.desc={th:GV('bDthai').trim(),en:GV('bDen').trim()};
+  if(EDIMG.bean)b.img=EDIMG.bean;else delete b.img;
   markDirty();render();closeSheet('bback');
 }
 function delBean(i){if(!confirm('ลบเมล็ดนี้?'))return;DATA.beans.splice(i,1);markDirty();render();}
@@ -666,6 +687,7 @@ function openGradeEdit(i){
   V('gUthai',g.use?g.use.th:'');V('gUen',g.use?g.use.en:'');
   V('gDthai',g.desc?g.desc.th:'');V('gDen',g.desc?g.desc.en:'');
   var b=g.bars||{};V('gBit',Math.round((b.bitter||0)*100));V('gUm',Math.round((b.umami||0)*100));V('gCol',Math.round((b.color||0)*100));
+  EDIMG.grade=g.img||'';renderShowcasePic('grade');
   openSheet('gback');
 }
 function addGrade(){DATA.grades.push({id:'gr'+Date.now().toString(36),nm:'',thsub:'',sw:'g1',price:0,use:{th:'',en:''},desc:{th:'',en:''},bars:{bitter:.3,umami:.5,color:.5}});GE=DATA.grades.length-1;openGradeEdit(GE);}
@@ -674,6 +696,7 @@ function applyGrade(){
   var g=DATA.grades[GE];g.nm=nm;g.thsub=GV('gSub').trim();g.price=+GV('gPrice')||0;g.sw=GV('gSw');
   g.use={th:GV('gUthai').trim(),en:GV('gUen').trim()};g.desc={th:GV('gDthai').trim(),en:GV('gDen').trim()};
   g.bars={bitter:pc('gBit'),umami:pc('gUm'),color:pc('gCol')};
+  if(EDIMG.grade)g.img=EDIMG.grade;else delete g.img;
   markDirty();render();closeSheet('gback');
 }
 function delGrade(i){if(!confirm('ลบเกรดนี้?'))return;DATA.grades.splice(i,1);markDirty();render();}
@@ -685,7 +708,9 @@ function fishAdminHTML(){
   var h='<div class="promo"><div class="chead"><span class="ic">🍣</span><span class="cn">ปลาดิบ (ซาชิมิ)</span><span class="cnt">'+fs.length+' ชนิด</span></div>'
     +'<div class="pdesc">โชว์หน้า "ปลาของเรา" ในหมวดอาหารญี่ปุ่น + เป็นรายการ "เพิ่มปลา" ในเซ็ต/ด้ง · ปลาหมด = กดปุ่มขวา</div>';
   fs.forEach(function(f,i){
-    h+='<div class="prow2"><div class="pth '+(f.g||'g-fish')+'" style="width:46px;height:46px;border-radius:10px;font-size:20px">'+(f.e||'🐟')+'</div>'
+    var fsrc=f.img?(PREVIEW[f.img]||f.img):null;
+    var fthumb=fsrc?'<div class="pth" style="width:46px;height:46px;border-radius:10px;overflow:hidden"><img src="'+fsrc+'"></div>':'<div class="pth '+(f.g||'g-fish')+'" style="width:46px;height:46px;border-radius:10px;font-size:20px">'+(f.e||'🐟')+'</div>';
+    h+='<div class="prow2">'+fthumb
       +'<div class="pmid"><div style="font-size:13.5px;font-weight:800'+(f.sold?';text-decoration:line-through;color:var(--faint)':'')+'">'+f.nm+'</div>'
       +'<div style="font-size:10.5px;color:var(--muted);margin-top:2px">'+((f.portion&&f.portion.th)||'')+' · +'+(f.add||0)+((f.orig&&f.orig.th)?' · '+f.orig.th:'')+'</div></div>'
       +'<button class="soldbtn '+(f.sold?'out':'avail')+'" style="min-width:70px;height:34px;font-size:11px" onclick="tglFishSold('+i+')">'
@@ -705,6 +730,7 @@ function openFishEdit(i){
   V('fhOth',f.orig?f.orig.th:'');V('fhOen',f.orig?f.orig.en:'');
   V('fhNth',(f.notes&&f.notes.th||[]).join(', '));V('fhNen',(f.notes&&f.notes.en||[]).join(', '));
   V('fhDth',f.desc?f.desc.th:'');V('fhDen',f.desc?f.desc.en:'');
+  EDIMG.fish=f.img||'';renderShowcasePic('fish');
   openSheet('fback');
 }
 function addFish(){
@@ -720,6 +746,7 @@ function applyFish(){
   f.orig={th:GV('fhOth').trim(),en:GV('fhOen').trim()};
   f.notes={th:splitc(GV('fhNth')),en:splitc(GV('fhNen'))};
   f.desc={th:GV('fhDth').trim(),en:GV('fhDen').trim()};
+  if(EDIMG.fish)f.img=EDIMG.fish;else delete f.img;
   markDirty();render();closeSheet('fback');
 }
 function delFish(i){
@@ -742,6 +769,31 @@ function pc(id){return Math.max(0,Math.min(1,(+GV(id)||0)/100));}
 function splitc(s){return s.split(',').map(function(x){return x.trim()}).filter(Boolean);}
 function openSheet(id){document.getElementById(id).classList.add('open');document.body.classList.add('noscroll');}
 function closeSheet(id){document.getElementById(id).classList.remove('open');document.body.classList.remove('noscroll');}
+
+/* ── รูป showcase (เมล็ด/เกรด/ปลา) — รูปเดียวต่อชิ้น ── */
+var EDIMG={bean:'',grade:'',fish:''};
+var SC_CFG={bean:{grid:'bPic',pfx:'bean'},grade:{grid:'gPic',pfx:'grade'},fish:{grid:'fhPic',pfx:'fish'}};
+function renderShowcasePic(kind){
+  var cfg=SC_CFG[kind],name=EDIMG[kind];
+  var el=document.getElementById(cfg.grid);
+  if(!name){el.innerHTML='';return;}
+  var src=PREVIEW[name]||name;
+  el.innerHTML='<div class="pth"><img src="'+src+'"><button class="px" onclick="rmShowcasePhoto(\''+kind+'\')">✕</button></div>';
+}
+function rmShowcasePhoto(kind){EDIMG[kind]='';renderShowcasePic(kind);}
+function pickShowcasePhoto(inp,kind){
+  var f=(inp.files||[])[0];if(!f)return;
+  toast('กำลังย่อรูป...');
+  compress(f,1000).then(function(dataUrl){
+    var name='photos/'+SC_CFG[kind].pfx+'-'+Date.now()+'-'+Math.floor(Math.random()*999)+'.jpg';
+    PENDING.push({name:name,b64:dataUrl.split(',')[1]});
+    PREVIEW[name]=dataUrl;
+    EDIMG[kind]=name;
+    renderShowcasePic(kind);
+    inp.value='';
+    toast('เพิ่มรูปแล้ว — จะอัปตอนกดบันทึก');
+  });
+}
 
 /* ═══════════ EDIT MODAL ═══════════ */
 function openE(ci,ii){
@@ -950,6 +1002,9 @@ function saveAll(){
   var used={};
   DATA.categories.forEach(function(c){c.items.forEach(function(it){(it.photos||[]).forEach(function(p){used[p]=1})})});
   (DATA.posters||[]).forEach(function(p){if(p.img)used[p.img]=1});
+  (DATA.beans||[]).forEach(function(b){if(b.img)used[b.img]=1});
+  (DATA.grades||[]).forEach(function(g){if(g.img)used[g.img]=1});
+  (DATA.fish||[]).forEach(function(f){if(f.img)used[f.img]=1});
   var ups=PENDING.filter(function(p){return used[p.name]});   /* อัปเฉพาะรูปที่ยังถูกใช้ */
   var chain=Promise.resolve();
   ups.forEach(function(p,i){

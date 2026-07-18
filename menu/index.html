@@ -166,6 +166,8 @@
   .bcard:hover{transform:translateY(-4px);border-color:rgba(207,169,99,.5)}
   .bcard .bbg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:78px}
   .bcard .bbg::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.16),transparent 55%)}
+  .bcard .bbg.haspic{font-size:0}.bcard .bbg.haspic::after{background:none}
+  .bcard .bbg.haspic img{width:100%;height:100%;object-fit:cover}
   .bcard .bsc{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,7,4,.93) 8%,rgba(10,7,4,.25) 55%,transparent)}
   .bcard .bt{position:absolute;left:0;right:0;bottom:0;padding:12px;z-index:2;color:#fff}
   .bcard .bn{font-size:15px;font-weight:800}
@@ -188,6 +190,8 @@
   .gband:hover{transform:translateY(-3px);border-color:rgba(164,188,114,.5)}
   .gband .sw{width:56px;height:56px;flex:none;border-radius:50%;position:relative;box-shadow:inset 0 -6px 14px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.4)}
   .gband .sw::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,rgba(255,255,255,.3),transparent 45%)}
+  .gband .sw.haspic{overflow:hidden}.gband .sw.haspic::after{background:none}
+  .gband .sw.haspic img{width:100%;height:100%;object-fit:cover;border-radius:50%}
   .sw.g1{background:linear-gradient(145deg,#c2cd86,#94a552)} .sw.g2{background:linear-gradient(145deg,#82b257,#4f7c2e)} .sw.g3{background:linear-gradient(145deg,#4f7f34,#243f18)}
   .gband .gg{flex:1;min-width:0}
   .gband .gtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
@@ -544,20 +548,23 @@ function sigCard(x){
 }
 function beanCard(b,i){
   var notes=tn(b.notes).slice(0,3).map(function(n){return '<span>'+n+'</span>'}).join('');
-  return '<div class="bcard roast" onclick="openBean(\''+b.id+'\')"><div class="bbg '+(b.g||'g-coffee')+'">🫘</div><div class="bsc"></div>'
+  var bg=b.img?'<div class="bbg haspic"><img src="'+b.img+'" alt="" loading="lazy"></div>':'<div class="bbg '+(b.g||'g-coffee')+'">🫘</div>';
+  return '<div class="bcard roast" onclick="openBean(\''+b.id+'\')">'+bg+'<div class="bsc"></div>'
     +'<div class="bt"><div class="bn">'+b.nm+'</div><div class="ben">'+t(b.orig)+'</div>'
     +'<div class="meter"><span class="ml">'+(LANG==='th'?'อ่อน':'light')+'</span><span class="mb"><i style="left:'+((b.roast||.5)*100)+'%"></i></span><span class="ml">'+(LANG==='th'?'เข้ม':'dark')+'</span></div>'
     +'<div class="bnotes">'+notes+'</div></div></div>';
 }
 function gradeBand(g){
   var pr=g.price?'<span class="gprice add">+'+g.price+'</span>':'<span class="gprice inc">'+t(UI.inc)+'</span>';
-  return '<div class="gband" onclick="openGrade(\''+g.id+'\')"><div class="sw '+(g.sw||'g1')+'"></div>'
+  var sw=g.img?'<div class="sw haspic"><img src="'+g.img+'" alt="" loading="lazy"></div>':'<div class="sw '+(g.sw||'g1')+'"></div>';
+  return '<div class="gband" onclick="openGrade(\''+g.id+'\')">'+sw
     +'<div class="gg"><div class="gtop"><div class="gnm">'+g.nm+(LANG==='th'&&g.thsub?' <b>'+g.thsub+'</b>':'')+'</div>'+pr+'</div>'
     +'<div class="guse">'+t(g.use)+'</div></div><div class="garr">❯</div></div>';
 }
 function fishCard(f){
   var notes=tn(f.notes).slice(0,2).map(function(n){return '<span>'+n+'</span>'}).join('');
-  return '<div class="bcard fatm'+(f.sold?' sold':'')+'" onclick="openFish(\''+f.id+'\')"><div class="bbg '+(f.g||'g-fish')+'">'+(f.e||'🐟')+'</div><div class="bsc"></div>'
+  var fg=f.img?'<div class="bbg haspic"><img src="'+f.img+'" alt="" loading="lazy"></div>':'<div class="bbg '+(f.g||'g-fish')+'">'+(f.e||'🐟')+'</div>';
+  return '<div class="bcard fatm'+(f.sold?' sold':'')+'" onclick="openFish(\''+f.id+'\')">'+fg+'<div class="bsc"></div>'
     +(f.sold?'<div class="sbadge">'+(LANG==='th'?'หมดวันนี้':'sold out')+'</div>':'')
     +'<div class="bt"><div class="bn">'+f.nm+'</div><div class="ben">'+(f.en||'')+'</div>'
     +'<div class="meter"><span class="ml">'+(LANG==='th'?'มันน้อย':'lean')+'</span><span class="mb"><i style="left:'+((f.fat||.5)*100)+'%"></i></span><span class="ml">'+(LANG==='th'?'มันมาก':'fatty')+'</span></div>'
@@ -769,6 +776,7 @@ function heroSlides(photos,g,e){
   document.getElementById('garrR').style.display=multi?'flex':'none';
 }
 function heroSingle(g,e){heroSlides([0],g,e);var c=document.querySelector('.mslide .cam');if(c)c.textContent='';}
+function heroOne(img,g,e){if(img){heroSlides([img],g,e);}else{heroSingle(g,e);}}
 function galGo(d){var sl=document.getElementById('mslides');sl.scrollBy({left:d*sl.clientWidth,behavior:'smooth'});}
 var gtick=false;
 function galScroll(){
@@ -849,7 +857,7 @@ function openItem(ci,ii){
 function openFish(id){
   var f=fishById(id);if(!f)return;
   mReset();
-  heroSingle(f.g||'g-fish',f.e||'🐟');
+  heroOne(f.img,f.g||'g-fish',f.e||'🐟');
   document.getElementById('mtags').innerHTML='<span class="mkick">'+(LANG==='th'?'วัตถุดิบ · ':'FISH · ')+(f.en||'')+'</span>';
   document.getElementById('mname').textContent=f.nm;
   document.getElementById('malt').textContent=t(f.orig)?((LANG==='th'?'จาก ':'from ')+t(f.orig)):'';
@@ -867,7 +875,7 @@ function openFish(id){
 function openBean(id){
   var b=null;BEANS.forEach(function(x){if(x.id===id)b=x});if(!b)return;
   mReset();
-  heroSingle(b.g||'g-coffee','🫘');
+  heroOne(b.img,b.g||'g-coffee','🫘');
   document.getElementById('mtags').innerHTML='<span class="mkick">'+(LANG==='th'?'เมล็ดกาแฟ':'COFFEE BEAN')+'</span>';
   document.getElementById('mname').textContent=b.nm;
   document.getElementById('malt').textContent=t(b.orig);
@@ -884,7 +892,7 @@ function openBean(id){
 function openGrade(id){
   var g=null;GRADES.forEach(function(x){if(x.id===id)g=x});if(!g)return;
   mReset();
-  heroSingle('g-matcha','🍵');
+  heroOne(g.img,'g-matcha','🍵');
   document.getElementById('mtags').innerHTML='<span class="mkick">'+(LANG==='th'?'เกรดมัทฉะ':'MATCHA GRADE')+'</span>';
   document.getElementById('mname').textContent=g.nm;
   document.getElementById('malt').textContent=LANG==='th'?(g.thsub||''):'';
