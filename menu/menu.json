@@ -1925,6 +1925,80 @@
     "en": "Akaebi, or Argentine red shrimp, has naturally deep-red shells and plump, pearly flesh. Sweet, meaty and juicy with a tender bite, rich umami and a clean ocean-fresh finish—ideal for sashimi."
    },
    "img": "photos/fish-1784374679828-485.jpg"
+  },
+  {
+   "id": "fsmrqjknqd",
+   "nm": "เนื้อปูหิมะแดง",
+   "en": "RED SNOW CRAB COMBO MEAT",
+   "e": "🦀",
+   "g": "g-fish",
+   "fat": 0.01,
+   "add": 39,
+   "sold": 0,
+   "portion": {
+    "th": "30 กรัม",
+    "en": ""
+   },
+   "orig": {
+    "th": "ญี่ปุ่น",
+    "en": "Japan"
+   },
+   "notes": {
+    "th": [
+     "หวานธรรมชาติ",
+     "เนื้อหลายสัมผัส",
+     "นุ่มฉ่ำ",
+     "อูมามิละมุน"
+    ],
+    "en": [
+     "Naturally Sweet",
+     "Mixed Textures",
+     "Tender",
+     "Delicate Umami"
+    ]
+   },
+   "desc": {
+    "th": "เนื้อปูหิมะแดงแบบ Combo Meat คัดรวมเนื้อจากหลายส่วนของปู จึงมีทั้งชิ้นเนื้ออวบแน่นและเส้นใยเนื้อนุ่มละเอียด สีขาวมุกแซมแดง ให้รสหวานธรรมชาติ เนื้อชุ่มฉ่ำ พร้อมอูมามิละมุนและกลิ่นทะเลสดสะอาด",
+    "en": "Red snow crab combo meat brings together meat from different parts of the crab, combining plump chunks with tender, delicate flakes. Naturally sweet and juicy, with gentle umami and a clean ocean-fresh finish."
+   },
+   "img": "photos/fish-1784389953131-209.jpg"
+  },
+  {
+   "id": "fsmrqjpj78",
+   "nm": "ปลาไหลย่างซอสคาบายากิ",
+   "en": "UNAGI KABAYAKI",
+   "e": "🐟",
+   "g": "g-fish",
+   "fat": 0.2,
+   "add": 80,
+   "sold": 0,
+   "portion": {
+    "th": "70 กรัม",
+    "en": ""
+   },
+   "orig": {
+    "th": "ญี่ปุ่น",
+    "en": "Japan"
+   },
+   "notes": {
+    "th": [
+     "หวานเค็มกลมกล่อม",
+     "นุ่มฉ่ำ",
+     "หอมย่าง",
+     "อูมามิเข้ม"
+    ],
+    "en": [
+     "Sweet-Savory",
+     "Tender",
+     "Smoky",
+     "Rich Umami"
+    ]
+   },
+   "desc": {
+    "th": "ปลาไหลย่างซอสคาบายากิ เนื้อนุ่มฉ่ำและละเอียด เคลือบซอสรสหวานเค็มกลมกล่อม ย่างจนผิวหอมคาราเมล พร้อมอูมามิเข้มข้นและกลิ่นย่างละมุน",
+    "en": "Unagi kabayaki features tender, juicy eel glazed with a balanced sweet-savory sauce and grilled until fragrant, delivering rich umami, caramelized depth and a delicate smoky finish."
+   },
+   "img": "photos/fish-1784390406997-433.jpg"
   }
  ]
 }
