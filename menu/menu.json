@@ -1742,30 +1742,41 @@
    "img": "photos/fish-1784368563646-627.jpg"
   },
   {
-   "id": "fsmrq75hdd",
-   "nm": "",
-   "en": "",
+   "id": "fsmrq8f408",
+   "nm": "ทูน่าอาคามิ",
+   "en": "AKAMI TUNA",
    "e": "🐟",
-   "g": "g-fish",
-   "fat": 0.5,
-   "add": 0,
+   "g": "g-akami",
+   "fat": 0.05,
+   "add": 45,
    "sold": 0,
    "portion": {
-    "th": "",
+    "th": "50",
     "en": ""
    },
    "orig": {
-    "th": "",
-    "en": ""
+    "th": "ญี่ปุ่น",
+    "en": "Japan"
    },
    "notes": {
-    "th": [],
-    "en": []
+    "th": [
+     "อูมามิชัด",
+     "เนื้อแน่นนุ่ม",
+     "หวานละมุน",
+     "รสสะอาด"
+    ],
+    "en": [
+     "Deep Umami",
+     "Firm",
+     "Subtly Sweet",
+     "Clean Finish"
+    ]
    },
    "desc": {
-    "th": "",
-    "en": ""
-   }
+    "th": "ทูน่าอาคามิส่วนเนื้อแดงไขมันต่ำ สีแดงเข้มสวย รสอูมามิชัดเจน เนื้อแน่นนุ่ม พร้อมความหวานละมุนตามธรรมชาติ ให้รสสะอาดและเบาสบาย เหมาะสำหรับรับประทานแบบซาชิมิ",
+    "en": "Akami is the lean, deep-red cut of tuna, prized for its clean umami, firm yet tender texture and subtle natural sweetness, with a light, refreshing finish—ideal for sashimi."
+   },
+   "img": "photos/fish-1784371113513-849.jpg"
   }
  ]
 }
