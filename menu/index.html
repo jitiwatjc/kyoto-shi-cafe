@@ -105,6 +105,8 @@
   .catcard:hover{transform:translateY(-4px);border-color:rgba(207,169,99,.55)}
   .catcard .cbg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:60px}
   .catcard .cbg::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.15),transparent 55%)}
+  .catcard .cbg.haspic{font-size:0}.catcard .cbg.haspic::after{background:none}
+  .catcard .cbg.haspic img{width:100%;height:100%;object-fit:cover}
   .catcard .csc{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,7,3,.9) 8%,rgba(8,7,3,.25) 55%,transparent)}
   .catcard .ct{position:absolute;left:0;right:0;bottom:0;padding:14px;color:#fff}
   .catcard .cnm{font-size:15.5px;font-weight:800;line-height:1.2}
@@ -117,6 +119,7 @@
   /* ── category view ── */
   .cathero{position:relative;padding:76px 18px 22px;text-align:center;overflow:hidden}
   .cathero .cbg2{position:absolute;inset:0;opacity:.5}
+  .cathero .cbg2.haspic img{width:100%;height:100%;object-fit:cover;display:block}
   .cathero .csc2{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,12,8,.35),var(--bg))}
   .cathero .e{position:relative;font-size:46px}
   .cathero h1{position:relative;font-size:27px;font-weight:900;margin-top:4px}
@@ -481,7 +484,8 @@ function posterGo(go){
   if(f)openItem(f.ci,f.ii);
 }
 function catCard(c){
-  return '<div class="catcard rv" onclick="openCat(\''+c.id+'\')"><div class="cbg '+c.g+'">'+c.e+'</div><div class="csc"></div>'
+  var bg=c.img?'<div class="cbg haspic"><img src="'+c.img+'" alt="" loading="lazy"></div>':'<div class="cbg '+c.g+'">'+c.e+'</div>';
+  return '<div class="catcard rv" onclick="openCat(\''+c.id+'\')">'+bg+'<div class="csc"></div>'
     +'<div class="carr">›</div><div class="ct"><div class="cnm">'+t(c.t)+'</div><div class="cen">'+(c.sub||'')+'</div>'
     +'<div class="chint">'+t(c.hint)+'</div></div></div>';
 }
@@ -597,8 +601,9 @@ function showCat(gid){
   document.getElementById('tbname').innerHTML=t(g.t)+'<small>KYOTO SHI CAFE · '+(g.sub||'')+'</small>';
   var h='';
   /* hero หมวด */
-  h+='<section class="cathero"><div class="cbg2 '+g.g+'"></div><div class="csc2"></div>'
-    +'<div class="e">'+g.e+'</div><h1>'+t(g.t)+'</h1><div class="en">'+(g.sub||'')+'</div></section>';
+  var chBg=g.img?'<div class="cbg2 haspic"><img src="'+g.img+'" alt="" loading="lazy"></div>':'<div class="cbg2 '+g.g+'"></div>';
+  h+='<section class="cathero">'+chBg+'<div class="csc2"></div>'
+    +(g.img?'':'<div class="e">'+g.e+'</div>')+'<h1>'+t(g.t)+'</h1><div class="en">'+(g.sub||'')+'</div></section>';
   /* โปสเตอร์หมวด */
   var cp=postersFor(gid);
   if(cp.length){
