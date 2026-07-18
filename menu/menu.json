@@ -131,8 +131,8 @@
     },
     {
      "id": "b1",
-     "th": "🍔🐷 เบอร์เกอร์หมู",
-     "en": "🍔🐷 Pork Burger",
+     "th": "🍔ชีสเบอร์เกอร์",
+     "en": "🍔Cheese Burger",
      "g": "g-burger",
      "e": "🍔",
      "sig": 0,
@@ -144,8 +144,8 @@
      ],
      "feat": 0,
      "d": {
-      "th": "ขนมปังเบอร์เกอร์เนื้อนุ่ม สอดไส้หมูเนื้อแน่นฉ่ำ ๆ พร้อมผักสดและซอสสูตรพิเศษของร้าน รสชาติกลมกล่อม อร่อยเต็มคำ กินง่าย แต่อิ่มกำลังดี ✨",
-      "en": "A soft burger bun filled with a juicy pork patty, fresh vegetables, and our special savory sauce. Delicious, satisfying, and packed with flavor in every bite!"
+      "th": "ขนมปังเบอร์เกอร์เนื้อนุ่ม สอดไส้หมู/เนื้อแน่นฉ่ำ ๆ พร้อมผักสดและซอสสูตรพิเศษของร้าน รสชาติกลมกล่อม อร่อยเต็มคำ กินง่าย แต่อิ่มกำลังดี ✨",
+      "en": "A soft burger bun filled with a juicy pork/beef patty, fresh vegetables, and our special savory sauce. Delicious, satisfying, and packed with flavor in every bite!"
      },
      "opts": [
       {
@@ -180,19 +180,6 @@
       }
      ],
      "from": 10
-    },
-    {
-     "id": "b2",
-     "th": "เบอร์เกอร์เนื้อ",
-     "en": "Beef Burger",
-     "price": 69,
-     "g": "g-burger",
-     "e": "🍔",
-     "sig": 0,
-     "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "feat": 0
     }
    ]
   },
@@ -1341,37 +1328,10 @@
  ],
  "beans": [
   {
-   "id": "b1",
-   "nm": "House Blend",
-   "add": 0,
-   "roast": 0.52,
-   "g": "g-coffee",
-   "orig": {
-    "th": "เบลนด์ประจำร้าน",
-    "en": "Signature blend"
-   },
-   "notes": {
-    "th": [
-     "ช็อกโกแลต",
-     "คาราเมล",
-     "ถั่วคั่ว"
-    ],
-    "en": [
-     "Chocolate",
-     "Caramel",
-     "Nutty"
-    ]
-   },
-   "desc": {
-    "th": "กลมกล่อม ดื่มง่าย บอดี้กำลังดี เข้ากับนมและทุกเมนู — เมล็ดค่าเริ่มต้นในทุกแก้ว",
-    "en": "Balanced, easy-drinking, great with milk."
-   }
-  },
-  {
    "id": "b2",
-   "nm": "Ethiopia",
-   "add": 20,
-   "roast": 0.24,
+   "nm": "Brazil Cerrado Jaguar",
+   "add": 0,
+   "roast": 0.75,
    "g": "g-tea",
    "orig": {
     "th": "Yirgacheffe · Single Origin",
@@ -1379,20 +1339,21 @@
    },
    "notes": {
     "th": [
-     "ดอกไม้",
-     "ส้ม",
-     "ชา"
+     "ช็อกโกแลต",
+     "ถั่วคั่ว",
+     "คาราเมล"
     ],
     "en": [
-     "Floral",
-     "Citrus",
-     "Tea-like"
+     "Chocolate",
+     "Roasted Nut",
+     "Caramel"
     ]
    },
    "desc": {
-    "th": "คั่วอ่อน หอมสดใส เปรี้ยวสวยแบบผลไม้ เหมาะดื่มดำหรืออเมริกาโน่เย็น",
-    "en": "Light roast, bright & floral. Best black or iced."
-   }
+    "th": "หอมช็อกโกแลต ถั่วคั่ว และคาราเมล รสหวานนุ่มสมดุล บอดี้แน่น กลมกล่อม เปรี้ยวปานกลาง ดื่มง่าย เหมาะทั้งกาแฟดำและเมนูนม",
+    "en": "Chocolate, roasted nut and caramel notes with balanced sweetness, a smooth full body and medium acidity. Great both black and with milk."
+   },
+   "img": "photos/bean-1784355871910-702.jpg"
   },
   {
    "id": "b3",
