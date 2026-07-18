@@ -1428,46 +1428,6 @@
  ],
  "grades": [
   {
-   "id": "grmrq0o6wy",
-   "nm": "",
-   "thsub": "",
-   "sw": "g1",
-   "price": 0,
-   "use": {
-    "th": "",
-    "en": ""
-   },
-   "desc": {
-    "th": "",
-    "en": ""
-   },
-   "bars": {
-    "bitter": 0.3,
-    "umami": 0.5,
-    "color": 0.5
-   }
-  },
-  {
-   "id": "grmrq18az6",
-   "nm": "",
-   "thsub": "",
-   "sw": "g1",
-   "price": 0,
-   "use": {
-    "th": "",
-    "en": ""
-   },
-   "desc": {
-    "th": "",
-    "en": ""
-   },
-   "bars": {
-    "bitter": 0.3,
-    "umami": 0.5,
-    "color": 0.5
-   }
-  },
-  {
    "id": "grmrq1farl",
    "nm": "Premium Kagoshima",
    "thsub": "พรีเมียมจากคาโกชิมะ",
