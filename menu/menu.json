@@ -1356,31 +1356,32 @@
    "img": "photos/bean-1784355871910-702.jpg"
   },
   {
-   "id": "b3",
-   "nm": "Colombia",
-   "add": 20,
-   "roast": 0.78,
-   "g": "g-espr",
+   "id": "bnmrq05ee8",
+   "nm": "Colombia Santander Supremo",
+   "add": 10,
+   "roast": 0.5,
+   "g": "g-coffee",
    "orig": {
-    "th": "Supremo · Single Origin",
-    "en": "Supremo · Single Origin"
+    "th": "Santander Supremo · Single Origin",
+    "en": "Santander Supremo · Single Origin"
    },
    "notes": {
     "th": [
-     "ดาร์กช็อก",
-     "คาราเมล",
-     "วอลนัท"
+     "ผลไม้",
+     "ช็อกโกแลต",
+     "คาราเมล"
     ],
     "en": [
-     "Dark choc",
-     "Caramel",
-     "Walnut"
+     "Fruity",
+     "Chocolate",
+     "Caramel"
     ]
    },
    "desc": {
-    "th": "คั่วเข้ม บอดี้แน่น หนักแน่น รสเข้มข้นติดลิ้น เหมาะสายกาแฟเข้ม",
-    "en": "Dark roast, full body & bold."
-   }
+    "th": "คั่วอ่อน ให้ความเปรี้ยวสดใสและกลิ่นหอมโทนผลไม้ ตามด้วยช็อกโกแลตและคาราเมล สัมผัสนุ่มลื่น ดื่มสดชื่น เหมาะสำหรับกาแฟดำหรืออเมริกาโนเย็น",
+    "en": "Light roast with bright acidity and fruity notes, followed by chocolate and caramel. Smooth, silky and refreshing—best enjoyed black or iced."
+   },
+   "img": "photos/bean-1784357227430-674.jpg"
   }
  ],
  "grades": [
