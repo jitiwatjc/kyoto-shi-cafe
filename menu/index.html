@@ -198,8 +198,8 @@
   .sw.g1{background:linear-gradient(145deg,#c2cd86,#94a552)} .sw.g2{background:linear-gradient(145deg,#82b257,#4f7c2e)} .sw.g3{background:linear-gradient(145deg,#4f7f34,#243f18)}
   .gband .gg{flex:1;min-width:0}
   .gband .gtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-  .gband .gnm{font-family:var(--serif);font-size:18px;font-weight:700}
-  .gband .gnm b{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px}
+  .gband .gnm{font-family:var(--serif);font-size:18px;font-weight:700;line-height:1.15}
+  .gband .gnmth{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.6px;margin-top:3px}
   .gprice{font-size:12px;font-weight:800;padding:3px 10px;border-radius:13px;white-space:nowrap}
   .gprice.inc{background:var(--bg2);border:1px solid var(--line);color:var(--muted)} .gprice.add{background:var(--matcha);color:#15200c}
   .gband .guse{font-size:11px;color:var(--matcha);margin-top:4px}
@@ -561,9 +561,10 @@ function beanCard(b,i){
 function gradeBand(g){
   var pr=g.price?'<span class="gprice add">+'+g.price+'</span>':'<span class="gprice inc">'+t(UI.inc)+'</span>';
   var sw=g.img?'<div class="sw haspic"><img src="'+g.img+'" alt="" loading="lazy"></div>':'<div class="sw '+(g.sw||'g1')+'"></div>';
+  var thline=(LANG==='th'&&g.thsub)?'<div class="gnmth">'+g.thsub+'</div>':'';
   return '<div class="gband" onclick="openGrade(\''+g.id+'\')">'+sw
-    +'<div class="gg"><div class="gtop"><div class="gnm">'+g.nm+(LANG==='th'&&g.thsub?' <b>'+g.thsub+'</b>':'')+'</div>'+pr+'</div>'
-    +'<div class="guse">'+t(g.use)+'</div></div><div class="garr">❯</div></div>';
+    +'<div class="gg"><div class="gtop"><div class="gnm">'+g.nm+'</div>'+pr+'</div>'
+    +thline+'<div class="guse">'+t(g.use)+'</div></div><div class="garr">❯</div></div>';
 }
 function fishCard(f){
   var notes=tn(f.notes).slice(0,2).map(function(n){return '<span>'+n+'</span>'}).join('');
