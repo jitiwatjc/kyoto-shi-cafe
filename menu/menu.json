@@ -1713,7 +1713,7 @@
    "e": "🍣",
    "g": "g-salmon",
    "fat": 0.5,
-   "add": 50,
+   "add": 55,
    "sold": 0,
    "portion": {
     "th": "50 กรัม",
@@ -1777,6 +1777,32 @@
     "en": "Akami is the lean, deep-red cut of tuna, prized for its clean umami, firm yet tender texture and subtle natural sweetness, with a light, refreshing finish—ideal for sashimi."
    },
    "img": "photos/fish-1784371113513-849.jpg"
+  },
+  {
+   "id": "fsmrq8hygn",
+   "nm": "",
+   "en": "",
+   "e": "🐟",
+   "g": "g-fish",
+   "fat": 0.5,
+   "add": 0,
+   "sold": 0,
+   "portion": {
+    "th": "",
+    "en": ""
+   },
+   "orig": {
+    "th": "",
+    "en": ""
+   },
+   "notes": {
+    "th": [],
+    "en": []
+   },
+   "desc": {
+    "th": "",
+    "en": ""
+   }
   }
  ]
 }
