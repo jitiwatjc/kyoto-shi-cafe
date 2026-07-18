@@ -219,14 +219,6 @@
       {
        "f": "salmon",
        "n": 3
-      },
-      {
-       "f": "akami",
-       "n": 3
-      },
-      {
-       "f": "hamachi",
-       "n": 3
       }
      ],
      "feat": 0
@@ -254,22 +246,6 @@
       {
        "f": "salmon",
        "n": 3
-      },
-      {
-       "f": "akami",
-       "n": 3
-      },
-      {
-       "f": "hamachi",
-       "n": 3
-      },
-      {
-       "f": "hotate",
-       "n": 3
-      },
-      {
-       "f": "ikura",
-       "n": 3
       }
      ],
      "feat": 0
@@ -295,20 +271,8 @@
      },
      "fish": [
       {
-       "f": "otoro",
-       "n": 4
-      },
-      {
        "f": "salmon",
        "n": 3
-      },
-      {
-       "f": "hotate",
-       "n": 2
-      },
-      {
-       "f": "ikura",
-       "n": 2
       }
      ],
      "feat": 0
@@ -342,9 +306,6 @@
      "fish": [
       {
        "f": "salmon"
-      },
-      {
-       "f": "ikura"
       }
      ],
      "feat": 0
@@ -363,18 +324,6 @@
      "fish": [
       {
        "f": "salmon"
-      },
-      {
-       "f": "akami"
-      },
-      {
-       "f": "hamachi"
-      },
-      {
-       "f": "hotate"
-      },
-      {
-       "f": "ikura"
       }
      ],
      "feat": 0
@@ -390,14 +339,7 @@
      "hot": 0,
      "sold": 0,
      "photos": [],
-     "fish": [
-      {
-       "f": "otoro"
-      },
-      {
-       "f": "ikura"
-      }
-     ],
+     "fish": [],
      "feat": 0
     }
    ]
@@ -1800,169 +1742,29 @@
    "img": "photos/fish-1784368563646-627.jpg"
   },
   {
-   "id": "akami",
-   "nm": "ทูน่าอาคามิ",
-   "en": "AKAMI TUNA",
-   "e": "🍣",
-   "g": "g-akami",
-   "fat": 0.2,
-   "add": 89,
-   "sold": 0,
-   "portion": {
-    "th": "50 กรัม",
-    "en": "50g"
-   },
-   "orig": {
-    "th": "มัลดีฟส์",
-    "en": "Maldives"
-   },
-   "notes": {
-    "th": [
-     "เนื้อแดง",
-     "รสเข้ม",
-     "โปรตีนสูง"
-    ],
-    "en": [
-     "Lean red",
-     "Bold",
-     "High protein"
-    ]
-   },
-   "desc": {
-    "th": "ส่วนเนื้อแดงของทูน่า รสเข้มข้น ไขมันน้อย เคี้ยวเพลิน",
-    "en": "Lean red tuna, bold flavour, low fat."
-   }
-  },
-  {
-   "id": "otoro",
-   "nm": "โอโทโร่",
-   "en": "OTORO",
-   "e": "🍣",
-   "g": "g-otoro",
-   "fat": 0.96,
-   "add": 229,
-   "sold": 0,
-   "portion": {
-    "th": "30 กรัม",
-    "en": "30g"
-   },
-   "orig": {
-    "th": "ญี่ปุ่น",
-    "en": "Japan"
-   },
-   "notes": {
-    "th": [
-     "มันมาก",
-     "พรีเมียม",
-     "นุ่มละลาย"
-    ],
-    "en": [
-     "Very fatty",
-     "Premium",
-     "Melting"
-    ]
-   },
-   "desc": {
-    "th": "ส่วนท้องทูน่าที่มันที่สุด ลายมาร์เบิลสวย นุ่มละลายในปาก — พรีเมียมสุด",
-    "en": "Fattiest tuna belly, marbled & melting — top premium."
-   }
-  },
-  {
-   "id": "hamachi",
-   "nm": "ฮามาจิ",
-   "en": "HAMACHI",
+   "id": "fsmrq75hdd",
+   "nm": "",
+   "en": "",
    "e": "🐟",
-   "g": "g-hama",
-   "fat": 0.55,
-   "add": 99,
-   "sold": 0,
-   "portion": {
-    "th": "50 กรัม",
-    "en": "50g"
-   },
-   "orig": {
-    "th": "ญี่ปุ่น",
-    "en": "Japan"
-   },
-   "notes": {
-    "th": [
-     "หวานมัน",
-     "เนื้อแน่น"
-    ],
-    "en": [
-     "Sweet-rich",
-     "Firm"
-    ]
-   },
-   "desc": {
-    "th": "ปลาหางเหลือง เนื้อแน่น หวานมันกำลังดี กลิ่นสะอาด",
-    "en": "Yellowtail, firm & clean, balanced richness."
-   }
-  },
-  {
-   "id": "hotate",
-   "nm": "หอยเชลล์ฮอกไกโด",
-   "en": "HOTATE",
-   "e": "🐚",
-   "g": "g-hotate",
-   "fat": 0.3,
-   "add": 99,
-   "sold": 0,
-   "portion": {
-    "th": "2 ชิ้น",
-    "en": "2 pc"
-   },
-   "orig": {
-    "th": "ฮอกไกโด",
-    "en": "Hokkaido"
-   },
-   "notes": {
-    "th": [
-     "หวาน",
-     "กรอบ",
-     "ตัวใหญ่"
-    ],
-    "en": [
-     "Sweet",
-     "Crisp",
-     "Plump"
-    ]
-   },
-   "desc": {
-    "th": "หอยเชลล์ฮอกไกโด หวานกรอบ สดใหม่ ตัวใหญ่",
-    "en": "Hokkaido scallop — sweet, crisp, plump & fresh."
-   }
-  },
-  {
-   "id": "ikura",
-   "nm": "ไข่ปลาแซลมอน",
-   "en": "IKURA",
-   "e": "🧡",
-   "g": "g-ikura",
+   "g": "g-fish",
    "fat": 0.5,
-   "add": 79,
+   "add": 0,
    "sold": 0,
    "portion": {
-    "th": "30 กรัม",
-    "en": "30g"
+    "th": "",
+    "en": ""
    },
    "orig": {
     "th": "",
     "en": ""
    },
    "notes": {
-    "th": [
-     "เค็มอ่อน",
-     "แตกในปาก"
-    ],
-    "en": [
-     "Lightly cured",
-     "Pops"
-    ]
+    "th": [],
+    "en": []
    },
    "desc": {
-    "th": "ไข่ปลาแซลมอนหมักซีอิ๊ว เม็ดใสวาว แตกในปากเป็นรสอูมามิ",
-    "en": "Soy-cured salmon roe, glossy beads that pop with umami."
+    "th": "",
+    "en": ""
    }
   }
  ]
