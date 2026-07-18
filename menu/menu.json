@@ -1359,7 +1359,7 @@
    "id": "bnmrq05ee8",
    "nm": "Colombia Santander Supremo",
    "add": 10,
-   "roast": 0.5,
+   "roast": 0.1,
    "g": "g-coffee",
    "orig": {
     "th": "Santander Supremo · Single Origin",
@@ -1428,64 +1428,65 @@
  ],
  "grades": [
   {
-   "id": "g1",
-   "nm": "Classic",
-   "thsub": "คลาสสิก",
+   "id": "grmrq0o6wy",
+   "nm": "",
+   "thsub": "",
    "sw": "g1",
    "price": 0,
-   "bars": {
-    "bitter": 0.6,
-    "umami": 0.4,
-    "color": 0.35
-   },
    "use": {
-    "th": "ลาเต้ · ปั่น · เมนูผสมนม",
-    "en": "Latte · blended · milk drinks"
+    "th": "",
+    "en": ""
    },
    "desc": {
-    "th": "สีเขียวอมเหลือง รสกลมกล่อม ขมนิด ๆ ดื่มง่าย คุ้มค่า เหมาะเริ่มต้น",
-    "en": "Yellow-green, balanced, slightly bitter, everyday grade."
+    "th": "",
+    "en": ""
+   },
+   "bars": {
+    "bitter": 0.3,
+    "umami": 0.5,
+    "color": 0.5
    }
   },
   {
-   "id": "g2",
-   "nm": "Premium",
-   "thsub": "พรีเมียม",
-   "sw": "g2",
-   "price": 30,
-   "bars": {
-    "bitter": 0.35,
-    "umami": 0.7,
-    "color": 0.65
-   },
+   "id": "grmrq18az6",
+   "nm": "",
+   "thsub": "",
+   "sw": "g1",
+   "price": 0,
    "use": {
-    "th": "ลาเต้เข้ม · ชงดื่มเพียว",
-    "en": "Strong latte · pure"
+    "th": "",
+    "en": ""
    },
    "desc": {
-    "th": "สีเขียวสด อูมามิชัด หวานปลาย ขมน้อยลง หอมกลิ่นมัทฉะแท้",
-    "en": "Vivid green, rich umami, less bitter."
+    "th": "",
+    "en": ""
+   },
+   "bars": {
+    "bitter": 0.3,
+    "umami": 0.5,
+    "color": 0.5
    }
   },
   {
-   "id": "g3",
-   "nm": "Ceremonial",
-   "thsub": "พิธีชง",
+   "id": "grmrq1farl",
+   "nm": "Premium Kagoshima",
+   "thsub": "พรีเมียมจากคาโกชิมะ",
    "sw": "g3",
-   "price": 60,
-   "bars": {
-    "bitter": 0.12,
-    "umami": 0.95,
-    "color": 0.95
-   },
+   "price": 45,
    "use": {
-    "th": "ชงแบบพิธี · ดื่มเพียว (Usucha)",
-    "en": "Ceremonial · pure (Usucha)"
+    "th": "มัทฉะลาเต้ | เมนูผสมน้ำผลไม้และโซดา",
+    "en": "Matcha Latte | With Juice & Sparkling"
    },
    "desc": {
-    "th": "สีเขียวมรกตเข้ม อูมามิเต็ม แทบไม่ขม เนื้อนุ่มละเอียด — เกรดสูงสุดของร้าน",
-    "en": "Deep emerald, full umami, finest grade."
-   }
+    "th": "มัทฉะพรีเมียมจากคาโกชิมะ ผสานสายพันธุ์ Tsuyuhikari และ Samidori ให้กลิ่นหอมละมุนคล้ายถั่วแมคคาเดเมีย งาคั่ว และดอกไม้อ่อน ๆ รสขมน้อย มีอูมามิชัด เนื้อสัมผัสกลมกล่อม เหมาะสำหรับมัทฉะลาเต้และเมนูผสมน้ำผลไม้หรือโซดาที่ต้องการกลิ่นรสซับซ้อน",
+    "en": "A refined Kagoshima matcha blended from Tsuyuhikari and Samidori cultivars. It offers delicate notes of macadamia, toasted sesame and a gentle floral aroma, with low bitterness, pronounced umami and a smooth finish. Ideal for matcha lattes, juice-based drinks and sparkling creations."
+   },
+   "bars": {
+    "bitter": 0.2,
+    "umami": 0.75,
+    "color": 0.9
+   },
+   "img": "photos/grade-1784359391313-6.jpg"
   }
  ],
  "modGroups": {
