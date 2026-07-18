@@ -85,19 +85,6 @@
      "from": 69
     },
     {
-     "id": "s7",
-     "th": "เกี๊ยวซ่า 8 ชิ้น",
-     "en": "Gyoza (8 pcs)",
-     "price": 119,
-     "g": "g-snack",
-     "e": "🥟",
-     "sig": 0,
-     "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "feat": 0
-    },
-    {
      "id": "s1",
      "th": "เฟรนช์ฟรายส์",
      "en": "French Fries",
@@ -146,7 +133,6 @@
      "id": "b1",
      "th": "🍔🐷 เบอร์เกอร์หมู",
      "en": "🍔🐷 Pork Burger",
-     "price": 59,
      "g": "g-burger",
      "e": "🍔",
      "sig": 0,
@@ -160,7 +146,40 @@
      "d": {
       "th": "ขนมปังเบอร์เกอร์เนื้อนุ่ม สอดไส้หมูเนื้อแน่นฉ่ำ ๆ พร้อมผักสดและซอสสูตรพิเศษของร้าน รสชาติกลมกล่อม อร่อยเต็มคำ กินง่าย แต่อิ่มกำลังดี ✨",
       "en": "A soft burger bun filled with a juicy pork patty, fresh vegetables, and our special savory sauce. Delicious, satisfying, and packed with flavor in every bite!"
-     }
+     },
+     "opts": [
+      {
+       "th": "เบอร์เกอร์หมู",
+       "en": "Pork Burger",
+       "price": 59
+      },
+      {
+       "th": "เบอร์เกอร์เนื้อ",
+       "en": "Beef Burger",
+       "price": 69
+      },
+      {
+       "th": "เพิ่มชีส",
+       "en": "Add Cheese ",
+       "price": 10
+      },
+      {
+       "th": "เพิ่มเบคอน",
+       "en": "Add Bacon",
+       "price": 10
+      },
+      {
+       "th": "เพิ่มไข่",
+       "en": "Add fired egg",
+       "price": 10
+      },
+      {
+       "th": "ดับเบิ้ลชีสเบอร์เกอร์",
+       "en": "Double Cheeseburger",
+       "price": 49
+      }
+     ],
+     "from": 10
     },
     {
      "id": "b2",
