@@ -286,7 +286,58 @@
      "photos": [
       "photos/snowoceanmixsa-1784394284998-8.jpg"
      ],
-     "price": 309
+     "price": 309,
+     "fish": [
+      {
+       "f": "salmon"
+      },
+      {
+       "f": "fsmrq8f408"
+      },
+      {
+       "f": "fsmrq9bhgb"
+      },
+      {
+       "f": "fsmrqagk6u"
+      }
+     ]
+    },
+    {
+     "id": "xmrqme2n4",
+     "th": "ซาชิมิพรีเมียม",
+     "en": "Premium Sashimi",
+     "d": {
+      "th": "จานซาชิมิพรีเมียม รวมทูน่าอาคามิ แซลมอน และฮามาจิอย่างละ 50 กรัม พร้อมอาคาเอบิ 1 ตัว โฮตาเตะฮอกไกโด 1 ตัว และอิคุระ 10 กรัม",
+      "en": "A premium platter of akami tuna, salmon, and hamachi sashimi, 50 g each, served with one akaebi, one Hokkaido scallop, and 10 g of ikura."
+     },
+     "sig": 0,
+     "hot": 0,
+     "e": "🍽",
+     "g": "g-rice",
+     "photos": [
+      "photos/premiumsashimi-1784394477068-409.jpg"
+     ],
+     "fish": [
+      {
+       "f": "salmon"
+      },
+      {
+       "f": "fsmrq8f408"
+      },
+      {
+       "f": "fsmrq9bhgb"
+      },
+      {
+       "f": "fsmrq9opna"
+      },
+      {
+       "f": "fsmrq9xt4b"
+      },
+      {
+       "f": "fsmrqagk6u"
+      }
+     ],
+     "price": 389
     }
    ]
   },
