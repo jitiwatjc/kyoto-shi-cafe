@@ -1751,7 +1751,7 @@
    "add": 45,
    "sold": 0,
    "portion": {
-    "th": "50",
+    "th": "50 กรัม",
     "en": ""
    },
    "orig": {
@@ -1784,11 +1784,11 @@
    "en": "HAMACHI YELLOWTAIL",
    "e": "🐟",
    "g": "g-hama",
-   "fat": 0.5,
+   "fat": 0.6,
    "add": 65,
    "sold": 0,
    "portion": {
-    "th": "",
+    "th": "50 กรัม",
     "en": ""
    },
    "orig": {
