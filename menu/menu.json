@@ -1779,30 +1779,41 @@
    "img": "photos/fish-1784371113513-849.jpg"
   },
   {
-   "id": "fsmrq8hygn",
-   "nm": "",
-   "en": "",
+   "id": "fsmrq9bhgb",
+   "nm": "ปลาฮามาจิ",
+   "en": "HAMACHI YELLOWTAIL",
    "e": "🐟",
-   "g": "g-fish",
+   "g": "g-hama",
    "fat": 0.5,
-   "add": 0,
+   "add": 65,
    "sold": 0,
    "portion": {
     "th": "",
     "en": ""
    },
    "orig": {
-    "th": "",
-    "en": ""
+    "th": "ญี่ปุ่น",
+    "en": "Japan"
    },
    "notes": {
-    "th": [],
-    "en": []
+    "th": [
+     "หวานมัน",
+     "เนียนนุ่ม",
+     "เนื้อแน่นเด้ง",
+     "รสสะอาด"
+    ],
+    "en": [
+     "Buttery",
+     "Silky",
+     "Firm",
+     "Clean Finish"
+    ]
    },
    "desc": {
-    "th": "",
-    "en": ""
-   }
+    "th": "ปลาฮามาจิหรือปลาหางเหลืองญี่ปุ่น เนื้อสีชมพูอ่อนแทรกลายไขมันละเอียด รสหวานมันกำลังดี เนื้อแน่นเด้งแต่เนียนนุ่ม พร้อมอูมามิละมุนและรสสะอาด เหมาะสำหรับรับประทานแบบซาชิมิ",
+    "en": "Japanese yellowtail with pale pink flesh and delicate marbling. Naturally buttery and gently sweet, with a firm yet silky texture, clean umami and a smooth finish—ideal for sashimi."
+   },
+   "img": "photos/fish-1784372645297-246.jpg"
   }
  ]
 }
