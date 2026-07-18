@@ -1770,12 +1770,12 @@
    "en": "SALMON",
    "e": "🍣",
    "g": "g-salmon",
-   "fat": 0.82,
-   "add": 69,
+   "fat": 0.5,
+   "add": 50,
    "sold": 0,
    "portion": {
     "th": "50 กรัม",
-    "en": "50g"
+    "en": ""
    },
    "orig": {
     "th": "นอร์เวย์",
@@ -1783,20 +1783,21 @@
    },
    "notes": {
     "th": [
-     "มันเยอะ",
-     "ละมุน",
-     "ละลายในปาก"
+     "หวานมัน",
+     "เนียนนุ่ม",
+     "ละมุน"
     ],
     "en": [
-     "Fatty",
+     "Rich",
      "Silky",
-     "Melts"
+     "Buttery"
     ]
    },
    "desc": {
-    "th": "แซลมอนนอร์เวย์ไขมันสูง เนื้อส้มสด หวานมัน ละลายในปาก คัดเกรดซาชิมิ",
-    "en": "Fatty Norwegian salmon, sweet & silky, sashimi grade."
-   }
+    "th": "แซลมอนนอร์เวย์เนื้อสีส้มสด ลายไขมันละเอียดสวย ให้รสหวานมันตามธรรมชาติ เนื้อแน่นนุ่ม ชุ่มฉ่ำ และเนียนละมุน เหมาะสำหรับรับประทานแบบซาชิมิ",
+    "en": "Norwegian salmon with vibrant orange flesh and delicate marbling. Naturally rich and subtly sweet, with a tender, juicy and silky texture—ideal for sashimi."
+   },
+   "img": "photos/fish-1784368563646-627.jpg"
   },
   {
    "id": "akami",
