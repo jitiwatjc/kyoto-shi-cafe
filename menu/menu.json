@@ -436,7 +436,12 @@
      "sig": 1,
      "hot": 0,
      "sold": 0,
-     "photos": [],
+     "photos": [
+      "photos/japanesecurryr-1784399462404-486.jpg",
+      "photos/japanesecurryr-1784399473799-218.jpg",
+      "photos/japanesecurryr-1784399473857-665.jpg",
+      "photos/japanesecurryr-1784399473881-671.jpg"
+     ],
      "opts": [
       {
        "th": "ไก่คาราเกะ",
@@ -464,7 +469,11 @@
        "price": 229
       }
      ],
-     "feat": 0
+     "feat": 0,
+     "d": {
+      "th": "ข้าวญี่ปุ่นร้อน ๆ เสิร์ฟพร้อมแกงกะหรี่ญี่ปุ่นรสเข้มข้น หอมเครื่องเทศ กลมกล่อม มีแครอทและมันฝรั่งเนื้อนุ่ม",
+      "en": "Steamed Japanese rice served with rich and aromatic Japanese curry, complemented by tender carrots and potatoes."
+     }
     },
     {
      "id": "d3",
