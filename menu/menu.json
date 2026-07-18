@@ -1510,6 +1510,27 @@
     "color": 0.9
    },
    "img": "photos/grade-1784360490395-47.jpg"
+  },
+  {
+   "id": "grmrq361u3",
+   "nm": "Shizuoka Houjicha",
+   "thsub": "โฮจิฉะ",
+   "sw": "g1",
+   "price": 25,
+   "use": {
+    "th": "โฮจิฉะลาเต้",
+    "en": "Houjicha Latte"
+   },
+   "desc": {
+    "th": "ชาเขียวคั่วจากจังหวัดชิซูโอกะ ประเทศญี่ปุ่น ผลิตจากสายพันธุ์ Yabukita ให้กลิ่นหอมคั่วชัดเจน พร้อมโทนสโมกกี้และช็อกโกแลต รสชาตินุ่ม กลมกล่อม ขมไม่มาก เหมาะสำหรับทำโฮจิฉะลาเต้",
+    "en": "A roasted green tea from Shizuoka, Japan, made from the Yabukita cultivar. It offers distinctive toasty aromas with smoky and chocolate notes, accompanied by a smooth, mellow taste and gentle bitterness. Ideal for Houjicha Latte."
+   },
+   "bars": {
+    "bitter": 0.25,
+    "umami": 0.3,
+    "color": 0.78
+   },
+   "img": "photos/grade-1784362267272-154.jpg"
   }
  ],
  "modGroups": {
