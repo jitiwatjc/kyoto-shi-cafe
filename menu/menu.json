@@ -1428,6 +1428,48 @@
  ],
  "grades": [
   {
+   "id": "grmrq1onl9",
+   "nm": "Shizuoka Classic",
+   "thsub": "ชิซูโอกะ",
+   "sw": "g1",
+   "price": 0,
+   "use": {
+    "th": "มัทฉะลาเต้",
+    "en": "Matcha Latte"
+   },
+   "desc": {
+    "th": "มัทฉะคลาสสิกจากชิซูโอกะ ผลิตจากสายพันธุ์ Yabukita ให้รสชาเขียวและโทนพืชชัดเจน พร้อมความขมอ่อนถึงปานกลาง รสชาติเข้มพอที่จะยังโดดเด่นเมื่อนำไปผสมกับนมหรือใช้ทำขนม เหมาะสำหรับเมนูประจำวันของร้าน",
+    "en": "A classic Shizuoka matcha made from the Yabukita cultivar. It delivers a direct vegetal character with mild-to-moderate bitterness and enough intensity to remain distinctive when combined with milk or desserts. A reliable choice for everyday café applications."
+   },
+   "bars": {
+    "bitter": 0.3,
+    "umami": 0.5,
+    "color": 0.5
+   },
+   "img": "photos/grade-1784359746978-326.jpg"
+  },
+  {
+   "id": "grmrq1mtj0",
+   "nm": "Uji Signature",
+   "thsub": "อุจิ",
+   "sw": "g2",
+   "price": 25,
+   "use": {
+    "th": "มัทฉะลาเต้ | เมนูผสมน้ำผลไม้และโซดา",
+    "en": "Matcha Latte | With Juice & Sparkling"
+   },
+   "desc": {
+    "th": "มัทฉะซิกเนเจอร์จากเมืองอุจิ จังหวัดเกียวโต ผสานสายพันธุ์ Samidori และ Yabukita ให้กลิ่นหอมสดชื่นของใบชาและพืชสีเขียว พร้อมโทนผลไม้อ่อน ๆ รสชาติสมดุล อูมามิกำลังดี ใช้งานได้หลากหลายทั้งเครื่องดื่มและขนมหวาน",
+    "en": "A versatile Uji matcha from Kyoto, blended from Samidori and Yabukita cultivars. Fresh grassy and vegetal notes are complemented by a gentle fruity character, balanced umami and moderate bitterness. Suitable for lattes, sparkling drinks, juice combinations and desserts."
+   },
+   "bars": {
+    "bitter": 0.35,
+    "umami": 0.65,
+    "color": 0.82
+   },
+   "img": "photos/grade-1784359677498-914.jpg"
+  },
+  {
    "id": "grmrq1farl",
    "nm": "Premium Kagoshima",
    "thsub": "พรีเมียมจากคาโกชิมะ",
@@ -1447,6 +1489,27 @@
     "color": 0.9
    },
    "img": "photos/grade-1784359391313-6.jpg"
+  },
+  {
+   "id": "grmrq1y6p7",
+   "nm": "IM-KAZE Nishio Ceremonial",
+   "thsub": "เซเรโมเนียลจนิชิโอะ",
+   "sw": "g3",
+   "price": 45,
+   "use": {
+    "th": "ดื่มเพียวแบบอุสุฉะ | มัทฉะลาเต้ | เครื่องดื่มซิกเนเจอร์",
+    "en": "Traditional Usucha | Matcha Latte | Signature Drinks"
+   },
+   "desc": {
+    "th": "IM-KAZE มัทฉะเกรดเซเรโมเนียลจากเมืองนิชิโอะ จังหวัดไอจิ ประเทศญี่ปุ่น ผสานมัทฉะสายพันธุ์ Samidori, Okumidori และ Yabukita ให้กลิ่นหอมของใบชาเขียวสด พร้อมโทนถั่วอ่อน ๆ รสอูมามิเข้มข้น เนื้อสัมผัสครีมมี่ เนียนนุ่ม และมีความขมต่ำ เหมาะสำหรับดื่มเพียวแบบอุสุฉะ มัทฉะลาเต้ และเครื่องดื่มซิกเนเจอร์ระดับพรีเมียม",
+    "en": "IM-KAZE is a ceremonial-grade matcha from Nishio, Aichi Prefecture, Japan. Blended from Samidori, Okumidori and Yabukita cultivars, it offers a fresh green aroma with delicate nutty notes, pronounced umami and a creamy, exceptionally smooth texture. Its low bitterness makes it suitable for traditional usucha, premium matcha lattes and signature drinks."
+   },
+   "bars": {
+    "bitter": 0.2,
+    "umami": 0.9,
+    "color": 0.9
+   },
+   "img": "photos/grade-1784360490395-47.jpg"
   }
  ],
  "modGroups": {
