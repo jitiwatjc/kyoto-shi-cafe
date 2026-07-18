@@ -355,54 +355,30 @@
    },
    "items": [
     {
-     "id": "don_salmon",
-     "th": "ข้าวหน้าแซลมอน",
-     "en": "Salmon Don",
-     "price": 159,
-     "g": "g-salmon",
-     "e": "🍚",
-     "sig": 0,
-     "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "fish": [
-      {
-       "f": "salmon"
-      }
-     ],
-     "feat": 0
-    },
-    {
-     "id": "don_mix",
-     "th": "ข้าวหน้ารวมมิตร (ไคเซ็นด้ง)",
-     "en": "Kaisen Don",
-     "price": 229,
-     "g": "g-hama",
-     "e": "🍚",
+     "id": "xmrqnft93",
+     "th": "ข้าวด้งแซลมอนเบิร์น",
+     "en": "Aburi Salmon Don",
+     "d": {
+      "th": "ข้าวญี่ปุ่นหน้าปลาแซลมอนเบิร์นเนื้อนุ่มฉ่ำ ราดซอสเทริยากิรสกลมกล่อม โรยไข่ปลาแซลมอน ต้นหอม และงาขาว",
+      "en": "Japanese rice topped with tender flame-seared salmon, glazed with savory teriyaki sauce and finished with salmon roe, spring onions, and sesame seeds."
+     },
      "sig": 1,
      "hot": 0,
-     "sold": 0,
-     "photos": [],
+     "e": "🍽",
+     "g": "g-rice",
+     "photos": [
+      "photos/aburisalmondon-1784396217645-614.jpg",
+      "photos/aburisalmondon-1784396217685-113.jpg"
+     ],
      "fish": [
       {
        "f": "salmon"
+      },
+      {
+       "f": "fsmrq9xt4b"
       }
      ],
-     "feat": 0
-    },
-    {
-     "id": "don_otoro",
-     "th": "ข้าวหน้าโอโทโร่",
-     "en": "Otoro Don",
-     "price": 390,
-     "g": "g-otoro",
-     "e": "🍚",
-     "sig": 0,
-     "hot": 0,
-     "sold": 0,
-     "photos": [],
-     "fish": [],
-     "feat": 0
+     "price": 209
     }
    ]
   },
