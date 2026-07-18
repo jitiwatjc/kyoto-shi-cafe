@@ -267,7 +267,7 @@
     <div class="fld"><label>คำอธิบายสั้น (อังกฤษ)</label><textarea id="fDen"></textarea></div>
 
     <label style="font-size:11.5px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px">ราคา</label>
-    <div class="ptype">
+    <div class="ptype" id="ptWrap">
       <button id="ptSingle" onclick="setPT(0)">ราคาเดียว</button>
       <button id="ptOpts" onclick="setPT(1)">มีตัวเลือก/ท็อปปิ้ง</button>
     </div>
@@ -278,9 +278,8 @@
     </div>
 
     <div class="chks">
-      <label class="chk"><input type="checkbox" id="fSig"> ★ เมนูแนะนำ</label>
-      <label class="chk"><input type="checkbox" id="fHot"> 🌶 เผ็ด</label>
-      <label class="chk"><input type="checkbox" id="fFeat"> โชว์การ์ดใหญ่ด้านบน</label>
+      <label class="chk"><input type="checkbox" id="fSig"> ★ เมนูแนะนำ (ขึ้นการ์ดใหญ่หัวหมวด)</label>
+      <label class="chk" id="hotChk"><input type="checkbox" id="fHot"> 🌶 เผ็ด</label>
     </div>
 
     <div class="fld" id="modsWrap" style="display:none">
@@ -766,17 +765,29 @@ function fill(it){
   document.getElementById('fPrice').value=it.price||'';
   document.getElementById('fSig').checked=!!it.sig;
   document.getElementById('fHot').checked=!!it.hot;
-  document.getElementById('fFeat').checked=!!it.feat;
   document.getElementById('fEmoji').value=it.e||'🍽';
   document.getElementById('fG').value=it.g||'g-rice';
   EDITOPTS=(it.opts||[]).map(function(o){return{th:o.th,en:o.en,price:o.price}});
   EDITPHOTOS=(it.photos||[]).slice();
-  setPT(it.opts&&it.opts.length?1:0);
-  renderOpts();renderPhotos();renderModsChks(it.mods||[]);renderFishChks(it);
+  /* ── โชว์เฉพาะ field ที่เกี่ยวกับหมวดของเมนูนี้ ── */
+  var grp=editGroup();
+  var isDrink=grp==='drink', isJp=grp==='jp';
+  var canHot=(grp==='thai'||grp==='jp'||grp==='snack');
+  document.getElementById('hotChk').style.display=canHot?'':'none';
+  if(!canHot)document.getElementById('fHot').checked=false;
+  document.getElementById('ptWrap').style.display=isDrink?'none':'';
+  setPT(isDrink?0:(it.opts&&it.opts.length?1:0));
+  renderOpts();renderPhotos();
+  renderModsChks(isDrink?(it.mods||[]):null);
+  renderFishChks(isJp?it:null);
+}
+function editGroup(){
+  var c=DATA.categories[EC];
+  return (c&&c.group)||'';
 }
 function renderFishChks(it){
   var fs=DATA.fish||[],wrap=document.getElementById('fishWrap');
-  if(!fs.length){wrap.style.display='none';return;}
+  if(it===null||!fs.length){wrap.style.display='none';return;}
   wrap.style.display='';
   var sel={};(it.fish||[]).forEach(function(x){sel[x.f]=x.n||''});
   document.getElementById('fishChks').innerHTML=fs.map(function(f){
@@ -788,7 +799,7 @@ function renderFishChks(it){
 }
 function renderModsChks(sel){
   var mg=DATA.modGroups||{},keys=Object.keys(mg),wrap=document.getElementById('modsWrap');
-  if(!keys.length){wrap.style.display='none';return;}
+  if(sel===null||!keys.length){wrap.style.display='none';return;}
   wrap.style.display='';sel=sel||[];
   document.getElementById('modsChks').innerHTML=keys.map(function(k){
     var lb=(mg[k].lb&&mg[k].lb.th)||k;
@@ -869,15 +880,19 @@ function applyE(){
   var dth=document.getElementById('fDth').value.trim(),den=document.getElementById('fDen').value.trim();
   if(dth||den)it.d={th:dth,en:den};else delete it.d;
   it.sig=document.getElementById('fSig').checked?1:0;
-  it.hot=document.getElementById('fHot').checked?1:0;
-  it.feat=document.getElementById('fFeat').checked?1:0;
+  var grpA=editGroup();
+  var canHotA=(grpA==='thai'||grpA==='jp'||grpA==='snack');
+  it.hot=(canHotA&&document.getElementById('fHot').checked)?1:0;
   it.e=document.getElementById('fEmoji').value.trim()||'🍽';
   it.g=document.getElementById('fG').value;
   it.photos=EDITPHOTOS.slice();
-  var mods=[].slice.call(document.querySelectorAll('#modsChks input:checked')).map(function(c){return c.value});
-  if(mods.length)it.mods=mods;else delete it.mods;
-  /* ปลาในจาน */
-  if((DATA.fish||[]).length){
+  /* ตัวปรับเครื่องดื่ม — เฉพาะหมวดเครื่องดื่ม */
+  if(grpA==='drink'){
+    var mods=[].slice.call(document.querySelectorAll('#modsChks input:checked')).map(function(c){return c.value});
+    if(mods.length)it.mods=mods;else delete it.mods;
+  }else{delete it.mods;}
+  /* ปลาในจาน — เฉพาะอาหารญี่ปุ่น */
+  if(grpA==='jp'&&(DATA.fish||[]).length){
     var fsel=[];
     [].slice.call(document.querySelectorAll('#fishChks .fchk:checked')).forEach(function(cb){
       var cnt=document.querySelector('#fishChks .fcnt[data-f="'+cb.value+'"]');
@@ -888,7 +903,8 @@ function applyE(){
     if(fsel.length)it.fish=fsel;else delete it.fish;
     var svt=GV('fServeTh').trim(),sve=GV('fServeEn').trim();
     if(svt||sve)it.serve={th:svt,en:sve};else delete it.serve;
-  }
+  }else{delete it.fish;delete it.serve;}
+  if(grpA==='drink'&&PTMODE)setPT(0);
   if(PTMODE){
     it.opts=EDITOPTS.filter(function(o){return o.th&&o.price>0});
     if(!it.opts.length)return toast('ใส่ตัวเลือกอย่างน้อย 1 รายการ (ชื่อ+ราคา)');
