@@ -307,7 +307,7 @@
       <label>🍣 ปลาดิบในจาน (สำหรับเซ็ต/ด้งปลาดิบ — ลูกค้าแตะดูรายละเอียดปลาได้ + มีรายการ "เพิ่มปลา" อัตโนมัติ)</label>
       <div id="fishChks"></div>
       <div class="frow" style="margin-top:8px">
-        <div class="fld"><label>เสิร์ฟ (ไทย) เช่น 1 คน · 9 คำ</label><input type="text" id="fServeTh"></div>
+        <div class="fld"><label>เสิร์ฟ (ไทย) เช่น 1 คน · 4 เสิร์ฟ</label><input type="text" id="fServeTh"></div>
         <div class="fld"><label>Serves (EN)</label><input type="text" id="fServeEn"></div>
       </div>
     </div>
@@ -421,8 +421,8 @@
       <div class="fld"><label>ราคาเพิ่มต่อส่วน (บาท)</label><input type="number" id="fhAdd" min="0"></div>
     </div>
     <div class="frow">
-      <div class="fld"><label>ปริมาณต่อส่วน (ไทย) เช่น 50 กรัม</label><input type="text" id="fhPth"></div>
-      <div class="fld"><label>Portion (EN) e.g. 50g</label><input type="text" id="fhPen"></div>
+      <div class="fld"><label>ปริมาณต่อ 1 เสิร์ฟ (ไทย) เช่น 50 กรัม</label><input type="text" id="fhPth"></div>
+      <div class="fld"><label>Portion / 1 serving (EN) e.g. 50g</label><input type="text" id="fhPen"></div>
     </div>
     <div class="frow">
       <div class="fld"><label>แหล่งที่มา (ไทย)</label><input type="text" id="fhOth" placeholder="นอร์เวย์"></div>
@@ -915,7 +915,7 @@ function renderFishChks(it){
     return '<div class="fishrow'+(on?' on':'')+'">'
       +'<label class="fchk-lbl"><input type="checkbox" class="fchk" value="'+f.id+'"'+(on?' checked':'')
       +' onchange="this.closest(\'.fishrow\').classList.toggle(\'on\',this.checked)"><span>'+f.nm+'</span></label>'
-      +'<div class="fcnt-wrap"><input class="opr fcnt" data-f="'+f.id+'" type="number" min="0" placeholder="0" value="'+(on&&sel[f.id]?sel[f.id]:'')+'"><span class="unit">คำ</span></div>'
+      +'<div class="fcnt-wrap"><input class="opr fcnt" data-f="'+f.id+'" type="number" min="0" placeholder="0" value="'+(on&&sel[f.id]?sel[f.id]:'')+'"><span class="unit">เสิร์ฟ</span></div>'
       +'</div>';
   }).join('');
   V('fServeTh',it.serve?it.serve.th:'');V('fServeEn',it.serve?it.serve.en:'');

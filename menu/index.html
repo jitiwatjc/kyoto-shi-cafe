@@ -809,14 +809,22 @@ function modGroupHTML(key){
   }
   return h+'</div>';
 }
+function servGrams(f,cnt){
+  var p=t(f.portion)||'';var m=p.match(/(\d+(?:\.\d+)?)/);
+  if(!m||!cnt)return'';
+  var tot=Math.round(parseFloat(m[1])*cnt*100)/100;
+  return p.replace(m[1],tot);
+}
 function fishRow(fid,cnt,addMode){
   var f=fishById(fid);if(!f)return'';
   var note=tn(f.notes).slice(0,2).join(' · ');
   var right=addMode
     ? '<div class="fright"><div class="fp">'+t(f.portion)+'</div><div class="fadd">+฿'+f.add+'</div></div>'
     : '<span class="iic">i</span>';
+  var cntTxt='';
+  if(cnt){cntTxt='×'+cnt+' '+(LANG==='th'?'เสิร์ฟ':'srv');var g=servGrams(f,cnt);if(g)cntTxt+=' · '+g;}
   return '<div class="frowd" onclick="openFish(\''+fid+'\')"><div class="fd '+(f.g||'g-fish')+'">'+(f.e||'🐟')+'</div>'
-    +'<div class="fi"><div class="fn">'+f.nm+(cnt?'<span class="cnt">×'+cnt+' '+(LANG==='th'?'คำ':'pc')+'</span>':'')+'</div>'
+    +'<div class="fi"><div class="fn">'+f.nm+(cntTxt?'<span class="cnt">'+cntTxt+'</span>':'')+'</div>'
     +'<div class="fnote">'+note+'</div></div>'+right+'</div>';
 }
 function addFishHTML(){
