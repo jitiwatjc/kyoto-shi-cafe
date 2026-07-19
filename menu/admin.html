@@ -190,6 +190,17 @@
   .addopt{background:none;border:1px dashed var(--line);color:var(--gold);width:100%;padding:8px;
     border-radius:10px;font-size:12.5px;cursor:pointer;margin-top:4px}
 
+  /* fish-in-dish selector (เฉพาะซาชิมิ / ด้งปลาดิบ) */
+  #fishChks .fishrow{display:flex;align-items:center;gap:10px;background:var(--card);
+    border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:7px;transition:border-color .15s}
+  #fishChks .fishrow.on{border-color:rgba(201,162,94,.55);background:var(--card2)}
+  #fishChks .fchk-lbl{flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13.5px;font-weight:600}
+  #fishChks .fchk-lbl input[type=checkbox]{flex:none;width:19px;height:19px;accent-color:#c9a25e;margin:0}
+  #fishChks .fchk-lbl span{min-width:0;line-height:1.3;word-break:break-word}
+  #fishChks .fcnt-wrap{flex:none;display:flex;align-items:center;gap:6px}
+  #fishChks .fcnt-wrap .unit{font-size:11.5px;color:var(--muted)}
+  #fishChks .fcnt{width:62px;flex:none;text-align:center}
+
   /* photos in modal */
   .pgrid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
   .pgrid .pth{width:72px;height:72px;border-radius:10px;overflow:hidden;position:relative;border:1px solid var(--line)}
@@ -885,21 +896,27 @@ function fill(it){
   setPT(isDrink?0:(it.opts&&it.opts.length?1:0));
   renderOpts();renderPhotos();
   renderModsChks(isDrink?(it.mods||[]):null);
-  renderFishChks(isJp?it:null);
+  renderFishChks((isJp&&catHasFish(EC))?it:null);
 }
 function editGroup(){
   var c=DATA.categories[EC];
   return (c&&c.group)||'';
 }
+/* ปลาดิบในจาน โชว์เฉพาะหมวดย่อย ซาชิมิ + ข้าวด้งปลาดิบ */
+var FISH_CATS={jp_sets:1,jp_dons:1};
+function catHasFish(ci){var c=DATA.categories[ci];return !!(c&&FISH_CATS[c.id]);}
 function renderFishChks(it){
   var fs=DATA.fish||[],wrap=document.getElementById('fishWrap');
-  if(it===null||!fs.length){wrap.style.display='none';return;}
+  if(it===null||!fs.length){wrap.style.display='none';document.getElementById('fishChks').innerHTML='';V('fServeTh','');V('fServeEn','');return;}
   wrap.style.display='';
   var sel={};(it.fish||[]).forEach(function(x){sel[x.f]=x.n||''});
   document.getElementById('fishChks').innerHTML=fs.map(function(f){
     var on=sel.hasOwnProperty(f.id);
-    return '<div class="oprow"><label class="chk" style="flex:1;min-width:0"><input type="checkbox" class="fchk" value="'+f.id+'"'+(on?' checked':'')+'> '+f.nm+'</label>'
-      +'<input class="opr fcnt" data-f="'+f.id+'" type="number" min="0" placeholder="คำ" value="'+(on&&sel[f.id]?sel[f.id]:'')+'"></div>';
+    return '<div class="fishrow'+(on?' on':'')+'">'
+      +'<label class="fchk-lbl"><input type="checkbox" class="fchk" value="'+f.id+'"'+(on?' checked':'')
+      +' onchange="this.closest(\'.fishrow\').classList.toggle(\'on\',this.checked)"><span>'+f.nm+'</span></label>'
+      +'<div class="fcnt-wrap"><input class="opr fcnt" data-f="'+f.id+'" type="number" min="0" placeholder="0" value="'+(on&&sel[f.id]?sel[f.id]:'')+'"><span class="unit">คำ</span></div>'
+      +'</div>';
   }).join('');
   V('fServeTh',it.serve?it.serve.th:'');V('fServeEn',it.serve?it.serve.en:'');
 }
@@ -997,8 +1014,8 @@ function applyE(){
     var mods=[].slice.call(document.querySelectorAll('#modsChks input:checked')).map(function(c){return c.value});
     if(mods.length)it.mods=mods;else delete it.mods;
   }else{delete it.mods;}
-  /* ปลาในจาน — เฉพาะอาหารญี่ปุ่น */
-  if(grpA==='jp'&&(DATA.fish||[]).length){
+  /* ปลาในจาน — เฉพาะซาชิมิ + ข้าวด้งปลาดิบ */
+  if(grpA==='jp'&&catHasFish(EC)&&(DATA.fish||[]).length){
     var fsel=[];
     [].slice.call(document.querySelectorAll('#fishChks .fchk:checked')).forEach(function(cb){
       var cnt=document.querySelector('#fishChks .fcnt[data-f="'+cb.value+'"]');
