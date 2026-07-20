@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Kyoto Shi Café — System</title>
-<meta name="app-build" content="20260711-222746">
+<meta name="app-build" content="20260720-105600">
 <script>try{if(localStorage.getItem('kyoto_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -665,7 +665,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
 
 <!-- ════ EMPLOYEE PROFILE (Owner View) ════ -->
 <div id="s-emp-profile-view" class="sc">
-  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์พนักงาน</div><button class="topbar-action" onclick="go('s-emp-profile-edit')">แก้ไข</button></div>
+  <div class="topbar"><button class="topbar-back" onclick="back()">←</button><div class="topbar-title">โปรไฟล์พนักงาน</div><button class="topbar-action" id="view-edit-btn" onclick="go('s-emp-profile-edit')">แก้ไข</button></div>
   <div class="page">
     <div style="text-align:center;padding:20px 0 16px;">
       <div class="lavatar" id="view-avatar" style="width:72px;height:72px;font-size:26px;background:#2B2B2B;margin:0 auto 12px;">—</div>
@@ -1078,6 +1078,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
         <div class="fg"><label class="t-label">ชื่อ *</label><input class="fi" id="edit-fname" placeholder="ชื่อจริง"></div>
         <div class="fg"><label class="t-label">นามสกุล *</label><input class="fi" id="edit-lname" placeholder="นามสกุล"></div>
       </div>
+      <div class="fg"><label class="t-label">ชื่อเล่น</label><input class="fi" id="edit-nickname" placeholder="ชื่อเล่นที่ใช้แสดงในระบบ"></div>
       <div class="fg"><label class="t-label">เบอร์โทร *</label><input class="fi" id="edit-phone" placeholder="0xx-xxx-xxxx"></div>
       <div class="fg"><label class="t-label">เลขบัตรประชาชน</label><input class="fi" id="edit-idcard" placeholder="x-xxxx-xxxxx-xx-x"></div>
       <div class="fg"><label class="t-label">วันเกิด</label><input class="fi" type="date" id="edit-dob"></div>
@@ -1123,7 +1124,7 @@ input[type="date"].fi,input[type="time"].fi,input[type="datetime-local"].fi{-web
     <div class="card">
       <div class="card-title" style="margin-bottom:14px;">บัญชีธนาคาร</div>
       <div class="fg"><label class="t-label">ธนาคาร</label>
-        <select class="fi fi-sel" id="edit-bank"><option value="KBank">กสิกรไทย (KBank)</option><option value="SCB">ไทยพาณิชย์ (SCB)</option><option value="KTB">กรุงไทย (KTB)</option></select></div>
+        <select class="fi fi-sel" id="edit-bank"><option value="กสิกรไทย (KBank)">กสิกรไทย (KBank)</option><option value="ไทยพาณิชย์ (SCB)">ไทยพาณิชย์ (SCB)</option><option value="กรุงไทย (KTB)">กรุงไทย (KTB)</option></select></div>
       <div class="fg2">
         <div class="fg"><label class="t-label">เลขบัญชี</label><input class="fi" id="edit-bankAcc" placeholder="xxx-x-xxxxx-x"></div>
         <div class="fg"><label class="t-label">ชื่อบัญชี</label><input class="fi" id="edit-bankAccName" placeholder="ชื่อ-นามสกุล ตามบัญชี"></div>
@@ -2786,19 +2787,33 @@ function updateKitchenDerived(){
 async function saveProfile(empId){
   const id=empId||_viewingEmpId||'';
   if(!id){toast('ไม่พบข้อมูลพนักงาน');return;}
+  // กันแก้บัญชี Owner (ฟอร์มไม่มีตัวเลือก Owner → บันทึก = สิทธิ์ Owner หาย) — backend กันซ้ำอีกชั้น
+  const _cur=_empListCache.find(x=>String(x.id)===String(id));
+  if(_cur&&_cur.type==='Owner'){toast('⚠ บัญชี Owner แก้ไขผ่านแอปไม่ได้');return;}
   const fname=(document.getElementById('edit-fname')?.value||'').trim();
   const lname=(document.getElementById('edit-lname')?.value||'').trim();
-  const fields={empId:id,name:fname&&lname?fname+' '+lname:fname||lname};
-  ['phone','idcard','dob','addr','position','type','status','startdate','salary','otrate','bank','bankAcc','bankAccName','ptRate','ptRateHol'].forEach(f=>{
+  const name=fname&&lname?fname+' '+lname:fname||lname;
+  if(!name){toast('⚠ กรุณากรอกชื่อพนักงาน');return;}
+  const fields={empId:id,name};
+  ['nickname','phone','idcard','dob','addr','position','type','status','startdate','bank','bankAcc','bankAccName'].forEach(f=>{
     const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
   });
+  // ส่งเฉพาะฟิลด์เงินเดือนของประเภทที่เลือกอยู่ — ฟิลด์อีกชุดถูกซ่อน+ว่าง ส่งไปจะเขียนค่าว่างทับของเดิม
+  const _isPT=fields.type==='Part-time';
+  (_isPT?['ptRate','ptRateHol']:['salary','otrate']).forEach(f=>{
+    const el=document.getElementById('edit-'+f);if(el)fields[f]=el.value;
+  });
+  // เก็บ status เป็นตัวพิมพ์ใหญ่ให้ตรงรูปแบบเดิมในชีต (approveEmployee เขียน 'Active')
+  const _stMap={active:'Active',suspended:'Suspended',inactive:'Inactive',pending:'Pending',rejected:'Rejected'};
+  if(fields.status&&_stMap[fields.status])fields.status=_stMap[fields.status];
   // ครัวกำหนดอัตโนมัติจากตำแหน่ง (ไม่มีฟิลด์ให้ตั้งมือแล้ว)
   fields.kitchen=kitchenFromPosition(fields.position);
   const saveBtns=[...document.querySelectorAll('#s-emp-profile-edit .btn-success,#s-emp-profile-edit .topbar-action')];
   saveBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';b.textContent='กำลังบันทึก...';});
   try{
     const res=await callAPI({action:'updateEmployee',data:JSON.stringify(fields)});
-    if(res.ok){toast('บันทึกข้อมูลเรียบร้อย ✓');setTimeout(()=>{back();back();},1200);}
+    // กลับหน้ารายชื่อแล้วโหลดข้อมูลใหม่ทันที — เดิม back() ไม่ re-render ทำให้เห็นค่าเก่าเหมือน "บันทึกไม่ได้"
+    if(res.ok){toast('บันทึกข้อมูลเรียบร้อย ✓');setTimeout(()=>{back();back();renderEmpList();},1200);}
     else toast('เกิดข้อผิดพลาด: '+res.error);
   }catch(e){toast('ไม่สามารถเชื่อมต่อได้');}
   finally{
@@ -2968,7 +2983,7 @@ async function renderAttendanceExport(){
   try{
     const res=await callAPI({action:'getEmployees'});
     const emps=(res.ok&&res.data)?res.data:[];
-    const visible=emps.filter(e=>e.status!=='inactive');
+    const visible=emps.filter(e=>e.status!=='inactive'&&e.type!=='Owner');   // Owner ไม่มีบันทึกเวลา — ไม่ต้องอยู่ใน dropdown
     if(visible.length){
       empSel.innerHTML=visible.map(e=>`<option value="${e.id||e.empId}">${e.name} — ${e.position||''}</option>`).join('');
       _empListCache=emps;
@@ -3652,11 +3667,13 @@ function renderEmpListUI(emps){
   const container=document.getElementById('emp-list-container');
   if(!container)return;
   if(!emps.length){container.innerHTML='<div style="color:var(--ink3);font-size:13px;padding:8px 0;">ไม่พบพนักงาน</div>';return;}
-  const groups={active:[],probation:[],parttime:[],inactive:[]};
+  const groups={pending:[],active:[],probation:[],parttime:[],inactive:[]};
   emps.forEach(e=>{
-    if(e.status==='inactive')groups.inactive.push(e);
+    if(e.type==='Owner')return;                                    // บัญชี Owner ไม่แสดง — แก้ผ่านแอปแล้วสิทธิ์ Owner จะหาย
+    if(e.status==='pending')groups.pending.push(e);                // รออนุมัติ — ห้ามปนกลุ่ม Active (เดิมโชว์เป็น Active ทั้งที่ยังไม่อนุมัติ)
+    else if(e.status==='inactive'||e.status==='rejected')groups.inactive.push(e);
     else if(e.type==='Part-time')groups.parttime.push(e);
-    else if(e.status==='probation'||e.probationEnd)groups.probation.push(e);
+    else if(e.status==='probation'||e.probationEnd||e.type==='Probation')groups.probation.push(e);
     else groups.active.push(e);
   });
   const renderGroup=(list,label,chipClass,chipText)=>{
@@ -3675,6 +3692,7 @@ function renderEmpListUI(emps){
     </div></div>`;
   };
   container.innerHTML=
+    renderGroup(groups.pending,'รออนุมัติบัญชี','chip-amber','รออนุมัติ')+
     renderGroup(groups.active,'Active','chip-green','Active')+
     renderGroup(groups.probation,'ทดลองงาน (Probation)','chip-amber','Probation')+
     renderGroup(groups.parttime,'Part-time','chip-blue','PT')+
@@ -3705,13 +3723,15 @@ function viewEmpProfile(empId){
   const statusChip=document.getElementById('view-status-chip');
   const statusEl=document.getElementById('view-status');
   const accEl=document.getElementById('view-acc-status');
-  if(statusChip){
-    const s=e.status||'';
-    statusChip.textContent=s==='active'?'Active':s==='probation'?'Probation':'Inactive';
-    statusChip.className='chip '+(s==='active'?'chip-green':s==='probation'?'chip-amber':'chip-red');
-  }
-  if(statusEl)statusEl.innerHTML=`<span class="chip ${e.status==='active'?'chip-green':e.status==='probation'?'chip-amber':'chip-red'}">${e.status==='active'?'Active':e.status==='probation'?'Probation':'Inactive'}</span>`;
-  if(accEl)accEl.innerHTML=`<span class="chip chip-green">Active ✓</span>`;
+  // สถานะทุกจุดใช้ map เดียวกันตามค่าจริง (เดิม: pending โชว์ Inactive และการ์ดบัญชี hardcode "Active ✓" เสมอ)
+  const ST_MAP={active:['Active','chip-green'],probation:['Probation','chip-amber'],pending:['รออนุมัติ','chip-amber'],suspended:['ระงับชั่วคราว','chip-red'],inactive:['ออกจากงาน','chip-red'],rejected:['ถูกปฏิเสธ','chip-red']};
+  const st=ST_MAP[e.status]||[e.status||'—','chip-gray'];
+  if(statusChip){statusChip.textContent=st[0];statusChip.className='chip '+st[1];}
+  if(statusEl)statusEl.innerHTML=`<span class="chip ${st[1]}">${st[0]}</span>`;
+  if(accEl)accEl.innerHTML=`<span class="chip ${st[1]}">${st[0]}${e.status==='active'?' ✓':''}</span>`;
+  // รออนุมัติ/ถูกปฏิเสธ → ห้ามแก้ผ่านฟอร์มนี้ (เดิม: กดบันทึกแล้ว status เด้งเป็น active = ข้ามขั้นตอนอนุมัติ)
+  const editBtn=document.getElementById('view-edit-btn');
+  if(editBtn)editBtn.style.display=(e.status==='pending'||e.status==='rejected')?'none':'';
   // Pre-fill edit form
   const nameParts=(e.name||'').split(' ');
   const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
@@ -3719,6 +3739,7 @@ function viewEmpProfile(empId){
   setTextEl('edit-avatar',letter);
   setVal('edit-fname',nameParts[0]||'');
   setVal('edit-lname',nameParts.slice(1).join(' ')||'');
+  setVal('edit-nickname',e.nickname||'');
   setVal('edit-phone',e.phone||'');
   setVal('edit-idcard',e.idcard||'');
   setVal('edit-dob',e.dob||'');
@@ -3732,9 +3753,20 @@ function viewEmpProfile(empId){
   ['edit-position','edit-type','edit-status','edit-bank'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
+    // ลบ option ชั่วคราวที่ค้างจากการเปิดโปรไฟล์คนก่อนหน้า
+    [...sel.querySelectorAll('option[data-tmp]')].forEach(o=>o.remove());
     const key=id.replace('edit-','');
     const val=e[key]||'';
-    for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===val){sel.selectedIndex=i;break;}}
+    let idx=-1;
+    for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===val){idx=i;break;}}
+    if(idx>=0){sel.selectedIndex=idx;}
+    else if(val){
+      // ค่าจริงในชีตไม่ตรงกับตัวเลือกใดเลย → เพิ่ม option ชั่วคราวโชว์ค่าจริง
+      // (เดิม: select ค้างค่าของคนก่อนหน้า/ค่า default → กดบันทึก = เขียนค่าผิดทับลงชีต)
+      const o=document.createElement('option');o.value=val;o.textContent=val+' (ค่าเดิมในระบบ)';o.setAttribute('data-tmp','1');
+      sel.appendChild(o);sel.value=val;
+    }
+    else sel.selectedIndex=0;
   });
   editTypeChanged();
   updateKitchenDerived();
