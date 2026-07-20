@@ -139,6 +139,12 @@ function login(username, password) {
         nickname: row[4] || row[1],
         position: row[5],
         type:     row[6],
+        // ข้อมูลเพิ่มสำหรับหน้าโปรไฟล์ตัวเอง (เดิมไม่ส่ง → หน้าโปรไฟล์ขึ้น "—" ตลอด)
+        startDate: row[9] ? fmtMaybe(row[9]) : '',
+        phone:     row[12] || '',
+        bank:      row[8]  || '',
+        bankAcc:   row[16] || '',
+        kitchen:   row[21] || '',
       };
     }
   }
@@ -190,11 +196,13 @@ function registerEmployee(p) {
   const ss  = openSS();
   const sh  = ss.getSheetByName(SH.EMPLOYEES);
   const data = sh.getDataRange().getValues();
-  // Prevent duplicate registrations — reject if this username already exists (any status)
+  // Prevent duplicate registrations — reject if this username already exists
+  // (ยกเว้นแถวที่ถูก Rejected ไปแล้ว — ให้สมัครใหม่ด้วย username เดิมได้)
   const uname = String(p.username || '').trim().toLowerCase();
   if (uname) {
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][2] || '').trim().toLowerCase() === uname) {
+      const st = String(data[i][10] || '').trim().toLowerCase();
+      if (String(data[i][2] || '').trim().toLowerCase() === uname && st !== 'rejected') {
         return { ok: false, error: 'Username นี้ถูกใช้ไปแล้ว กรุณาเลือกชื่ออื่น' };
       }
     }
@@ -225,6 +233,7 @@ function registerEmployee(p) {
     p.note        || '',          // [18]
     p.otrate      || '',          // [19]
     p.pdpaConsent ? (p.pdpaConsent + ' | ' + fmtDateTime(new Date())) : '',  // [20] PDPA consent version + timestamp
+    p.kitchen     || '',          // [21] ครัว (เดิมถูกทิ้ง → Sidework มองไม่เห็นงานครัวของพนักงานใหม่)
   ]);
   return { ok: true, empId: newId };
 }
@@ -276,7 +285,12 @@ function updateEmployee(p) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === p.empId) {
       const r = i + 1;
-      if (p.name        !== undefined) sh.getRange(r, 2).setValue(p.name);
+      // ป้องกันบัญชี Owner: ฟอร์มแก้ไขไม่มีตัวเลือก type/position 'Owner' → บันทึกทับ = สิทธิ์ Owner หาย ล็อกเอาต์ถาวร
+      if (String(data[i][6] || '').trim() === 'Owner') {
+        return { ok: false, error: 'บัญชี Owner แก้ไขผ่านแอปไม่ได้ — แก้ใน Google Sheet โดยตรง' };
+      }
+      // กันเขียนชื่อว่างทับ (ฟอร์มไม่ได้กรอก → ชื่อพนักงานหายทั้งแถว)
+      if (p.name        !== undefined && String(p.name).trim() !== '') sh.getRange(r, 2).setValue(p.name);
       if (p.nickname    !== undefined) sh.getRange(r, 5).setValue(p.nickname);
       if (p.position    !== undefined) sh.getRange(r, 6).setValue(p.position);
       if (p.type        !== undefined) sh.getRange(r, 7).setValue(p.type);
@@ -1528,6 +1542,8 @@ function getPendingApprovals() {
         dob:         fmtMaybe(empData[i][15]),
         bankAcc:     empData[i][16] || '',
         bankAccName: empData[i][17] || '',
+        // เวลาสมัคร = timestamp ที่แนบไว้ใน PDPA consent ("v1.0 | 2026-07-20 10:12:33")
+        submittedAt: String(empData[i][20] || '').split('|')[1] ? String(empData[i][20]).split('|')[1].trim() : '',
       });
     }
   }
